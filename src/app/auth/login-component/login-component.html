@@ -1,0 +1,10 @@
+<h1>Login</h1>
+@let flowVal = flow();
+@if (flowVal !== null) {
+  <app-kratos-form-component
+    [ui]="flowVal.ui"
+    (submitForm)="onSubmit($event)"
+  ></app-kratos-form-component>
+} @else {
+  <p>Loading login flow...</p>
+}

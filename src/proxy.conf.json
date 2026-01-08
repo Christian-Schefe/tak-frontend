@@ -1,0 +1,6 @@
+{
+  "/auth/**": {
+    "target": "https://localhost/",
+    "secure": false
+  }
+}

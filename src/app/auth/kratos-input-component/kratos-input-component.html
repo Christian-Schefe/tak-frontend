@@ -1,0 +1,79 @@
+@let attrs = attributes();
+@let label = meta().label?.text ?? '';
+@switch (attrs.type) {
+  @case ('submit') {
+    <button
+      class="kratos-button"
+      [disabled]="attrs.disabled"
+      [name]="attrs.name"
+      [type]="attrs.type"
+      [value]="attrs.value"
+      (click)="onSubmit(attrs.value)"
+    >
+      {{ label }}
+    </button>
+  }
+  @case ('button') {
+    <button
+      class="kratos-button"
+      [disabled]="attrs.disabled"
+      [name]="attrs.name"
+      [type]="attrs.type"
+    >
+      {{ label }}
+    </button>
+  }
+  @case ('hidden') {
+    <input
+      [id]="'kratos-hidden-' + attrs.name"
+      [name]="attrs.name"
+      [type]="attrs.type"
+      [value]="attrs.value"
+      hidden
+    />
+  }
+  @case ('checkbox') {
+    <label [for]="'kratos-checkbox-' + attrs.name" class="kratos-checkbox-label">
+      {{ label }}
+      @if (attrs.required) {
+        *
+      }
+    </label>
+    <input
+      [id]="'kratos-checkbox-' + attrs.name"
+      class="kratos-checkbox"
+      [disabled]="attrs.disabled"
+      [name]="attrs.name"
+      [required]="attrs.required ?? false"
+      [type]="attrs.type"
+      [(ngModel)]="value"
+    />
+  }
+  @default {
+    <label [for]="'kratos-input-' + attrs.name"
+      >{{ label }}
+      @if (attrs.required) {
+        <span class="kratos-required-indicator">*</span>
+      }
+    </label>
+    <input
+      #inputElement="ngModel"
+      [id]="'kratos-input-' + attrs.name"
+      class="kratos-input"
+      [class.kratos-input-error]="!validity() && (inputElement.dirty || inputElement.touched)"
+      [disabled]="attrs.disabled"
+      [autocomplete]="attrs.autocomplete"
+      [maxlength]="attrs.maxlength ?? null"
+      [name]="attrs.name"
+      [required]="attrs.required ?? false"
+      [type]="attrs.type"
+      [attr.pattern]="attrs.pattern ?? null"
+      [(ngModel)]="value"
+    />
+  }
+}
+@for (item of messages(); track $index) {
+  <div class="kratos-input-message kratos-input-message-{{ item.type }}">
+    {{ item.text }}
+  </div>
+}

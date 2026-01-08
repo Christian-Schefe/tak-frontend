@@ -1,0 +1,8 @@
+@if (showRegistration()) {
+  <app-registration-component></app-registration-component>
+} @else {
+  <app-login-component></app-login-component>
+}
+<button (click)="toggleShowRegistration()">
+  Switch to {{ showRegistration() ? 'Login' : 'Registration' }}
+</button>

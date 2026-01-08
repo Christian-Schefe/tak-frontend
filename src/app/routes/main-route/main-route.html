@@ -1,0 +1,7 @@
+@if (authService.isLoggedIn() === false) {
+  <app-auth-route></app-auth-route>
+} @else if (authService.isLoggedIn() === true) {
+  <a class="auth-link" routerLink="/logout">Logout</a>
+} @else {
+  <p>Loading authentication status...</p>
+}
