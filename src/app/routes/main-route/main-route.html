@@ -1,7 +1,11 @@
-@if (authService.isLoggedIn() === false) {
-  <app-auth-route></app-auth-route>
-} @else if (authService.isLoggedIn() === true) {
-  <a class="auth-link" routerLink="/logout">Logout</a>
-} @else {
-  <p>Loading authentication status...</p>
-}
+@let authState = authService.authState();
+<div class="actions">
+  @if (authState.type !== 'logged_in') {
+    <a class="tak-button" routerLink="/authenticate">Sign In</a>
+    <button class="tak-button">Continue as Guest</button>
+  } @else {
+    <a class="tak-button" routerLink="/app">Continue</a>
+    <button class="tak-button" (click)="onLogout()">Logout</button>
+  }
+</div>
+<div><h1>Events</h1></div>

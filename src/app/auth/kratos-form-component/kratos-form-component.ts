@@ -2,10 +2,11 @@ import { Component, computed, input, linkedSignal, output, signal } from '@angul
 import { UiContainer, UiNodeInputAttributes } from '@ory/client';
 import { FormsModule } from '@angular/forms';
 import { KratosInputComponent } from '../kratos-input-component/kratos-input-component';
+import { RouterLink } from "@angular/router";
 
 @Component({
   selector: 'app-kratos-form-component',
-  imports: [FormsModule, KratosInputComponent],
+  imports: [FormsModule, KratosInputComponent, RouterLink],
   templateUrl: './kratos-form-component.html',
   styleUrl: './kratos-form-component.css',
 })

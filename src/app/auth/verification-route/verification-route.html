@@ -1,10 +1,10 @@
-<h1>Login</h1>
-@let flowVal = flow();
-@if (flowVal !== null) {
+@let flowVal = flow.value();
+<h1>Verify Your Account</h1>
+@if (flowVal !== undefined) {
   <app-kratos-form-component
     [ui]="flowVal.ui"
     (submitForm)="onSubmit($event)"
   ></app-kratos-form-component>
 } @else {
-  <p>Loading login flow...</p>
+  <p>Loading verification flow...</p>
 }

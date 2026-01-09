@@ -2,5 +2,13 @@
   "/auth/**": {
     "target": "https://localhost/",
     "secure": false
+  },
+  "/api/**": {
+    "target": "https://localhost/",
+    "secure": false
+  },
+  "/api2/**": {
+    "target": "https://localhost/",
+    "secure": false
   }
 }

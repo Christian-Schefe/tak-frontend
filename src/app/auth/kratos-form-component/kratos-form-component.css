@@ -1,6 +1,12 @@
-.kratos-form {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    border: 1px solid #ddd;
+:host {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  align-self: stretch;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
 }

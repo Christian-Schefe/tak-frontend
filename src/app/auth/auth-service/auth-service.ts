@@ -1,6 +1,23 @@
 import { computed, Injectable, resource } from '@angular/core';
 import { kratos } from '../kratos';
-import { UpdateLoginFlowBody, UpdateRegistrationFlowBody } from '@ory/client';
+import {
+  Session,
+  UpdateLoginFlowBody,
+  UpdateRegistrationFlowBody,
+  UpdateVerificationFlowBody,
+} from '@ory/client';
+
+type AuthState =
+  | {
+      type: 'loading';
+    }
+  | {
+      type: 'logged_out';
+    }
+  | {
+      type: 'logged_in';
+      session: Session;
+    };
 
 @Injectable({
   providedIn: 'root',
@@ -8,17 +25,44 @@ import { UpdateLoginFlowBody, UpdateRegistrationFlowBody } from '@ory/client';
 export class AuthService {
   private sessionResource = resource({
     loader: async () => {
-      return await this.getSession();
+      try {
+        const newSession = await kratos.toSession();
+        return newSession.data;
+      } catch {
+        return null;
+      }
     },
   });
 
-  isLoggedIn = computed(() => {
-    if (this.sessionResource.hasValue()) {
-      return this.sessionResource.value() !== null;
+  authState = computed<AuthState>(() => {
+    if (!this.sessionResource.hasValue()) {
+      return { type: 'loading' };
+    }
+    const session = this.sessionResource.value();
+    if (session !== null && session.active !== false) {
+      return { type: 'logged_in', session: session };
     } else {
-      return null;
+      return { type: 'logged_out' };
     }
   });
+
+  async getSession() {
+    const authState = this.authState();
+    if (authState.type === 'logged_in') {
+      return authState.session;
+    }
+    try {
+      const newSession = await kratos.toSession();
+      return newSession.data;
+    } catch {
+      return null;
+    }
+  }
+
+  async checkLoggedIn() {
+    const session = await this.getSession();
+    return session !== null;
+  }
 
   async startLoginFlow() {
     return await kratos.createBrowserLoginFlow();
@@ -44,13 +88,19 @@ export class AuthService {
     });
   }
 
-  private async getSession() {
-    try {
-      const newSession = await kratos.toSession();
-      return newSession.data;
-    } catch {
-      return null;
-    }
+  async startVerificationFlow() {
+    return await kratos.createBrowserVerificationFlow();
+  }
+
+  async getVerificationFlow(flowId: string) {
+    return await kratos.getVerificationFlow({ id: flowId });
+  }
+
+  async submitVerification(flowId: string, data: UpdateVerificationFlowBody) {
+    return await kratos.updateVerificationFlow({
+      flow: flowId,
+      updateVerificationFlowBody: data,
+    });
   }
 
   async logout() {

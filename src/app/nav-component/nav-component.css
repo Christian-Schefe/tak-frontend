@@ -4,3 +4,8 @@ nav {
   padding: 0.5rem;
   border-bottom: 1px solid #ddd;
 }
+
+.logo {
+  font-weight: bold;
+  font-size: 1.5rem;
+}

@@ -1,30 +1,30 @@
-<div class="kratos-form">
-  <form (ngSubmit)="onSubmit()">
-    @for (item of ui().nodes; track item) {
-      @switch (item.attributes.node_type) {
-        @case ('input') {
-          <app-kratos-input-component
-            [messages]="item.messages"
-            [attributes]="item.attributes"
-            [meta]="item.meta"
-            [value]="data()[item.attributes.name]"
-            (valueChange)="onValueChange(item.attributes, $event)"
-            [validity]="validity()[item.attributes.name]"
-            [(submitMethod)]="submitMethod"
-          ></app-kratos-input-component>
-        }
-        @case ('a') {
-          <a class="kratos-link" [href]="item.attributes.href">{{ item.attributes.title }}</a>
-        }
-        @case ('text') {
-          <span class="kratos-text">{{ item.attributes.text }}</span>
-        }
+<form (ngSubmit)="onSubmit()">
+  @for (item of ui().nodes; track item) {
+    @switch (item.attributes.node_type) {
+      @case ('input') {
+        <app-kratos-input-component
+          [messages]="item.messages"
+          [attributes]="item.attributes"
+          [meta]="item.meta"
+          [value]="data()[item.attributes.name]"
+          (valueChange)="onValueChange(item.attributes, $event)"
+          [validity]="validity()[item.attributes.name]"
+          [(submitMethod)]="submitMethod"
+        ></app-kratos-input-component>
+      }
+      @case ('a') {
+        <a class="kratos-link" [routerLink]="item.attributes.href">{{
+          item.meta.label?.text ?? ''
+        }}</a>
+      }
+      @case ('text') {
+        <span class="kratos-text">{{ item.attributes.text }}</span>
       }
     }
-    @for (item of ui().messages; track $index) {
-      <div class="kratos-form-message kratos-form-message-{{ item.type }}">
-        {{ item.text }}
-      </div>
-    }
-  </form>
-</div>
+  }
+  @for (item of ui().messages; track $index) {
+    <div class="kratos-form-message kratos-form-message-{{ item.type }}">
+      {{ item.text }}
+    </div>
+  }
+</form>
