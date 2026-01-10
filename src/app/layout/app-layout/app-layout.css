@@ -1,0 +1,8 @@
+.content {
+  display: flex;
+  align-self: stretch;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  width: 100%;
+}

@@ -1,13 +1,13 @@
 import { Component, inject, resource } from '@angular/core';
-import { AuthService } from '../auth-service/auth-service';
 import {
   LoginFlow,
   RegistrationFlow,
   UpdateVerificationFlowBody,
   VerificationFlow,
 } from '@ory/client';
-import { KratosFormComponent } from '../kratos-form-component/kratos-form-component';
 import { ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../services/auth-service/auth-service';
+import { KratosFormComponent } from '../../components/kratos-form-component/kratos-form-component';
 
 type AuthFlow = LoginFlow | RegistrationFlow | VerificationFlow;
 

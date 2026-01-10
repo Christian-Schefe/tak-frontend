@@ -1,13 +1,13 @@
 import { Component, effect, inject, linkedSignal, resource, signal } from '@angular/core';
-import { AuthService } from '../auth-service/auth-service';
 import {
   LoginFlow,
   RegistrationFlow,
   UpdateLoginFlowBody,
   UpdateRegistrationFlowBody,
 } from '@ory/client';
-import { KratosFormComponent } from '../kratos-form-component/kratos-form-component';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth-service/auth-service';
+import { KratosFormComponent } from '../../components/kratos-form-component/kratos-form-component';
 
 type AuthFlowState = 'login' | 'registration';
 type AuthFlow = LoginFlow | RegistrationFlow;

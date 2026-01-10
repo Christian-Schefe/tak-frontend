@@ -2,7 +2,7 @@
 <div class="actions">
   @if (authState.type !== 'logged_in') {
     <a class="tak-button" routerLink="/authenticate">Sign In</a>
-    <button class="tak-button">Continue as Guest</button>
+    <button class="tak-button" (click)="onContinueAsGuest()">Continue as Guest</button>
   } @else {
     <a class="tak-button" routerLink="/app">Continue</a>
     <button class="tak-button" (click)="onLogout()">Logout</button>

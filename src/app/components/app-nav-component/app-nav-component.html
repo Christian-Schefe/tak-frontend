@@ -1,0 +1,12 @@
+@let account = identityService.identity();
+@let rating = playerRating();
+<nav>
+  <a class="logo" routerLink="/">Playtak</a>
+  <div class="spacer"></div>
+  <p>
+    {{ account?.displayName }}
+    @if (rating && rating.type === 'rated') {
+      {{ ' ' }}({{ rating.rating }})
+    }
+  </p>
+</nav>

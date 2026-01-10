@@ -1,11 +1,11 @@
 import { computed, Injectable, resource } from '@angular/core';
-import { kratos } from '../kratos';
 import {
   Session,
   UpdateLoginFlowBody,
   UpdateRegistrationFlowBody,
   UpdateVerificationFlowBody,
 } from '@ory/client';
+import { kratos } from '../../auth/kratos';
 
 type AuthState =
   | {
