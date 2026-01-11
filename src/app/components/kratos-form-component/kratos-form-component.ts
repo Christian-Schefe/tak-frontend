@@ -2,11 +2,13 @@ import { Component, computed, input, linkedSignal, output, signal } from '@angul
 import { UiContainer, UiNodeInputAttributes } from '@ory/client';
 import { FormsModule } from '@angular/forms';
 import { KratosInputComponent } from '../kratos-input-component/kratos-input-component';
-import { RouterLink } from "@angular/router";
+import { RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { Message } from 'primeng/message';
 
 @Component({
   selector: 'app-kratos-form-component',
-  imports: [FormsModule, KratosInputComponent, RouterLink],
+  imports: [FormsModule, KratosInputComponent, RouterLink, ButtonModule, Message],
   templateUrl: './kratos-form-component.html',
   styleUrl: './kratos-form-component.css',
 })
@@ -108,8 +110,7 @@ function isValid(attrs: UiNodeInputAttributes, val: unknown) {
     }
   }
   if (attrs.type === 'email' && typeof val === 'string') {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(val)) {
+    if (!val.includes('@')) {
       valid = false;
     }
   }

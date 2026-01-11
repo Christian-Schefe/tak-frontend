@@ -5,43 +5,7 @@
   align-items: stretch;
 }
 
-.kratos-input {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 1rem;
-  outline: 2px solid #ddd;
-  border-radius: 5px;
-  padding: 0.5rem;
-}
-
-.kratos-input:focus-within {
-  outline: 2px solid #007bff;
-}
-
-.kratos-input.kratos-input-error {
-  outline: 2px solid red;
-}
-
-.kratos-button {
-  padding: 0.5rem 1rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-bottom: 0.75rem;
-}
-
-.kratos-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.kratos-button:hover:enabled {
-  background-color: #0056b3;
-}
-
 .kratos-required-indicator {
-  color: red;
+  color: var(--error);
   margin-left: 0.25rem;
 }

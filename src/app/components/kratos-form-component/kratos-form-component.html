@@ -13,18 +13,22 @@
         ></app-kratos-input-component>
       }
       @case ('a') {
-        <a class="tak-link" [routerLink]="item.attributes.href">{{
+        <a class="mt-4" pButton [routerLink]="item.attributes.href">{{
           item.meta.label?.text ?? ''
         }}</a>
       }
       @case ('text') {
-        <span class="kratos-text">{{ item.attributes.text }}</span>
+        <p-message class="mt-4" size="small" variant="simple">{{ item.attributes.text }}</p-message>
       }
     }
   }
   @for (item of ui().messages; track $index) {
-    <div class="kratos-form-message kratos-form-message-{{ item.type }}">
-      {{ item.text }}
-    </div>
+    <p-message
+      class="mt-4"
+      [severity]="item.type === 'error' ? 'error' : 'info'"
+      size="small"
+      variant="simple"
+      >{{ item.text }}</p-message
+    >
   }
 </form>

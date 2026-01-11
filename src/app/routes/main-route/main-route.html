@@ -1,11 +1,11 @@
 @let authState = authService.authState();
 <div class="actions">
   @if (authState.type !== 'logged_in') {
-    <a class="tak-button" routerLink="/authenticate">Sign In</a>
-    <button class="tak-button" (click)="onContinueAsGuest()">Continue as Guest</button>
+    <a pButton fluid routerLink="/authenticate">Sign In</a>
+    <p-button fluid (click)="onContinueAsGuest()">Continue as Guest</p-button>
   } @else {
-    <a class="tak-button" routerLink="/app">Continue</a>
-    <button class="tak-button" (click)="onLogout()">Logout</button>
+    <a pButton fluid routerLink="/app">Continue</a>
+    <p-button fluid (click)="onLogout()">Logout</p-button>
   }
 </div>
 <div><h1>Events</h1></div>

@@ -1,10 +1,26 @@
 import { Component, input, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UiNodeInputAttributes, UiNodeMeta, UiText } from '@ory/client';
+import { InputTextModule } from 'primeng/inputtext';
+import { IftaLabelModule } from 'primeng/iftalabel';
+import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
+import { MessageModule } from 'primeng/message';
+import { PasswordModule } from 'primeng/password';
+import { FloatLabelModule } from 'primeng/floatlabel';
 
 @Component({
   selector: 'app-kratos-input-component',
-  imports: [FormsModule],
+  imports: [
+    FormsModule,
+    InputTextModule,
+    IftaLabelModule,
+    ButtonModule,
+    CheckboxModule,
+    MessageModule,
+    PasswordModule,
+    FloatLabelModule,
+  ],
   templateUrl: './kratos-input-component.html',
   styleUrl: './kratos-input-component.css',
 })

@@ -2,7 +2,7 @@ nav {
   display: flex;
   gap: 1rem;
   padding: 0.5rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--separator);
   align-items: center;
 }
 

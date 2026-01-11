@@ -7,6 +7,8 @@ import { HomeRoute } from './routes/home-route/home-route';
 import { AccountRoute } from './routes/account-route/account-route';
 import { PublicLayout } from './layout/public-layout/public-layout';
 import { AppLayout } from './layout/app-layout/app-layout';
+import { LocalPlayRoute } from './routes/local-play-route/local-play-route';
+import { SettingsRoute } from './routes/settings-route/settings-route';
 
 export const routes: Routes = [
   {
@@ -26,6 +28,8 @@ export const routes: Routes = [
     children: [
       { path: '', component: HomeRoute },
       { path: 'account', component: AccountRoute },
+      { path: 'local', component: LocalPlayRoute },
+      { path: 'settings', component: SettingsRoute },
     ],
   },
 ];

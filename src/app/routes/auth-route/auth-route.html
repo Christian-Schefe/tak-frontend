@@ -2,27 +2,24 @@
 @let flowVal = shownFlow();
 @let flowState = authFlowState();
 @if (authState.type === 'logged_out') {
-  @if (flowState === 'registration') {
-    <h1>Register</h1>
-  } @else if (flowState === 'login') {
-    <h1>Login</h1>
-  }
   @if (flowVal !== undefined) {
-    <app-kratos-form-component
-      [ui]="flowVal.ui"
-      (submitForm)="onSubmit($event)"
-    ></app-kratos-form-component>
+    <p-card
+      [header]="flowState === 'registration' ? 'Create your account' : 'Sign in to your account'"
+      class="w-full mt-4"
+    >
+      <app-kratos-form-component
+        [ui]="flowVal.ui"
+        (submitForm)="onSubmit($event)"
+      ></app-kratos-form-component
+    ></p-card>
   }
-  <button
-    (click)="setAuthState(flowState === 'registration' ? 'login' : 'registration')"
-    class="tak-link"
-  >
+  <p-button link (click)="setAuthState(flowState === 'registration' ? 'login' : 'registration')">
     {{
       flowState === 'registration'
         ? 'Already have an account? Sign In'
         : "Don't have an account? Sign Up"
     }}
-  </button>
+  </p-button>
 } @else if (authState.type === 'logged_in') {
   <p>Already logged in</p>
 } @else {

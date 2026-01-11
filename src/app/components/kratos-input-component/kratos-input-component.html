@@ -3,24 +3,26 @@
 @switch (attrs.type) {
   @case ('submit') {
     <button
-      class="kratos-button"
+      class="mt-4"
+      pButton
       [disabled]="attrs.disabled"
       [name]="attrs.name"
       [type]="attrs.type"
       [value]="attrs.value"
       (click)="onSubmit(attrs.value)"
     >
-      {{ label }}
+      <span pButtonLabel>{{ label }}</span>
     </button>
   }
   @case ('button') {
     <button
-      class="kratos-button"
+      pButton
       [disabled]="attrs.disabled"
       [name]="attrs.name"
       [type]="attrs.type"
+      class="mt-4"
     >
-      {{ label }}
+      <span pButtonLabel>{{ label }}</span>
     </button>
   }
   @case ('hidden') {
@@ -33,47 +35,79 @@
     />
   }
   @case ('checkbox') {
-    <label [for]="'kratos-checkbox-' + attrs.name" class="kratos-checkbox-label">
+    <label [for]="'kratos-checkbox-' + attrs.name">
       {{ label }}
       @if (attrs.required) {
         *
       }
     </label>
-    <input
-      [id]="'kratos-checkbox-' + attrs.name"
-      class="kratos-checkbox"
+    <p-checkbox
+      [(ngModel)]="value"
+      [binary]="true"
       [disabled]="attrs.disabled"
       [name]="attrs.name"
       [required]="attrs.required ?? false"
-      [type]="attrs.type"
-      [(ngModel)]="value"
+      [inputId]="'kratos-checkbox-' + attrs.name"
     />
   }
+  @case ('password') {
+    <p-iftalabel variant="on" class="mt-4">
+      <p-password
+        #inputElement="ngModel"
+        fluid
+        [toggleMask]="true"
+        [inputId]="'kratos-input-' + attrs.name"
+        [invalid]="!validity() && (inputElement.dirty || inputElement.touched)"
+        [disabled]="attrs.disabled"
+        [autocomplete]="attrs.autocomplete"
+        [maxlength]="attrs.maxlength ?? null"
+        [name]="attrs.name"
+        [required]="attrs.required ?? false"
+        [attr.pattern]="attrs.pattern ?? null"
+        [feedback]="false"
+        [(ngModel)]="value"
+      />
+      <label [for]="'kratos-input-' + attrs.name"
+        >{{ label }}
+        @if (attrs.required) {
+          <span class="kratos-required-indicator">*</span>
+        }
+      </label>
+    </p-iftalabel>
+  }
   @default {
-    <label [for]="'kratos-input-' + attrs.name"
-      >{{ label }}
-      @if (attrs.required) {
-        <span class="kratos-required-indicator">*</span>
-      }
-    </label>
-    <input
-      #inputElement="ngModel"
-      [id]="'kratos-input-' + attrs.name"
-      class="kratos-input"
-      [class.kratos-input-error]="!validity() && (inputElement.dirty || inputElement.touched)"
-      [disabled]="attrs.disabled"
-      [autocomplete]="attrs.autocomplete"
-      [maxlength]="attrs.maxlength ?? null"
-      [name]="attrs.name"
-      [required]="attrs.required ?? false"
-      [type]="attrs.type"
-      [attr.pattern]="attrs.pattern ?? null"
-      [(ngModel)]="value"
-    />
+    <p-iftalabel variant="on" class="mt-4">
+      <input
+        #inputElement="ngModel"
+        pInputText
+        fluid
+        [id]="'kratos-input-' + attrs.name"
+        [invalid]="!validity() && (inputElement.dirty || inputElement.touched)"
+        [disabled]="attrs.disabled"
+        [autocomplete]="attrs.autocomplete"
+        [maxlength]="attrs.maxlength ?? null"
+        [name]="attrs.name"
+        [required]="attrs.required ?? false"
+        [type]="attrs.type"
+        [attr.pattern]="attrs.pattern ?? null"
+        [(ngModel)]="value"
+      />
+      <label [for]="'kratos-input-' + attrs.name"
+        >{{ label }}
+        @if (attrs.required) {
+          <span class="kratos-required-indicator">*</span>
+        }
+      </label>
+    </p-iftalabel>
   }
 }
 @for (item of messages(); track $index) {
-  <div class="kratos-input-message kratos-input-message-{{ item.type }}">
+  <p-message
+    [severity]="item.type === 'error' ? 'error' : 'info'"
+    size="small"
+    variant="simple"
+    class="mt-4"
+  >
     {{ item.text }}
-  </div>
+  </p-message>
 }

@@ -8,12 +8,13 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth-service/auth-service';
 import { KratosFormComponent } from '../../components/kratos-form-component/kratos-form-component';
+import { CardModule } from 'primeng/card';
 
 type AuthFlow = LoginFlow | RegistrationFlow | VerificationFlow;
 
 @Component({
   selector: 'app-auth-route',
-  imports: [KratosFormComponent],
+  imports: [KratosFormComponent, CardModule],
   templateUrl: './verification-route.html',
   styleUrl: './verification-route.css',
 })
