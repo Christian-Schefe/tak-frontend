@@ -1,45 +1,65 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IdentityService } from '../../services/identity-service/identity-service';
-import { RatingService } from '../../services/rating-service/rating-service';
 import { MenubarModule } from 'primeng/menubar';
+import { RippleModule } from 'primeng/ripple';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { solarGamepad, solarSettings, solarUser } from '@ng-icons/solar-icons/outline';
+import { PlayerService } from '../../services/player-service/player-service';
+import { MenuItem } from 'primeng/api';
+import { SeeksDialogComponent } from '../seeks-dialog-component/seeks-dialog-component';
 
 @Component({
   selector: 'app-app-nav-component',
-  imports: [RouterLink, MenubarModule],
+  imports: [RouterLink, MenubarModule, NgIcon, RippleModule, SeeksDialogComponent],
   templateUrl: './app-nav-component.html',
   styleUrl: './app-nav-component.css',
+  providers: [provideIcons({ solarGamepad, solarSettings, solarUser })],
 })
 export class AppNavComponent {
   identityService = inject(IdentityService);
-  ratingService = inject(RatingService);
+  playerService = inject(PlayerService);
 
-  private playerRatingResource = this.ratingService.getPlayerRatingResource(
-    () => this.identityService.identity()?.playerId,
-  );
-
-  playerRating = computed(() => {
-    if (this.playerRatingResource.hasValue()) {
-      return this.playerRatingResource.value();
+  playerInfo = computed(() => {
+    const identity = this.identityService.identity();
+    if (!identity) {
+      return null;
+    }
+    const resource = this.playerService.getPlayerInfo(identity.playerId);
+    if (resource.hasValue()) {
+      return resource.value();
     }
     return null;
   });
 
-  items = [
+  seeksDialogVisible = signal(false);
+
+  typedItem(item: unknown): MenuItem {
+    return item as MenuItem;
+  }
+
+  items: MenuItem[] = [
     {
       label: 'Play Local',
-      icon: 'pi pi-home',
+      icon: 'solarGamepad',
       routerLink: '/app/local',
     },
     {
       label: 'Settings',
-      icon: 'pi pi-cog',
+      icon: 'solarSettings',
       routerLink: '/app/settings',
     },
     {
       label: 'Account',
-      icon: 'pi pi-user',
+      icon: 'solarUser',
       routerLink: '/app/account',
+    },
+    {
+      label: 'Seeks',
+      icon: 'solarGamepad',
+      command: () => {
+        this.seeksDialogVisible.set(true);
+      },
     },
   ];
 }

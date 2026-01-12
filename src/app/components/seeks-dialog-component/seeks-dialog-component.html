@@ -1,0 +1,35 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [dismissableMask]="true"
+  header="Seeks"
+  [draggable]="false"
+>
+  @let playerInfosMap = playerInfos();
+  <p-table [value]="this.seekService.seeks()" [rowTrackBy]="trackBy">
+    <ng-template #header>
+      <tr>
+        <th>Creator</th>
+        <th>Board Size</th>
+        <th>Komi</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      @let seek = asSeek(item);
+      @let playerInfo = playerInfosMap[seek.creatorId];
+      <tr>
+        <td>
+          @if (playerInfo.hasValue()) {
+            @let player = playerInfo.value();
+            {{ player.displayName }}
+            @if (player.rating.type === 'rated') {
+              {{ ' ' }}({{ player.rating.rating }})
+            }
+          }
+        </td>
+        <td>{{ seek.boardSize }}</td>
+        <td>{{ seek.halfKomi / 2 }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-dialog>

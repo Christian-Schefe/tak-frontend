@@ -65,7 +65,6 @@ export class BoardNinjaComponent {
     const parsed = NinjaMessageSchema.safeParse(event.data);
     if (!parsed.success) return;
     const message = parsed.data;
-    console.log('Received message from Board Ninja:', message);
     if (message.action === 'GAME_STATE') {
       this.hasLoaded.set(true);
       console.log('Board Ninja game state loaded.');

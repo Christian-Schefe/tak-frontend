@@ -1,17 +1,35 @@
-@let account = identityService.identity();
-@let rating = playerRating();
+@let player = playerInfo();
 
 <p-menubar [model]="items">
   <ng-template #start>
     <a class="logo" routerLink="/">Playtak</a>
   </ng-template>
-
+  <ng-template #item let-item>
+    @let val = typedItem(item);
+    @if (val.command) {
+      <button pRipple class="flex px-2 items-center py-1 gap-2 cursor-pointer">
+        <ng-icon [name]="item.icon" size="20px" />
+        <span>{{ item.label }}</span>
+      </button>
+    } @else {
+      <a
+        pRipple
+        draggable="false"
+        [routerLink]="item.routerLink"
+        class="flex px-2 items-center py-1 gap-2 cursor-pointer"
+      >
+        <ng-icon [name]="item.icon" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </ng-template>
   <ng-template #end>
     <p>
-      {{ account?.displayName }}
-      @if (rating && rating.type === 'rated') {
-        {{ ' ' }}({{ rating.rating }})
+      {{ player?.displayName }}
+      @if (player && player.rating.type === 'rated') {
+        {{ ' ' }}({{ player.rating.rating }})
       }
     </p>
   </ng-template>
 </p-menubar>
+<app-seeks-dialog-component [(visible)]="seeksDialogVisible" />

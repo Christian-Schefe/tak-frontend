@@ -2,6 +2,7 @@ import { computed, effect, inject, Injectable, linkedSignal, signal } from '@ang
 import { HttpClient, httpResource } from '@angular/common/http';
 import { GuestService } from '../guest-service/guest-service';
 import { AuthService } from '../auth-service/auth-service';
+import { WsService } from '../ws-service/ws-service';
 
 type AccountInfoResponse =
   | ({
@@ -11,10 +12,9 @@ type AccountInfoResponse =
 
 interface AccountInfo {
   accountId: string;
-  username: string;
-  displayName: string;
   playerId: string;
   isGuest: boolean;
+  wsJwt: string;
 }
 
 type IdentityState = { type: 'loading' } | { type: 'loaded'; account: AccountInfo | null };
@@ -26,6 +26,7 @@ export class IdentityService {
   httpClient = inject(HttpClient);
   authService = inject(AuthService);
   guestService = inject(GuestService);
+  wsService = inject(WsService);
 
   authVersion = signal(0);
 
@@ -59,6 +60,13 @@ export class IdentityService {
       this.authService.authState();
       this.guestService.guestJwt();
       this.authVersion.update((v) => v + 1);
+    });
+    effect(() => {
+      const identity = this.identity();
+      if (identity) {
+        console.log('Connecting WebSocket with identity:', identity);
+        this.wsService.connect(identity.wsJwt);
+      }
     });
   }
 }

@@ -22,24 +22,27 @@ const MyPreset = definePreset(Aura, {
 });
 
 export interface Theme {
+  id: string;
+  name: string;
   primengTheme: Preset;
   isDark: boolean;
 }
 
 export const lightTheme: Theme = {
+  id: 'light',
+  name: 'Light',
   primengTheme: MyPreset,
   isDark: false,
 };
 
 export const darkTheme: Theme = {
+  id: 'dark',
+  name: 'Dark',
   primengTheme: MyPreset,
   isDark: true,
 };
 
-export const themesList = [
-  { name: 'Light', value: lightTheme },
-  { name: 'Dark', value: darkTheme },
-];
+export const themesList = [lightTheme, darkTheme];
 
 @Injectable({
   providedIn: 'root',

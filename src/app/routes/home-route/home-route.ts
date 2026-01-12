@@ -1,19 +1,10 @@
-import { Component, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { WsService } from '../../services/ws-service/ws-service';
+import { Component } from '@angular/core';
+import { TableModule } from 'primeng/table';
 
 @Component({
   selector: 'app-home-route',
-  imports: [RouterOutlet],
+  imports: [TableModule],
   templateUrl: './home-route.html',
   styleUrl: './home-route.css',
 })
-export class HomeRoute {
-  wsService = inject(WsService);
-
-  constructor() {
-    this.wsService.websocket.subscribe((msg) => {
-      console.log('App component received WebSocket message:', msg);
-    });
-  }
-}
+export class HomeRoute {}
