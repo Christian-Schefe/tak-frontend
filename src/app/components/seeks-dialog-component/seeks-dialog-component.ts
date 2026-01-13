@@ -4,10 +4,11 @@ import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import { PlayerInfo, PlayerService } from '../../services/player-service/player-service';
 import { HttpResourceRef } from '@angular/common/http';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-seeks-dialog-component',
-  imports: [TableModule, DialogModule],
+  imports: [TableModule, DialogModule, ButtonModule],
   templateUrl: './seeks-dialog-component.html',
   styleUrl: './seeks-dialog-component.css',
 })
@@ -36,4 +37,10 @@ export class SeeksDialogComponent {
     }
     return map;
   });
+
+  onAcceptSeek(seekId: number) {
+    this.seekService.acceptSeek(seekId).subscribe(() => {
+      console.log('Seek accepted:', seekId);
+    });
+  }
 }

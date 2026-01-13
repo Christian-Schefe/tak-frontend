@@ -1,13 +1,14 @@
-import { Injectable } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
 import { webSocket } from 'rxjs/webSocket';
-import { Observable, retry, RetryConfig, Subscriber } from 'rxjs';
+import { Observable, retry, RetryConfig, Subscriber, Subscription } from 'rxjs';
 import z from 'zod';
+import { IdentityService } from '../identity-service/identity-service';
 
 const retryConfig: RetryConfig = {
   delay: 3000,
 };
 
-interface Subscription {
+interface WsSubscription {
   type: string;
   parser: z.ZodType<unknown>;
   handler: (msg: unknown) => void;
@@ -27,15 +28,60 @@ const errorParser = z.object({
   providedIn: 'root',
 })
 export class WsService {
-  websocket = webSocket('ws://localhost:3003/ws');
+  identityService = inject(IdentityService);
+  websocket = webSocket({
+    url: 'ws://localhost:3003/ws',
+    openObserver: {
+      next: () => {
+        console.log('WebSocket connection opened');
+        this.connected.set(true);
+        this.authenticated.set(false);
+      },
+    },
+    closeObserver: {
+      next: () => {
+        console.log('WebSocket connection closed');
+        this.connected.set(false);
+        this.authenticated.set(false);
+      },
+    },
+  });
 
-  private subscriptions = new Map<string, Subscription>();
+  private subscriptions = new Map<string, WsSubscription>();
 
   private inFlightMessages = new Map<string, Subscriber<unknown>>();
 
-  connect(jwt: string) {
+  connected = signal(false);
+  authenticated = signal(false);
+  private wsSubscription: Subscription | null = null;
+
+  initialize() {
+    effect(() => {
+      const identity = this.identityService.identity();
+
+      if (this.wsSubscription) {
+        this.wsSubscription.unsubscribe();
+      }
+      if (identity) {
+        console.log('Connecting WebSocket with identity:', identity);
+        this.wsSubscription = this.connect();
+      }
+    });
+    effect(() => {
+      const identity = this.identityService.identity();
+      const connected = this.connected();
+      const authenticated = this.authenticated();
+
+      if (connected && !authenticated && identity) {
+        console.log('Authenticating WebSocket with identity:', identity);
+        this.sendAuthenticateMessage(identity.wsJwt);
+      }
+    });
+  }
+
+  private connect() {
     console.log('WebSocket Service initialized');
-    this.websocket.pipe(retry(retryConfig)).subscribe({
+    return this.websocket.pipe(retry(retryConfig)).subscribe({
       next: (msg) => {
         console.log('WebSocket message received:', msg);
         if (!msg || typeof msg !== 'object' || !('type' in msg) || typeof msg.type !== 'string') {
@@ -93,8 +139,11 @@ export class WsService {
         console.error('WebSocket error:', err);
       },
     });
+  }
 
+  private sendAuthenticateMessage(jwt: string) {
     this.sendMessage('authenticate', { token: jwt }).subscribe((res) => {
+      this.authenticated.set(true);
       console.log('WebSocket authenticated:', res);
     });
   }

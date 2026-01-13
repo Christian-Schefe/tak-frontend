@@ -12,11 +12,11 @@ export type PlayerRating =
   | { type: 'unrated' }
   | {
       type: 'rated';
-      player_id: string;
+      playerId: string;
       rating: number;
-      max_rating: number;
-      rated_games_played: number;
-      participation_rating: number;
+      maxRating: number;
+      ratedGamesPlayed: number;
+      participationRating: number;
     };
 
 @Injectable({

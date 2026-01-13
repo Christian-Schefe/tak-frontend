@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import Aura from '@primeuix/themes/aura';
 import { Preset } from '@primeuix/themes/types';
 import { definePreset, usePreset } from '@primeuix/themes';
@@ -48,10 +48,7 @@ export const themesList = [lightTheme, darkTheme];
   providedIn: 'root',
 })
 export class ThemeService {
-  theme = signal<Theme>(lightTheme);
-
-  applyTheme() {
-    const theme = this.theme();
+  applyTheme(theme: Theme) {
     console.log('Applying theme:', theme);
 
     document.documentElement.classList.toggle('dark-mode', theme.isDark);

@@ -5,11 +5,17 @@ import {
   ElementRef,
   HostListener,
   inject,
+  input,
+  output,
   signal,
   ViewChild,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import z from 'zod';
+import { TakGame } from '../../../tak/game';
+import { TakAction, TakGameSettings } from '../../../tak';
+import { takActionFromString, takActionToString } from '../../../tak/ptn';
+import { GameMode } from '../game-component/game-component';
 
 const params =
   '&moveNumber=false&unplayedPieces=true&disableStoneCycling=true&showBoardPrefsBtn=false&disableNavigation=true&disablePTN=true&disableText=true&flatCounts=false&turnIndicator=false&showHeader=false&showEval=false&showRoads=false&stackCounts=false&notifyGame=false';
@@ -26,9 +32,18 @@ const NinjaMessageSchema = z.object({
   styleUrl: './board-ninja-component.css',
 })
 export class BoardNinjaComponent {
+  settings = input.required<TakGameSettings>();
+  game = input.required<TakGame>();
+  action = output<TakAction>();
+  mode = input.required<GameMode>();
+  plyIndex = signal(0);
+
   sanitizer = inject(DomSanitizer);
   ninjaUrl = computed<SafeResourceUrl>(() => {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://ptn.ninja/${params}`);
+    const mode = this.mode();
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://ptn.ninja/${params}${mode.type === 'spectator' ? '&disableBoard=true' : ''}`,
+    );
   });
 
   hasLoaded = signal(false);
@@ -57,6 +72,42 @@ export class BoardNinjaComponent {
         },
       });
     });
+
+    effect(() => {
+      if (!this.hasLoaded()) return;
+      const plyIndex = this.plyIndex();
+      const gameSettings = this.settings();
+      const game = this.game();
+      if (plyIndex === 0) {
+        this.sendMessageToIframe({
+          action: 'SET_CURRENT_PTN',
+          value: `[Size "${gameSettings.boardSize.toString()}"][Komi "${(gameSettings.halfKomi / 2).toString()}"][Flats "${gameSettings.reserve.flats.toString()}"][Caps "${gameSettings.reserve.capstones.toString()}"]`,
+        });
+      }
+      if (plyIndex < game.game.actionHistory.length) {
+        for (let i = plyIndex; i < game.game.actionHistory.length; i++) {
+          console.log('sending move to ninja:', takActionToString(game.game.actionHistory[i]));
+          this.sendMessageToIframe({
+            action: 'APPEND_PLY',
+            value: takActionToString(game.game.actionHistory[i]),
+          });
+        }
+        this.plyIndex.set(game.game.actionHistory.length);
+      }
+      if (plyIndex > game.game.actionHistory.length) {
+        this.plyIndex.set(0);
+      }
+    });
+
+    effect(() => {
+      if (!this.hasLoaded()) return;
+      const mode = this.mode();
+      if (mode.type !== 'online') return;
+      this.sendMessageToIframe({
+        action: 'SET_PLAYER',
+        value: mode.localColor === 'white' ? 1 : 2,
+      });
+    });
   }
 
   @HostListener('window:message', ['$event'])
@@ -68,6 +119,9 @@ export class BoardNinjaComponent {
     if (message.action === 'GAME_STATE') {
       this.hasLoaded.set(true);
       console.log('Board Ninja game state loaded.');
+    } else if (parsed.data.action === 'INSERT_PLY') {
+      this.plyIndex.update((index) => index + 1);
+      this.action.emit(takActionFromString(parsed.data.value as string));
     }
   }
 }

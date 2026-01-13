@@ -1,0 +1,35 @@
+@let takGame = game();
+<app-board-ninja-component
+  [game]="takGame"
+  [settings]="settings()"
+  [mode]="mode()"
+  (action)="action.emit($event)"
+></app-board-ninja-component>
+@if (takGame.type === 'finished') {
+  <p-button (click)="showGameOverInfo.set(true)" class="absolute top-15 left-1/2 -translate-x-1/2"
+    >Show Game Over Info</p-button
+  >
+  <p-dialog
+    [(visible)]="showGameOverInfo"
+    header="Game Over"
+    [modal]="true"
+    [dismissableMask]="true"
+    [draggable]="false"
+    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
+    [style]="{ width: '30vw' }"
+  >
+    @let gameState = takGame.game.base.gameState;
+    @if (gameState.type === 'win') {
+      <p>
+        {{ gameState.winner === 'white' ? 'White' : 'Black' }} wins by
+        {{
+          gameState.reason === 'road'
+            ? 'completing a road'
+            : gameState.reason === 'flats'
+              ? 'flat count'
+              : 'timeout or resignation  '
+        }}!
+      </p>
+    } @else {}
+  </p-dialog>
+}

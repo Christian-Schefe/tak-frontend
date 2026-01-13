@@ -1,6 +1,8 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './services/theme-service/theme-service';
+import { SettingsService } from './services/settings-service/settings-service';
+import { WsService } from './services/ws-service/ws-service';
 
 @Component({
   selector: 'app-root',
@@ -10,10 +12,11 @@ import { ThemeService } from './services/theme-service/theme-service';
 })
 export class App {
   themeService = inject(ThemeService);
+  settingsService = inject(SettingsService);
+  wsService = inject(WsService);
 
   constructor() {
-    effect(() => {
-      this.themeService.applyTheme();
-    });
+    this.settingsService.load();
+    this.wsService.initialize();
   }
 }

@@ -1,11 +1,31 @@
-import { Injectable, WritableSignal } from '@angular/core';
+import { effect, inject, Injectable, signal, WritableSignal } from '@angular/core';
 import z from 'zod';
+import { ThemeService, themesList } from '../theme-service/theme-service';
+
+const themeStore = z.string();
+type ThemeStore = z.infer<typeof themeStore>;
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
   settingsSignals = new Set<string>();
+  themeService = inject(ThemeService);
+
+  themeId = signal<ThemeStore>(themesList[0].id);
+
+  load() {
+    const syncThemeSetting = this.linkSettingsSignal('theme', this.themeId, themeStore);
+    effect(() => {
+      const themeId = this.themeId();
+      const theme = themesList.find((t) => t.id === themeId) ?? themesList[0];
+
+      console.log(`Applying theme: ${theme.name}`);
+      this.themeService.applyTheme(theme);
+
+      syncThemeSetting(themeId);
+    });
+  }
 
   linkSettingsSignal<T>(
     key: string,

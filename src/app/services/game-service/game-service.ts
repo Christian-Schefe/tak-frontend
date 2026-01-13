@@ -1,15 +1,14 @@
-import { HttpClient, httpResource } from '@angular/common/http';
+import { httpResource } from '@angular/common/http';
 import { effect, inject, Injectable, linkedSignal, signal } from '@angular/core';
-import { WsService } from '../ws-service/ws-service';
 import z from 'zod';
+import { WsService } from '../ws-service/ws-service';
 
-export type SeekInfo = z.infer<typeof seekInfo>;
+export type GameInfo = z.infer<typeof gameInfo>;
 
-const seekInfo = z.object({
+const gameInfo = z.object({
   id: z.number(),
-  creatorId: z.string(),
-  opponentId: z.string().nullable(),
-  color: z.string(),
+  whiteId: z.string(),
+  blackId: z.string(),
   boardSize: z.number(),
   halfKomi: z.number(),
   pieces: z.number(),
@@ -25,19 +24,16 @@ const seekInfo = z.object({
   isRated: z.boolean(),
 });
 
-const seekId = z.number();
-
 @Injectable({
   providedIn: 'root',
 })
-export class SeekService {
+export class GameService {
   wsService = inject(WsService);
-  httpClient = inject(HttpClient);
 
-  seeks = linkedSignal<SeekInfo[] | undefined, SeekInfo[]>({
+  games = linkedSignal<GameInfo[] | undefined, GameInfo[]>({
     source: () => {
-      if (this.seeksResource.hasValue()) {
-        return this.seeksResource.value();
+      if (this.gamesResource.hasValue()) {
+        return this.gamesResource.value();
       }
       return undefined;
     },
@@ -51,29 +47,29 @@ export class SeekService {
 
   private refetchSignal = signal(0);
 
-  seeksResource = httpResource<SeekInfo[]>(() => {
+  gamesResource = httpResource<GameInfo[]>(() => {
     this.refetchSignal();
-    return '/api2/seeks';
+    return '/api2/games';
   });
 
-  refetchSeeks() {
-    console.log('Refetching seeks');
+  refetchGames() {
+    console.log('Refetching games');
     this.refetchSignal.update((n) => n + 1);
   }
 
   constructor() {
     effect(() => {
       if (this.wsService.connected()) {
-        this.refetchSeeks();
+        this.refetchGames();
       }
     });
     effect((onCleanup) => {
       const cleanup = this.wsService.subscribe(
-        'seekCreated',
-        z.object({ seek: seekInfo }),
-        ({ seek }) => {
-          this.seeks.update((seeks) => {
-            return [...seeks, seek];
+        'gameStarted',
+        z.object({ game: gameInfo }),
+        ({ game }) => {
+          this.games.update((games) => {
+            return [...games, game];
           });
         },
       );
@@ -83,11 +79,11 @@ export class SeekService {
     });
     effect((onCleanup) => {
       const cleanup = this.wsService.subscribe(
-        'seekRemoved',
-        z.object({ seekId }),
-        ({ seekId }) => {
-          this.seeks.update((seeks) => {
-            return seeks.filter((seek) => seek.id !== seekId);
+        'gameEnded',
+        z.object({ gameId: z.number() }),
+        ({ gameId }) => {
+          this.games.update((games) => {
+            return games.filter((game) => game.id !== gameId);
           });
         },
       );
@@ -95,9 +91,5 @@ export class SeekService {
         cleanup();
       });
     });
-  }
-
-  acceptSeek(seekId: number) {
-    return this.httpClient.post(`/api2/seeks/accept`, { seekId });
   }
 }

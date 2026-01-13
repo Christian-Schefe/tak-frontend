@@ -9,6 +9,7 @@ import { PublicLayout } from './layout/public-layout/public-layout';
 import { AppLayout } from './layout/app-layout/app-layout';
 import { LocalPlayRoute } from './routes/local-play-route/local-play-route';
 import { SettingsRoute } from './routes/settings-route/settings-route';
+import { OnlinePlayRoute } from './routes/online-play-route/online-play-route';
 
 export const routes: Routes = [
   {
@@ -29,6 +30,7 @@ export const routes: Routes = [
       { path: '', component: HomeRoute },
       { path: 'account', component: AccountRoute },
       { path: 'local', component: LocalPlayRoute },
+      { path: 'online', component: OnlinePlayRoute },
       { path: 'settings', component: SettingsRoute },
     ],
   },
