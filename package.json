@@ -33,6 +33,7 @@
     "@ng-icons/core": "^33.0.0",
     "@ng-icons/heroicons": "^33.0.0",
     "@ng-icons/solar-icons": "^33.0.0",
+    "@ng-icons/lucide": "^33.0.0",
     "@ory/client": "^1.22.15",
     "@primeuix/themes": "^2.0.2",
     "primeicons": "^7.0.0",

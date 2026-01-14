@@ -18,19 +18,17 @@
         [routerLink]="item.routerLink"
         class="flex px-2 items-center py-1 gap-2 cursor-pointer"
       >
-        <ng-icon [name]="item.icon" />
+        <ng-icon [name]="item.icon" size="20px" />
         <span>{{ item.label }}</span>
       </a>
     }
   </ng-template>
   <ng-template #end>
-    <p>
-      {{ player?.displayName }}
-      @if (player && player.rating.type === 'rated') {
-        {{ ' ' }}({{ player.rating.rating }})
-      }
-    </p>
+    @if (player) {
+      <app-player-label [playerInfo]="player"></app-player-label>
+    }
   </ng-template>
 </p-menubar>
 <app-seeks-dialog-component [(visible)]="seeksDialogVisible" />
 <app-games-dialog-component [(visible)]="gamesDialogVisible" />
+<app-new-game-dialog [(visible)]="newGameDialogVisible" />

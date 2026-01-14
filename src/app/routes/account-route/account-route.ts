@@ -12,14 +12,14 @@ export class AccountRoute {
   identityService = inject(IdentityService);
   playerService = inject(PlayerService);
 
-  playerInfo = computed(() => {
+  private playerInfoRef = this.playerService.getPlayerInfoRef(() => {
     const identity = this.identityService.identity();
-    if (!identity) {
-      return null;
-    }
-    const resource = this.playerService.getPlayerInfo(identity.playerId);
-    if (resource.hasValue()) {
-      return resource.value();
+    return identity?.playerId;
+  });
+
+  playerInfo = computed(() => {
+    if (this.playerInfoRef.hasValue()) {
+      return this.playerInfoRef.value();
     }
     return null;
   });

@@ -10,13 +10,14 @@ import { AuthService } from '../../services/auth-service/auth-service';
 import { KratosFormComponent } from '../../components/kratos-form-component/kratos-form-component';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 type AuthFlowState = 'login' | 'registration';
 type AuthFlow = LoginFlow | RegistrationFlow;
 
 @Component({
   selector: 'app-auth-route',
-  imports: [KratosFormComponent, CardModule, ButtonModule],
+  imports: [KratosFormComponent, CardModule, ButtonModule, ProgressSpinnerModule],
   templateUrl: './auth-route.html',
   styleUrl: './auth-route.css',
 })

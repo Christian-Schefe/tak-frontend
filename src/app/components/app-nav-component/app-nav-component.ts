@@ -4,11 +4,20 @@ import { IdentityService } from '../../services/identity-service/identity-servic
 import { MenubarModule } from 'primeng/menubar';
 import { RippleModule } from 'primeng/ripple';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { solarGamepad, solarSettings, solarUser } from '@ng-icons/solar-icons/outline';
+import {
+  lucideEye,
+  lucideGamepad2,
+  lucidePlay,
+  lucideSettings,
+  lucideSwords,
+  lucideUser,
+} from '@ng-icons/lucide';
 import { PlayerService } from '../../services/player-service/player-service';
 import { MenuItem } from 'primeng/api';
 import { SeeksDialogComponent } from '../seeks-dialog-component/seeks-dialog-component';
 import { GamesDialogComponent } from '../games-dialog-component/games-dialog-component';
+import { PlayerLabel } from '../player-label/player-label';
+import { NewGameDialog } from '../new-game-dialog/new-game-dialog';
 
 @Component({
   selector: 'app-app-nav-component',
@@ -19,29 +28,41 @@ import { GamesDialogComponent } from '../games-dialog-component/games-dialog-com
     RippleModule,
     SeeksDialogComponent,
     GamesDialogComponent,
+    PlayerLabel,
+    NewGameDialog,
   ],
   templateUrl: './app-nav-component.html',
   styleUrl: './app-nav-component.css',
-  providers: [provideIcons({ solarGamepad, solarSettings, solarUser })],
+  viewProviders: [
+    provideIcons({
+      lucideGamepad2,
+      lucideSettings,
+      lucideUser,
+      lucidePlay,
+      lucideSwords,
+      lucideEye,
+    }),
+  ],
 })
 export class AppNavComponent {
   identityService = inject(IdentityService);
   playerService = inject(PlayerService);
 
-  playerInfo = computed(() => {
+  private playerInfoRef = this.playerService.getPlayerInfoRef(() => {
     const identity = this.identityService.identity();
-    if (!identity) {
-      return null;
-    }
-    const resource = this.playerService.getPlayerInfo(identity.playerId);
-    if (resource.hasValue()) {
-      return resource.value();
+    return identity?.playerId;
+  });
+
+  playerInfo = computed(() => {
+    if (this.playerInfoRef.hasValue()) {
+      return this.playerInfoRef.value();
     }
     return null;
   });
 
   seeksDialogVisible = signal(false);
   gamesDialogVisible = signal(false);
+  newGameDialogVisible = signal(false);
 
   typedItem(item: unknown): MenuItem {
     return item as MenuItem;
@@ -50,31 +71,38 @@ export class AppNavComponent {
   items: MenuItem[] = [
     {
       label: 'Play Local',
-      icon: 'solarGamepad',
+      icon: 'lucideGamepad2',
       routerLink: '/app/local',
     },
     {
+      label: 'New Game',
+      icon: 'lucidePlay',
+      command: () => {
+        this.newGameDialogVisible.set(true);
+      },
+    },
+    {
       label: 'Seeks',
-      icon: 'solarGamepad',
+      icon: 'lucideSwords',
       command: () => {
         this.seeksDialogVisible.set(true);
       },
     },
     {
       label: 'Games',
-      icon: 'solarGamepad',
+      icon: 'lucideEye',
       command: () => {
         this.gamesDialogVisible.set(true);
       },
     },
     {
       label: 'Settings',
-      icon: 'solarSettings',
+      icon: 'lucideSettings',
       routerLink: '/app/settings',
     },
     {
       label: 'Account',
-      icon: 'solarUser',
+      icon: 'lucideUser',
       routerLink: '/app/account',
     },
   ];

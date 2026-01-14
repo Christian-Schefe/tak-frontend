@@ -1,0 +1,18 @@
+@let player = playerInfo();
+@let stats = playerStats();
+@if (player) {
+  <p>
+    {{ player.displayName }}
+    @if (player.rating) {
+      {{ ' ' }}{{ player.rating.rating }}
+    }
+  </p>
+  <p>@{{ player.username }}</p>
+  @if (stats) {
+    <p>Games played: {{ stats.gamesPlayed }}</p>
+    <p>Rated games played: {{ stats.ratedGamesPlayed }}</p>
+    <p>Games won: {{ stats.gamesWon }}</p>
+    <p>Games drawn: {{ stats.gamesDrawn }}</p>
+    <p>Games lost: {{ stats.gamesLost }}</p>
+  }
+}

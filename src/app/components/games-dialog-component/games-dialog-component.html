@@ -24,24 +24,16 @@
       <tr>
         <td>
           @if (whitePlayerInfo.hasValue()) {
-            @let player = whitePlayerInfo.value();
-            {{ player.displayName }}
-            @if (player.rating.type === 'rated') {
-              {{ ' ' }}({{ player.rating.rating }})
-            }
+            <app-player-label [playerInfo]="whitePlayerInfo.value()"></app-player-label>
           }
         </td>
         <td>
           @if (blackPlayerInfo.hasValue()) {
-            @let player = blackPlayerInfo.value();
-            {{ player.displayName }}
-            @if (player.rating.type === 'rated') {
-              {{ ' ' }}({{ player.rating.rating }})
-            }
+            <app-player-label [playerInfo]="blackPlayerInfo.value()"></app-player-label>
           }
         </td>
-        <td>{{ game.boardSize }}</td>
-        <td>{{ game.halfKomi / 2 }}</td>
+        <td>{{ game.gameSettings.boardSize }}</td>
+        <td>{{ game.gameSettings.halfKomi / 2 }}</td>
       </tr>
     </ng-template>
   </p-table>

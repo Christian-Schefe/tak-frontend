@@ -10,6 +10,7 @@ import { AppLayout } from './layout/app-layout/app-layout';
 import { LocalPlayRoute } from './routes/local-play-route/local-play-route';
 import { SettingsRoute } from './routes/settings-route/settings-route';
 import { OnlinePlayRoute } from './routes/online-play-route/online-play-route';
+import { PlayerProfileRoute } from './routes/player-profile-route/player-profile-route';
 
 export const routes: Routes = [
   {
@@ -32,6 +33,7 @@ export const routes: Routes = [
       { path: 'local', component: LocalPlayRoute },
       { path: 'online', component: OnlinePlayRoute },
       { path: 'settings', component: SettingsRoute },
+      { path: 'player/:id', component: PlayerProfileRoute },
     ],
   },
 ];

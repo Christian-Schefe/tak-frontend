@@ -1,3 +1,4 @@
+@let identity = identityService.identity();
 <p-dialog
   [(visible)]="visible"
   [modal]="true"
@@ -11,30 +12,48 @@
   <p-table [value]="this.seekService.seeks()" [rowTrackBy]="trackBy">
     <ng-template #header>
       <tr>
-        <th>Accept</th>
+        <th></th>
         <th>Creator</th>
         <th>Board Size</th>
         <th>Komi</th>
+        <th>Reserves</th>
+        <th>Time Control</th>
+        <th>Extra Time</th>
       </tr>
     </ng-template>
     <ng-template #body let-item>
       @let seek = asSeek(item);
       @let playerInfo = playerInfosMap[seek.creatorId];
+      @let isOwnSeek = identity && identity.playerId === seek.creatorId;
       <tr>
         <td>
-          <p-button (click)="onAcceptSeek(seek.id)">Accept</p-button>
+          <button
+            pButton
+            pRipple
+            (click)="isOwnSeek ? onCancelSeek(seek.id) : onAcceptSeek(seek.id)"
+            class="aspect-square"
+            severity="secondary"
+          >
+            <ng-icon [name]="isOwnSeek ? 'lucideTrash' : 'lucideSwords'"></ng-icon>
+          </button>
         </td>
         <td>
           @if (playerInfo.hasValue()) {
-            @let player = playerInfo.value();
-            {{ player.displayName }}
-            @if (player.rating.type === 'rated') {
-              {{ ' ' }}({{ player.rating.rating }})
-            }
+            <app-player-label [playerInfo]="playerInfo.value()"></app-player-label>
           }
         </td>
-        <td>{{ seek.boardSize }}</td>
-        <td>{{ seek.halfKomi / 2 }}</td>
+        <td>{{ seek.gameSettings.boardSize }}</td>
+        <td>{{ seek.gameSettings.halfKomi / 2 }}</td>
+        <td>{{ seek.gameSettings.pieces }}, {{ seek.gameSettings.capstones }}</td>
+        <td>{{ seek.gameSettings | timeControl }}</td>
+        <td>
+          @if (seek.gameSettings.extra) {
+            On Move: {{ seek.gameSettings.extra.onMove }}, Extra:
+            {{ seek.gameSettings.extra.extraMs / 1000 }}s
+          } @else {
+            None
+          }
+        </td>
       </tr>
     </ng-template>
   </p-table>

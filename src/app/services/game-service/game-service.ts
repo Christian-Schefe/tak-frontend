@@ -3,12 +3,12 @@ import { effect, inject, Injectable, linkedSignal, signal } from '@angular/core'
 import z from 'zod';
 import { WsService } from '../ws-service/ws-service';
 
-export type GameInfo = z.infer<typeof gameInfo>;
+export interface OngoingGameStatus {
+  gameId: number;
+  actions: string[];
+}
 
-const gameInfo = z.object({
-  id: z.number(),
-  whiteId: z.string(),
-  blackId: z.string(),
+export const gameSettings = z.object({
   boardSize: z.number(),
   halfKomi: z.number(),
   pieces: z.number(),
@@ -21,7 +21,18 @@ const gameInfo = z.object({
       extraMs: z.number(),
     })
     .nullable(),
+});
+
+export type GameSettings = z.infer<typeof gameSettings>;
+
+export type GameInfo = z.infer<typeof gameInfo>;
+
+const gameInfo = z.object({
+  id: z.number(),
+  whiteId: z.string(),
+  blackId: z.string(),
   isRated: z.boolean(),
+  gameSettings,
 });
 
 @Injectable({
@@ -55,6 +66,16 @@ export class GameService {
   refetchGames() {
     console.log('Refetching games');
     this.refetchSignal.update((n) => n + 1);
+  }
+
+  ongoingGameStatus(gameId: () => number | undefined) {
+    return httpResource<OngoingGameStatus>(() => {
+      const gid = gameId();
+      if (!gid) {
+        return undefined;
+      }
+      return `/api2/games/${gid}`;
+    });
   }
 
   constructor() {

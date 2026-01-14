@@ -1,0 +1,16 @@
+<form class="w-full- h-full" (ngSubmit)="onSubmit()">
+  <p-ifta-label>
+    <p-select
+      [options]="boardSizes"
+      [(ngModel)]="boardSize"
+      inputId="board-size"
+      appendTo="body"
+      name="boardSize"
+      fluid
+    ></p-select>
+    <label for="board-size">Board Size</label>
+  </p-ifta-label>
+  <button class="mt-4" pButton pRipple type="submit">
+    <span pButtonLabel>Create Seek</span>
+  </button>
+</form>

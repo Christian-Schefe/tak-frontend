@@ -2,6 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { effect, inject, Injectable, linkedSignal, signal } from '@angular/core';
 import { WsService } from '../ws-service/ws-service';
 import z from 'zod';
+import { GameSettings, gameSettings } from '../game-service/game-service';
 
 export type SeekInfo = z.infer<typeof seekInfo>;
 
@@ -10,22 +11,18 @@ const seekInfo = z.object({
   creatorId: z.string(),
   opponentId: z.string().nullable(),
   color: z.string(),
-  boardSize: z.number(),
-  halfKomi: z.number(),
-  pieces: z.number(),
-  capstones: z.number(),
-  contingentMs: z.number(),
-  incrementMs: z.number(),
-  extra: z
-    .object({
-      onMove: z.number(),
-      extraMs: z.number(),
-    })
-    .nullable(),
   isRated: z.boolean(),
+  gameSettings,
 });
 
 const seekId = z.number();
+
+export interface CreateSeekPayload {
+  opponentId: string | null;
+  color: string;
+  isRated: boolean;
+  gameSettings: GameSettings;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -95,6 +92,10 @@ export class SeekService {
         cleanup();
       });
     });
+  }
+
+  createSeek(payload: CreateSeekPayload) {
+    return this.httpClient.post(`/api2/seeks`, payload);
   }
 
   acceptSeek(seekId: number) {

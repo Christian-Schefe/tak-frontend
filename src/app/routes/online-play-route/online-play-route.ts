@@ -43,6 +43,11 @@ export class OnlinePlayRoute {
     },
   });
 
+  ongoingGameStatus = this.gameService.ongoingGameStatus(() => {
+    const myGame = this.lastPlayedGame();
+    return myGame ? myGame.id : undefined;
+  });
+
   currentGame = computed<CurrentGame | null>(() => {
     const myGame = this.lastPlayedGame();
     const identity = this.identityService.identity();
@@ -50,19 +55,19 @@ export class OnlinePlayRoute {
       return null;
     }
     const settings: TakGameSettings = {
-      boardSize: myGame.boardSize,
-      halfKomi: myGame.halfKomi,
+      boardSize: myGame.gameSettings.boardSize,
+      halfKomi: myGame.gameSettings.halfKomi,
       reserve: {
-        flats: myGame.pieces,
-        capstones: myGame.capstones,
+        flats: myGame.gameSettings.pieces,
+        capstones: myGame.gameSettings.capstones,
       },
       timeControl: {
-        contingentMs: myGame.contingentMs,
-        incrementMs: myGame.incrementMs,
-        extra: myGame.extra
+        contingentMs: myGame.gameSettings.contingentMs,
+        incrementMs: myGame.gameSettings.incrementMs,
+        extra: myGame.gameSettings.extra
           ? {
-              onMove: myGame.extra.onMove,
-              extraMs: myGame.extra.extraMs,
+              onMove: myGame.gameSettings.extra.onMove,
+              extraMs: myGame.gameSettings.extra.extraMs,
             }
           : null,
       },
@@ -82,7 +87,19 @@ export class OnlinePlayRoute {
     if (!currentGame) {
       return null;
     }
-    return { type: 'ongoing', game: takOngoingGameNew(currentGame.settings) };
+    const game = takOngoingGameNew(currentGame.settings);
+    if (this.ongoingGameStatus.hasValue()) {
+      const actions = this.ongoingGameStatus.value().actions;
+      for (const actionRecord of actions) {
+        const res = takOngoingGameDoAction(game, takActionFromString(actionRecord), Date.now());
+        if (res && res.type === 'error') {
+          console.error('Error applying action from server:', res.reason);
+        }
+      }
+      console.log(`Replayed ${actions.length} actions from server.`);
+    }
+    console.log('Initialized ongoing game from server actions:', game);
+    return { type: 'ongoing', game };
   });
 
   constructor() {

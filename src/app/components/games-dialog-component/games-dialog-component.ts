@@ -1,20 +1,21 @@
-import { Component, computed, inject, model } from '@angular/core';
+import { Component, inject, Injector, model } from '@angular/core';
 import { GameInfo, GameService } from '../../services/game-service/game-service';
-import { PlayerInfo, PlayerService } from '../../services/player-service/player-service';
-import { HttpResourceRef } from '@angular/common/http';
+import { PlayerService } from '../../services/player-service/player-service';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
+import { PlayerLabel } from '../player-label/player-label';
 
 @Component({
   selector: 'app-games-dialog-component',
-  imports: [DialogModule, TableModule],
+  imports: [DialogModule, TableModule, PlayerLabel],
   templateUrl: './games-dialog-component.html',
   styleUrl: './games-dialog-component.css',
 })
 export class GamesDialogComponent {
   gameService = inject(GameService);
   playerService = inject(PlayerService);
-  visible = model(false);
+  visible = model.required<boolean>();
+  injector = inject(Injector);
 
   trackBy(game: { id: string }) {
     return game.id;
@@ -24,16 +25,7 @@ export class GamesDialogComponent {
     return game as GameInfo;
   }
 
-  playerInfos = computed(() => {
-    const players = this.gameService
-      .games()
-      .flatMap((game) => [game.whiteId, game.blackId])
-      .filter((id): id is string => !!id);
-    const map: Record<string, HttpResourceRef<PlayerInfo | undefined>> = {};
-    for (const playerId of players) {
-      const resource = this.playerService.getPlayerInfo(playerId);
-      map[playerId] = resource;
-    }
-    return map;
+  playerInfos = this.playerService.getComputedPlayerInfos(() => {
+    return this.gameService.games().flatMap((game) => [game.whiteId, game.blackId]);
   });
 }
