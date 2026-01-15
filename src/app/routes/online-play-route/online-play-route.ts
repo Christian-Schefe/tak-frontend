@@ -1,8 +1,12 @@
-import { Component, computed, effect, inject, linkedSignal } from '@angular/core';
-import { GameComponent, GameMode } from '../../components/game-component/game-component';
-import { GameInfo, GameService } from '../../services/game-service/game-service';
+import { Component, computed, inject, input, linkedSignal } from '@angular/core';
+import {
+  GameComponent,
+  GameMode,
+  GamePlayer,
+} from '../../components/game-component/game-component';
+import { GameService } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
-import { TakAction, TakGameSettings } from '../../../tak';
+import { TakAction, TakGameSettings, TakPlayer } from '../../../tak';
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
 import { TakGame, takOngoingGameDoAction, takOngoingGameNew } from '../../../tak/game';
@@ -12,6 +16,7 @@ interface CurrentGame {
   gameId: number;
   settings: TakGameSettings;
   mode: GameMode;
+  actions: string[];
 }
 
 @Component({
@@ -24,61 +29,47 @@ export class OnlinePlayRoute {
   gameService = inject(GameService);
   identityService = inject(IdentityService);
   wsService = inject(WsService);
-
-  private lastPlayedGame = linkedSignal({
-    source: () => ({ identity: this.identityService.identity(), games: this.gameService.games() }),
-    computation: (source, prev): GameInfo | null => {
-      const identity = source.identity;
-      if (!identity) {
-        return null;
-      }
-      const games = this.gameService.games();
-      const myGame = games.find(
-        (game) => game.whiteId === identity.playerId || game.blackId === identity.playerId,
-      );
-      if (!myGame) {
-        return prev?.value || null;
-      }
-      return myGame;
-    },
+  id = input.required<string>();
+  numId = computed(() => {
+    const numId = Number(this.id());
+    if (isNaN(numId)) {
+      return undefined;
+    }
+    return numId;
   });
 
-  ongoingGameStatus = this.gameService.ongoingGameStatus(() => {
-    const myGame = this.lastPlayedGame();
-    return myGame ? myGame.id : undefined;
+  ongoingGameStatus = this.gameService.gameStatus(() => {
+    return this.numId();
   });
 
   currentGame = computed<CurrentGame | null>(() => {
-    const myGame = this.lastPlayedGame();
+    const numId = this.numId();
     const identity = this.identityService.identity();
-    if (!identity || !myGame) {
+    const game = this.ongoingGameStatus.value();
+    if (!identity || !numId || !game) {
       return null;
     }
     const settings: TakGameSettings = {
-      boardSize: myGame.gameSettings.boardSize,
-      halfKomi: myGame.gameSettings.halfKomi,
+      boardSize: game.gameSettings.boardSize,
+      halfKomi: game.gameSettings.halfKomi,
       reserve: {
-        flats: myGame.gameSettings.pieces,
-        capstones: myGame.gameSettings.capstones,
+        flats: game.gameSettings.pieces,
+        capstones: game.gameSettings.capstones,
       },
       timeControl: {
-        contingentMs: myGame.gameSettings.contingentMs,
-        incrementMs: myGame.gameSettings.incrementMs,
-        extra: myGame.gameSettings.extra
-          ? {
-              onMove: myGame.gameSettings.extra.onMove,
-              extraMs: myGame.gameSettings.extra.extraMs,
-            }
-          : null,
+        contingentMs: game.gameSettings.contingentMs,
+        incrementMs: game.gameSettings.incrementMs,
+        extra: game.gameSettings.extra,
       },
     };
     return {
       settings,
-      gameId: myGame.id,
+      gameId: game.id,
       mode: {
         type: 'online',
-        localColor: identity.playerId === myGame.whiteId ? 'white' : 'black',
+        localColor: identity.playerId === game.playerIds.white ? 'white' : 'black',
       },
+      actions: game.actions,
     };
   });
 
@@ -88,37 +79,39 @@ export class OnlinePlayRoute {
       return null;
     }
     const game = takOngoingGameNew(currentGame.settings);
-    if (this.ongoingGameStatus.hasValue()) {
-      const actions = this.ongoingGameStatus.value().actions;
-      for (const actionRecord of actions) {
-        const res = takOngoingGameDoAction(game, takActionFromString(actionRecord), Date.now());
-        if (res && res.type === 'error') {
-          console.error('Error applying action from server:', res.reason);
-        }
+    for (const actionRecord of currentGame.actions) {
+      const res = takOngoingGameDoAction(game, takActionFromString(actionRecord), Date.now());
+      if (res && res.type === 'error') {
+        console.error('Error applying action from server:', res.reason);
       }
-      console.log(`Replayed ${actions.length} actions from server.`);
     }
-    console.log('Initialized ongoing game from server actions:', game);
+    console.log(`Replayed ${currentGame.actions.length} actions from server.`);
     return { type: 'ongoing', game };
   });
 
+  players = computed<Record<TakPlayer, GamePlayer> | null>(() => {
+    const game = this.ongoingGameStatus.value();
+    if (!game) {
+      return null;
+    }
+    return {
+      white: { type: 'player', playerId: game.playerIds.white },
+      black: { type: 'player', playerId: game.playerIds.black },
+    };
+  });
+
   constructor() {
-    effect((onCleanup) => {
-      const cleanup = this.wsService.subscribe(
-        'gameAction',
-        z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number() }),
-        ({ gameId, action, plyIndex }) => {
-          const currentGame = this.currentGame();
-          if (!currentGame || currentGame.gameId !== gameId) {
-            return;
-          }
-          this.onRemoteAction(takActionFromString(action), plyIndex);
-        },
-      );
-      onCleanup(() => {
-        cleanup();
-      });
-    });
+    this.wsService.subscribeEffect(
+      'gameAction',
+      z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number() }),
+      ({ gameId, action, plyIndex }) => {
+        const currentGame = this.currentGame();
+        if (!currentGame || currentGame.gameId !== gameId) {
+          return;
+        }
+        this.onRemoteAction(takActionFromString(action), plyIndex);
+      },
+    );
   }
 
   onLocalAction(action: TakAction) {
@@ -170,8 +163,8 @@ export class OnlinePlayRoute {
           // This is our own action echoed back; ignore it.
           console.log('Ignoring echoed back action.');
         } else {
-          console.error(`Ply index mismatch:  got ${plyIndex}`);
-          //TODO: refetch game state from server
+          console.error(`Ply index mismatch: got ${plyIndex}`);
+          this.ongoingGameStatus.refetch();
         }
       }
       return { ...game };

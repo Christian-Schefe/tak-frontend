@@ -1,8 +1,9 @@
-import { HttpClient, httpResource } from '@angular/common/http';
-import { effect, inject, Injectable, linkedSignal, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { effect, inject, Injectable, linkedSignal } from '@angular/core';
 import { WsService } from '../ws-service/ws-service';
 import z from 'zod';
 import { GameSettings, gameSettings } from '../game-service/game-service';
+import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 
 export type SeekInfo = z.infer<typeof seekInfo>;
 
@@ -31,65 +32,23 @@ export class SeekService {
   wsService = inject(WsService);
   httpClient = inject(HttpClient);
 
-  seeks = linkedSignal<SeekInfo[] | undefined, SeekInfo[]>({
-    source: () => {
-      if (this.seeksResource.hasValue()) {
-        return this.seeksResource.value();
-      }
-      return undefined;
-    },
-    computation: (source, prev) => {
-      if (!source) {
-        return prev?.value ?? [];
-      }
-      return source;
-    },
-  });
-
-  private refetchSignal = signal(0);
-
-  seeksResource = httpResource<SeekInfo[]>(() => {
-    this.refetchSignal();
-    return '/api2/seeks';
-  });
-
-  refetchSeeks() {
-    console.log('Refetching seeks');
-    this.refetchSignal.update((n) => n + 1);
-  }
+  seeksResource = smartHttpResource<SeekInfo[]>(z.array(seekInfo), () => '/api2/seeks');
+  seeks = linkedSignal(() => this.seeksResource.lastValue() ?? []);
 
   constructor() {
     effect(() => {
       if (this.wsService.connected()) {
-        this.refetchSeeks();
+        this.seeksResource.refetch();
       }
     });
-    effect((onCleanup) => {
-      const cleanup = this.wsService.subscribe(
-        'seekCreated',
-        z.object({ seek: seekInfo }),
-        ({ seek }) => {
-          this.seeks.update((seeks) => {
-            return [...seeks, seek];
-          });
-        },
-      );
-      onCleanup(() => {
-        cleanup();
+    this.wsService.subscribeEffect('seekCreated', z.object({ seek: seekInfo }), ({ seek }) => {
+      this.seeks.update((seeks) => {
+        return [...seeks, seek];
       });
     });
-    effect((onCleanup) => {
-      const cleanup = this.wsService.subscribe(
-        'seekRemoved',
-        z.object({ seekId }),
-        ({ seekId }) => {
-          this.seeks.update((seeks) => {
-            return seeks.filter((seek) => seek.id !== seekId);
-          });
-        },
-      );
-      onCleanup(() => {
-        cleanup();
+    this.wsService.subscribeEffect('seekRemoved', z.object({ seekId }), ({ seekId }) => {
+      this.seeks.update((seeks) => {
+        return seeks.filter((seek) => seek.id !== seekId);
       });
     });
   }
@@ -99,6 +58,10 @@ export class SeekService {
   }
 
   acceptSeek(seekId: number) {
-    return this.httpClient.post(`/api2/seeks/accept`, { seekId });
+    return this.httpClient.post(`/api2/seeks/${seekId}/accept`, {});
+  }
+
+  cancelSeek(seekId: number) {
+    return this.httpClient.delete(`/api2/seeks/${seekId}`);
   }
 }

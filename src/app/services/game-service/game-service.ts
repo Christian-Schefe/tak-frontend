@@ -1,12 +1,9 @@
-import { httpResource } from '@angular/common/http';
-import { effect, inject, Injectable, linkedSignal, signal } from '@angular/core';
+import { effect, inject, Injectable, linkedSignal } from '@angular/core';
 import z from 'zod';
 import { WsService } from '../ws-service/ws-service';
-
-export interface OngoingGameStatus {
-  gameId: number;
-  actions: string[];
-}
+import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
+import { IdentityService } from '../identity-service/identity-service';
+import { Router } from '@angular/router';
 
 export const gameSettings = z.object({
   boardSize: z.number(),
@@ -23,14 +20,48 @@ export const gameSettings = z.object({
     .nullable(),
 });
 
-export type GameSettings = z.infer<typeof gameSettings>;
+export const gameStatus = z.object({
+  id: z.number(),
+  playerIds: z.object({
+    white: z.string(),
+    black: z.string(),
+  }),
+  isRated: z.boolean(),
+  gameSettings,
+  actions: z.array(z.string()),
+  remainingMs: z.object({
+    white: z.number(),
+    black: z.number(),
+  }),
+  status: z.union([
+    z.object({
+      type: z.literal('finished'),
+      result: z.string(),
+    }),
+    z.object({
+      type: z.literal('ongoing'),
+      drawOffers: z.object({
+        white: z.boolean(),
+        black: z.boolean(),
+      }),
+      undoRequests: z.object({
+        white: z.boolean(),
+        black: z.boolean(),
+      }),
+    }),
+  ]),
+});
 
+export type GameStatus = z.infer<typeof gameStatus>;
+export type GameSettings = z.infer<typeof gameSettings>;
 export type GameInfo = z.infer<typeof gameInfo>;
 
 const gameInfo = z.object({
   id: z.number(),
-  whiteId: z.string(),
-  blackId: z.string(),
+  playerIds: z.object({
+    white: z.string(),
+    black: z.string(),
+  }),
   isRated: z.boolean(),
   gameSettings,
 });
@@ -40,77 +71,48 @@ const gameInfo = z.object({
 })
 export class GameService {
   wsService = inject(WsService);
+  identityService = inject(IdentityService);
+  router = inject(Router);
 
-  games = linkedSignal<GameInfo[] | undefined, GameInfo[]>({
-    source: () => {
-      if (this.gamesResource.hasValue()) {
-        return this.gamesResource.value();
-      }
-      return undefined;
-    },
-    computation: (source, prev) => {
-      if (!source) {
-        return prev?.value ?? [];
-      }
-      return source;
-    },
-  });
+  gamesResource = smartHttpResource(z.array(gameInfo), () => '/api2/games');
 
-  private refetchSignal = signal(0);
+  games = linkedSignal(() => this.gamesResource.lastValue() ?? []);
 
-  gamesResource = httpResource<GameInfo[]>(() => {
-    this.refetchSignal();
-    return '/api2/games';
-  });
-
-  refetchGames() {
-    console.log('Refetching games');
-    this.refetchSignal.update((n) => n + 1);
-  }
-
-  ongoingGameStatus(gameId: () => number | undefined) {
-    return httpResource<OngoingGameStatus>(() => {
+  gameStatus(gameId: () => number | undefined) {
+    return smartHttpResource(gameStatus, () => {
       const gid = gameId();
-      if (!gid) {
-        return undefined;
-      }
-      return `/api2/games/${gid}`;
+      return gid ? `/api2/games/${gid}` : undefined;
     });
   }
 
   constructor() {
     effect(() => {
       if (this.wsService.connected()) {
-        this.refetchGames();
+        this.gamesResource.refetch();
       }
     });
-    effect((onCleanup) => {
-      const cleanup = this.wsService.subscribe(
-        'gameStarted',
-        z.object({ game: gameInfo }),
-        ({ game }) => {
-          this.games.update((games) => {
-            return [...games, game];
-          });
-        },
-      );
-      onCleanup(() => {
-        cleanup();
+    this.wsService.subscribeEffect('gameStarted', z.object({ game: gameInfo }), ({ game }) => {
+      this.games.update((games) => {
+        return [...games, game];
       });
     });
-    effect((onCleanup) => {
-      const cleanup = this.wsService.subscribe(
-        'gameEnded',
-        z.object({ gameId: z.number() }),
-        ({ gameId }) => {
-          this.games.update((games) => {
-            return games.filter((game) => game.id !== gameId);
-          });
-        },
-      );
-      onCleanup(() => {
-        cleanup();
+    this.wsService.subscribeEffect('gameEnded', z.object({ gameId: z.number() }), ({ gameId }) => {
+      this.games.update((games) => {
+        return games.filter((game) => game.id !== gameId);
       });
+    });
+    effect(() => {
+      const games = this.games();
+      const identity = this.identityService.identity();
+      const thisPlayerGame = games.find((game) => {
+        return (
+          identity &&
+          (game.playerIds.white === identity.playerId || game.playerIds.black === identity.playerId)
+        );
+      });
+      if (thisPlayerGame) {
+        this.router.navigate(['/app/online/', thisPlayerGame.id]);
+      }
     });
   }
 }

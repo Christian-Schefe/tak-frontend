@@ -1,20 +1,25 @@
-import { computed, effect, inject, Injectable, linkedSignal, signal } from '@angular/core';
-import { HttpClient, httpResource } from '@angular/common/http';
+import { computed, effect, inject, Injectable, linkedSignal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { GuestService } from '../guest-service/guest-service';
 import { AuthService } from '../auth-service/auth-service';
+import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
+import z from 'zod';
 
-type AccountInfoResponse =
-  | ({
-      type: 'authenticated';
-    } & AccountInfo)
-  | { type: 'unauthenticated' };
+export const accountInfo = z.object({
+  accountId: z.string(),
+  playerId: z.string(),
+  isGuest: z.boolean(),
+  wsJwt: z.string(),
+});
 
-interface AccountInfo {
-  accountId: string;
-  playerId: string;
-  isGuest: boolean;
-  wsJwt: string;
-}
+const accountInfoResponse = z.union([
+  z.object({ type: z.literal('authenticated'), ...accountInfo.shape }),
+  z.object({ type: z.literal('unauthenticated') }),
+]);
+
+type AccountInfoResponse = z.infer<typeof accountInfoResponse>;
+
+type AccountInfo = z.infer<typeof accountInfo>;
 
 type IdentityState = { type: 'loading' } | { type: 'loaded'; account: AccountInfo | null };
 
@@ -26,12 +31,10 @@ export class IdentityService {
   authService = inject(AuthService);
   guestService = inject(GuestService);
 
-  authVersion = signal(0);
-
   identityState = computed<IdentityState>(() => {
-    if (this.account.hasValue()) {
-      const response = this.account.value();
-      return { type: 'loaded', account: response.type === 'authenticated' ? response : null };
+    const val = this.account.value();
+    if (val !== null) {
+      return { type: 'loaded', account: val.type === 'authenticated' ? val : null };
     } else {
       return { type: 'loading' };
     }
@@ -48,9 +51,8 @@ export class IdentityService {
     },
   });
 
-  account = httpResource<AccountInfoResponse>(() => {
-    this.authVersion();
-    console.log('Fetching account info, auth version:', this.authVersion());
+  account = smartHttpResource<AccountInfoResponse>(accountInfoResponse, () => {
+    console.log('Fetching account info');
     return '/api2/whoami';
   });
 
@@ -58,7 +60,7 @@ export class IdentityService {
     effect(() => {
       this.authService.authState();
       this.guestService.guestJwt();
-      this.authVersion.update((v) => v + 1);
+      this.account.refetch();
     });
   }
 }

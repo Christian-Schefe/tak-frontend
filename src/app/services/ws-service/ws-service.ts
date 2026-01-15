@@ -162,6 +162,15 @@ export class WsService {
     };
   }
 
+  subscribeEffect<D>(type: string, parser: z.ZodType<D>, handler: (msg: D) => void) {
+    return effect((onCleanup) => {
+      const unsubscribe = this.subscribe(type, parser, handler);
+      onCleanup(() => {
+        unsubscribe();
+      });
+    });
+  }
+
   sendMessage(type: string, data: object) {
     return new Observable<unknown>((subscriber) => {
       const responseId = crypto.randomUUID();

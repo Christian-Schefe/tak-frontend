@@ -1,6 +1,6 @@
-import { Component, linkedSignal } from '@angular/core';
-import { GameComponent } from '../../components/game-component/game-component';
-import { TakAction, TakGameSettings } from '../../../tak';
+import { Component, computed, linkedSignal } from '@angular/core';
+import { GameComponent, GamePlayer } from '../../components/game-component/game-component';
+import { TakAction, TakGameSettings, TakPlayer } from '../../../tak';
 import { TakGame, takOngoingGameDoAction, takOngoingGameNew } from '../../../tak/game';
 
 @Component({
@@ -22,6 +22,12 @@ export class LocalPlayRoute {
   };
   game = linkedSignal<TakGame>(() => {
     return { type: 'ongoing', game: takOngoingGameNew(this.settings) };
+  });
+  players = computed<Record<TakPlayer, GamePlayer>>(() => {
+    return {
+      white: { type: 'local', name: 'Player 1' },
+      black: { type: 'local', name: 'Player 2' },
+    };
   });
 
   onAction(action: TakAction) {

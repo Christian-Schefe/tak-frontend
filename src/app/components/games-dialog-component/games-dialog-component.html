@@ -19,8 +19,8 @@
     </ng-template>
     <ng-template #body let-item>
       @let game = asGame(item);
-      @let whitePlayerInfo = playerInfosMap[game.whiteId];
-      @let blackPlayerInfo = playerInfosMap[game.blackId];
+      @let whitePlayerInfo = playerInfosMap[game.playerIds.white];
+      @let blackPlayerInfo = playerInfosMap[game.playerIds.black];
       <tr>
         <td>
           @if (whitePlayerInfo.hasValue()) {

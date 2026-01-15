@@ -31,7 +31,7 @@ export const routes: Routes = [
       { path: '', component: HomeRoute },
       { path: 'account', component: AccountRoute },
       { path: 'local', component: LocalPlayRoute },
-      { path: 'online', component: OnlinePlayRoute },
+      { path: 'online/:id', component: OnlinePlayRoute },
       { path: 'settings', component: SettingsRoute },
       { path: 'player/:id', component: PlayerProfileRoute },
     ],

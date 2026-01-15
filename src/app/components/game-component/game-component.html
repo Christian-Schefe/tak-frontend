@@ -1,10 +1,14 @@
 @let takGame = game();
-<app-board-ninja-component
-  [game]="takGame"
-  [settings]="settings()"
-  [mode]="mode()"
-  (action)="action.emit($event)"
-></app-board-ninja-component>
+<div class="board-container">
+  <app-game-player-bar [gamePlayer]="players().white"></app-game-player-bar>
+  <app-board-ninja-component
+    [game]="takGame"
+    [settings]="settings()"
+    [mode]="mode()"
+    (action)="action.emit($event)"
+  ></app-board-ninja-component>
+  <app-game-player-bar [gamePlayer]="players().black"></app-game-player-bar>
+</div>
 @if (takGame.type === 'finished') {
   <p-button (click)="showGameOverInfo.set(true)" class="absolute top-15 left-1/2 -translate-x-1/2"
     >Show Game Over Info</p-button

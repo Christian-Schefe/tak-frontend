@@ -3,3 +3,11 @@
   height: 100%;
   display: flex;
 }
+
+.board-container {
+  display: grid;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  grid-template-rows: auto 1fr auto;
+}

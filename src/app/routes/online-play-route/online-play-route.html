@@ -1,11 +1,13 @@
 @let curGame = currentGame();
 @let ongoingGame = game();
-@if (curGame && ongoingGame) {
+@let gamePlayers = players();
+@if (curGame && ongoingGame && gamePlayers) {
   <app-game-component
     [settings]="curGame.settings"
     [game]="ongoingGame"
     (action)="onLocalAction($event)"
     [mode]="curGame.mode"
+    [players]="gamePlayers"
   ></app-game-component>
 } @else {
   <p>No ongoing game.</p>

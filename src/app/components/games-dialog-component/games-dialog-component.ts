@@ -26,6 +26,6 @@ export class GamesDialogComponent {
   }
 
   playerInfos = this.playerService.getComputedPlayerInfos(() => {
-    return this.gameService.games().flatMap((game) => [game.whiteId, game.blackId]);
+    return this.gameService.games().flatMap((game) => [game.playerIds.white, game.playerIds.black]);
   });
 }

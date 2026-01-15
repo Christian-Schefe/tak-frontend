@@ -46,6 +46,8 @@ export class SeeksDialogComponent {
   }
 
   onCancelSeek(seekId: number) {
-    console.log('Cancel seek not implemented yet:', seekId);
+    this.seekService.cancelSeek(seekId).subscribe(() => {
+      console.log('Seek canceled:', seekId);
+    });
   }
 }
