@@ -1,0 +1,12 @@
+@let clock = clockInfo();
+<div
+  [class]="
+    `py-2 px-4 text-lg text-center rounded-md font-mono min-w-24 border ${clock.isActive ? 'bg-surface-700 dark:bg-surface-200' : 'border-surface'} ${clock.isActive ? 'text-primary-contrast' : 'text-muted-color'} transition-colors`
+  "
+>
+  @if (clock.remainingMs !== null) {
+    {{ clock.remainingMs | clockFormat }}
+  } @else {
+    --:--
+  }
+</div>

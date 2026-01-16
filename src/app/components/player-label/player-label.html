@@ -2,6 +2,6 @@
 <a [routerLink]="['/app/player/', player?.id]" class="whitespace-nowrap">
   {{ player?.displayName }}
   @if (player && player.rating) {
-    {{ ' ' }}({{ player.rating.rating | round }})
+    <span class="text-muted-color text-sm">{{ ' ' }}({{ player.rating.rating | round }})</span>
   }
 </a>

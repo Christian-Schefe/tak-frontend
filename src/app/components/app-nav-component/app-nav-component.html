@@ -1,9 +1,6 @@
 @let player = playerInfo();
 
 <p-menubar [model]="items">
-  <ng-template #start>
-    <a class="logo" routerLink="/">Playtak</a>
-  </ng-template>
   <ng-template #item let-item>
     @let val = typedItem(item);
     @if (val.command) {

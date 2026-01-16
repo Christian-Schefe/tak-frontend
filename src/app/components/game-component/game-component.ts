@@ -1,10 +1,10 @@
-import { Component, input, linkedSignal, output } from '@angular/core';
-import { TakGame } from '../../../tak/game';
-import { TakAction, TakGameSettings, TakPlayer } from '../../../tak';
+import { Component, computed, input, linkedSignal, output } from '@angular/core';
 import { BoardNinjaComponent } from '../board-ninja-component/board-ninja-component';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { GamePlayerBar } from '../game-player-bar/game-player-bar';
+import { TakGameSettings, TakAction, TakPlayer } from '../../../tak-core';
+import { TakGameUI } from '../../../tak-core/ui';
 
 export type GameMode =
   | { type: 'local' }
@@ -29,13 +29,21 @@ export type GamePlayer =
 })
 export class GameComponent {
   settings = input.required<TakGameSettings>();
-  game = input.required<TakGame>();
+  game = input.required<TakGameUI>();
   action = output<TakAction>();
   mode = input.required<GameMode>();
   players = input.required<Record<TakPlayer, GamePlayer>>();
 
+  playerOrder = computed<{ p1: TakPlayer; p2: TakPlayer }>(() => {
+    const mode = this.mode();
+    if (mode.type === 'online' && mode.localColor === 'black') {
+      return { p1: 'black', p2: 'white' };
+    }
+    return { p1: 'white', p2: 'black' };
+  });
+
   showGameOverInfo = linkedSignal<boolean>(() => {
     const game = this.game();
-    return game.type === 'finished';
+    return game.actualGame.gameState.type !== 'ongoing';
   });
 }

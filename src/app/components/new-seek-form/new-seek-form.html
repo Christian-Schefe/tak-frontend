@@ -1,16 +1,131 @@
-<form class="w-full- h-full" (ngSubmit)="onSubmit()">
-  <p-ifta-label>
-    <p-select
-      [options]="boardSizes"
-      [(ngModel)]="boardSize"
-      inputId="board-size"
-      appendTo="body"
-      name="boardSize"
-      fluid
-    ></p-select>
-    <label for="board-size">Board Size</label>
-  </p-ifta-label>
-  <button class="mt-4" pButton pRipple type="submit">
+<form class="w-full h-full gap-2 flex flex-col" (ngSubmit)="onSubmit()">
+  <div class="grid grid-cols-2 w-full gap-2">
+    <p-ifta-label>
+      <input
+        pInputText
+        [(ngModel)]="opponentName"
+        inputId="opponent-name"
+        name="opponentName"
+        fluid
+        placeholder="Anyone"
+        [invalid]="!isValidOpponent()"
+      />
+      <label for="opponent-name">Opponent Name</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-select
+        [options]="presets"
+        [(ngModel)]="preset"
+        inputId="preset"
+        appendTo="body"
+        name="preset"
+        fluid
+      ></p-select>
+      <label for="preset">Preset</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-select
+        [options]="colorOptions"
+        [(ngModel)]="color"
+        inputId="color"
+        appendTo="body"
+        name="color"
+        fluid
+      ></p-select>
+      <label for="color">Color</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-select
+        [options]="ratedOptions"
+        [(ngModel)]="rated"
+        inputId="rated"
+        appendTo="body"
+        name="rated"
+        fluid
+        [disabled]="preset().isRated !== undefined"
+      ></p-select>
+      <label for="rated">Game Type</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-select
+        [options]="boardSizes"
+        [(ngModel)]="boardSize"
+        inputId="board-size"
+        appendTo="body"
+        name="boardSize"
+        fluid
+        [disabled]="preset().boardSize !== undefined"
+      ></p-select>
+      <label for="board-size">Board Size</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-select
+        [options]="halfKomiOptions"
+        [(ngModel)]="halfKomi"
+        inputId="half-komi"
+        appendTo="body"
+        name="halfKomi"
+        fluid
+        [disabled]="preset().halfKomi !== undefined"
+      ></p-select>
+      <label for="half-komi">Komi</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="timeContingentMinutes"
+        inputId="time-contingent"
+        name="timeContingent"
+        fluid
+        [useGrouping]="false"
+        [min]="1"
+        [max]="100000"
+        [placeholder]="timeContingentDefault.toString()"
+        [disabled]="preset().timeContingentMinutes !== undefined"
+      ></p-inputnumber>
+      <label for="time-contingent">Time Contingent (minutes)</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="timeIncrementSeconds"
+        inputId="time-increment"
+        name="timeIncrement"
+        fluid
+        [useGrouping]="false"
+        [min]="1"
+        [max]="100000"
+        [placeholder]="timeIncrementDefault.toString()"
+        [disabled]="preset().timeIncrementSeconds !== undefined"
+      ></p-inputnumber>
+      <label for="time-increment">Time Increment (seconds)</label> </p-ifta-label
+    ><p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="pieces"
+        inputId="pieces"
+        name="pieces"
+        fluid
+        [useGrouping]="false"
+        [min]="5"
+        [max]="150"
+        [placeholder]="piecesDefault().toString()"
+        [disabled]="preset().pieces !== undefined"
+      ></p-inputnumber>
+      <label for="pieces">Pieces</label> </p-ifta-label
+    ><p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="capstones"
+        inputId="capstones"
+        name="capstones"
+        fluid
+        [useGrouping]="false"
+        [min]="0"
+        [max]="150"
+        [placeholder]="capstonesDefault().toString()"
+        [disabled]="preset().capstones !== undefined"
+      ></p-inputnumber>
+      <label for="capstones">Capstones</label>
+    </p-ifta-label>
+  </div>
+  <button class="mt-4" pButton pRipple type="submit" [disabled]="!isValidOpponent()">
     <span pButtonLabel>Create Seek</span>
   </button>
 </form>

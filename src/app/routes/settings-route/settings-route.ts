@@ -3,10 +3,11 @@ import { SelectModule } from 'primeng/select';
 import { themesList } from '../../services/theme-service/theme-service';
 import { FormsModule } from '@angular/forms';
 import { SettingsService } from '../../services/settings-service/settings-service';
+import { IftaLabelModule } from 'primeng/iftalabel';
 
 @Component({
   selector: 'app-settings-route',
-  imports: [SelectModule, FormsModule],
+  imports: [SelectModule, FormsModule, IftaLabelModule],
   templateUrl: './settings-route.html',
   styleUrl: './settings-route.css',
 })

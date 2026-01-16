@@ -1,17 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NewSeekForm } from './new-seek-form';
+import { GameClock } from './game-clock';
 
-describe('NewSeekForm', () => {
-  let component: NewSeekForm;
-  let fixture: ComponentFixture<NewSeekForm>;
+describe('GameClock', () => {
+  let component: GameClock;
+  let fixture: ComponentFixture<GameClock>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NewSeekForm],
-    }).compileComponents();
+      imports: [GameClock]
+    })
+    .compileComponents();
 
-    fixture = TestBed.createComponent(NewSeekForm);
+    fixture = TestBed.createComponent(GameClock);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

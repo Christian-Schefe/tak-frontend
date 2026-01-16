@@ -8,6 +8,7 @@ import {
   Signal,
   untracked,
 } from '@angular/core';
+import { Observable } from 'rxjs';
 
 export interface PlayerInfo {
   id: string;
@@ -71,6 +72,12 @@ export class PlayerService {
       }
       return `/api2/players/${pid}`;
     });
+  }
+
+  getPlayerByUsername(username: string): Observable<PlayerInfo | null> {
+    return this.httpClient.get<PlayerInfo | null>(
+      `/api2/usernames/${encodeURIComponent(username)}`,
+    );
   }
 
   getPlayerStatsRef(playerId: () => string | undefined): HttpResourceRef<PlayerStats | undefined> {

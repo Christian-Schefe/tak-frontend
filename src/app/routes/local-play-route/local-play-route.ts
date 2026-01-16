@@ -1,7 +1,9 @@
-import { Component, computed, linkedSignal } from '@angular/core';
+import { Component, computed, linkedSignal, OnDestroy, OnInit } from '@angular/core';
 import { GameComponent, GamePlayer } from '../../components/game-component/game-component';
-import { TakAction, TakGameSettings, TakPlayer } from '../../../tak';
-import { TakGame, takOngoingGameDoAction, takOngoingGameNew } from '../../../tak/game';
+import { interval, Subscription } from 'rxjs';
+import { TakGameSettings, TakAction, TakPlayer } from '../../../tak-core';
+import { checkTimeout, doMove, TakGameUI, newGameUI } from '../../../tak-core/ui';
+import { newGame } from '../../../tak-core/game';
 
 @Component({
   selector: 'app-local-play-route',
@@ -9,19 +11,18 @@ import { TakGame, takOngoingGameDoAction, takOngoingGameNew } from '../../../tak
   templateUrl: './local-play-route.html',
   styleUrl: './local-play-route.css',
 })
-export class LocalPlayRoute {
+export class LocalPlayRoute implements OnInit, OnDestroy {
   settings: TakGameSettings = {
     boardSize: 5,
     halfKomi: 0,
-    reserve: { flats: 21, capstones: 1 },
-    timeControl: {
-      contingentMs: 5 * 60 * 1000,
-      incrementMs: 0,
-      extra: null,
+    reserve: { pieces: 21, capstones: 1 },
+    clock: {
+      contingentMs: 1 * 60 * 1000,
+      incrementMs: 5 * 1000,
     },
   };
-  game = linkedSignal<TakGame>(() => {
-    return { type: 'ongoing', game: takOngoingGameNew(this.settings) };
+  game = linkedSignal<TakGameUI>(() => {
+    return newGameUI(newGame(this.settings));
   });
   players = computed<Record<TakPlayer, GamePlayer>>(() => {
     return {
@@ -30,18 +31,31 @@ export class LocalPlayRoute {
     };
   });
 
+  timeoutInterval: Subscription | null = null;
+
+  ngOnInit() {
+    this.timeoutInterval = interval(300).subscribe(() => {
+      this.game.update((game) => {
+        if (game.actualGame.gameState.type !== 'ongoing') {
+          return game;
+        }
+        checkTimeout(game);
+        if (game.actualGame.gameState.type === 'ongoing') {
+          return game;
+        }
+        return { ...game };
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    this.timeoutInterval?.unsubscribe();
+  }
+
   onAction(action: TakAction) {
     console.log('Received action from Board Ninja:', action);
     this.game.update((game) => {
-      if (game.type === 'ongoing') {
-        const res = takOngoingGameDoAction(game.game, action, Date.now());
-        if (res && res.type === 'game-over') {
-          return { type: 'finished', game: res.game };
-        }
-        if (res && res.type === 'error') {
-          console.error('Invalid action attempted:', res.reason);
-        }
-      }
+      doMove(game, action);
       return { ...game };
     });
   }

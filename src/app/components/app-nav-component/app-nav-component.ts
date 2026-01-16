@@ -7,6 +7,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideEye,
   lucideGamepad2,
+  lucideHome,
   lucidePlay,
   lucideSettings,
   lucideSwords,
@@ -41,6 +42,7 @@ import { NewGameDialog } from '../new-game-dialog/new-game-dialog';
       lucidePlay,
       lucideSwords,
       lucideEye,
+      lucideHome,
     }),
   ],
 })
@@ -69,6 +71,11 @@ export class AppNavComponent {
   }
 
   items: MenuItem[] = [
+    {
+      label: 'Home',
+      icon: 'lucideHome',
+      routerLink: '/',
+    },
     {
       label: 'Play Local',
       icon: 'lucideGamepad2',

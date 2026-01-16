@@ -20,6 +20,11 @@ export const gameSettings = z.object({
     .nullable(),
 });
 
+export const gameEndedMessage = z.object({
+  gameId: z.number(),
+  result: z.string(),
+});
+
 export const gameStatus = z.object({
   id: z.number(),
   playerIds: z.object({
@@ -35,7 +40,7 @@ export const gameStatus = z.object({
   }),
   status: z.union([
     z.object({
-      type: z.literal('finished'),
+      type: z.literal('ended'),
       result: z.string(),
     }),
     z.object({
@@ -96,7 +101,7 @@ export class GameService {
         return [...games, game];
       });
     });
-    this.wsService.subscribeEffect('gameEnded', z.object({ gameId: z.number() }), ({ gameId }) => {
+    this.wsService.subscribeEffect('gameEnded', gameEndedMessage, ({ gameId }) => {
       this.games.update((games) => {
         return games.filter((game) => game.id !== gameId);
       });

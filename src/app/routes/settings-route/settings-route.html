@@ -1,1 +1,11 @@
-<p-select [options]="themes()" [(ngModel)]="settingsService.themeId"></p-select>
+<div class="flex flex-col w-full max-w-xl mx-auto">
+  <p-iftalabel>
+    <p-select
+      inputId="settings-theme"
+      [options]="themes()"
+      [(ngModel)]="settingsService.themeId"
+      fluid
+    ></p-select>
+    <label for="settings-theme">Color Theme</label>
+  </p-iftalabel>
+</div>
