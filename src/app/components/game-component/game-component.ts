@@ -5,6 +5,8 @@ import { DialogModule } from 'primeng/dialog';
 import { GamePlayerBar } from '../game-player-bar/game-player-bar';
 import { TakGameSettings, TakAction, TakPlayer } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
+import { GameSidePanel } from "../game-side-panel/game-side-panel";
+import { GameChatPanel } from "../game-chat-panel/game-chat-panel";
 
 export type GameMode =
   | { type: 'local' }
@@ -23,7 +25,7 @@ export type GamePlayer =
 
 @Component({
   selector: 'app-game-component',
-  imports: [BoardNinjaComponent, ButtonModule, DialogModule, GamePlayerBar],
+  imports: [BoardNinjaComponent, ButtonModule, DialogModule, GamePlayerBar, GameSidePanel, GameChatPanel],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })

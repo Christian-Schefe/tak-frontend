@@ -7,7 +7,7 @@
 .board-container {
   display: grid;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  height: 100%;
   grid-template-rows: auto 1fr auto;
+  grid-template-columns: auto 1fr auto;
 }

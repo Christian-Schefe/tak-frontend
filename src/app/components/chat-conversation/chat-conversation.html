@@ -1,0 +1,15 @@
+<p-scrollpanel class="p-1 w-full h-full">
+  @for (item of messages(); track $index) {
+    <div class="p-1">
+      @if (item.showTimestamp) {
+        <p class="text-sm text-surface-500 dark:text-surface-300 mb-1 mt-2">
+          {{ item.msg.timestamp | date: 'shortTime' }}
+        </p>
+      }
+      <p class="text-surface-700 dark:text-surface-400">
+        <span class="font-bold wrap-anywhere">{{ item.msg.fromAccountId }}:</span>
+        <span class="wrap-anywhere"> {{ item.msg.message }}</span>
+      </p>
+    </div>
+  }
+</p-scrollpanel>
