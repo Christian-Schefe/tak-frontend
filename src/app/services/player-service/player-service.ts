@@ -12,6 +12,7 @@ import { Observable } from 'rxjs';
 
 export interface PlayerInfo {
   id: string;
+  accountId: string;
   username: string;
   displayName: string;
   rating?: PlayerRating | null;
@@ -38,6 +39,7 @@ export class PlayerService {
   injector = inject(Injector);
 
   private playerInfoCache = new Map<string, HttpResourceRef<PlayerInfo | undefined>>();
+  private playerInfoByAccountIdCache = new Map<string, HttpResourceRef<PlayerInfo | undefined>>();
 
   getComputedPlayerInfos(
     playerIds: () => string[],
@@ -64,6 +66,31 @@ export class PlayerService {
     });
   }
 
+  getComputedPlayerInfosByAccountId(
+    accountIds: () => string[],
+  ): Signal<Record<string, HttpResourceRef<PlayerInfo | undefined>>> {
+    return computed(() => {
+      const map: Record<string, HttpResourceRef<PlayerInfo | undefined>> = {};
+      const accounts = accountIds();
+      for (const accountId of accounts) {
+        const cached = this.playerInfoByAccountIdCache.get(accountId);
+        if (cached) {
+          map[accountId] = cached;
+          continue;
+        }
+        const resource = untracked(() =>
+          runInInjectionContext(this.injector, () => {
+            const aid = accountId;
+            return this.getPlayerInfoByAccountIdRef(() => aid);
+          }),
+        );
+        map[accountId] = resource;
+        this.playerInfoByAccountIdCache.set(accountId, resource);
+      }
+      return map;
+    });
+  }
+
   getPlayerInfoRef(playerId: () => string | undefined): HttpResourceRef<PlayerInfo | undefined> {
     return httpResource<PlayerInfo>(() => {
       const pid = playerId();
@@ -71,6 +98,18 @@ export class PlayerService {
         return undefined;
       }
       return `/api2/players/${pid}`;
+    });
+  }
+
+  getPlayerInfoByAccountIdRef(
+    accountId: () => string | undefined,
+  ): HttpResourceRef<PlayerInfo | undefined> {
+    return httpResource<PlayerInfo>(() => {
+      const aid = accountId();
+      if (!aid) {
+        return undefined;
+      }
+      return `/api2/accounts/${aid}`;
     });
   }
 

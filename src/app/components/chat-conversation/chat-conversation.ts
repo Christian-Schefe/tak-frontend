@@ -1,7 +1,8 @@
 import { Component, computed, inject, input } from '@angular/core';
-import { ChatMessageSource, ChatService } from '../../services/chat-service/chat-service';
+import { ChatMessageConversation, ChatService } from '../../services/chat-service/chat-service';
 import { DatePipe } from '@angular/common';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
+import { PlayerService } from '../../services/player-service/player-service';
 
 @Component({
   selector: 'app-chat-conversation',
@@ -11,7 +12,17 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
 })
 export class ChatConversation {
   chatService = inject(ChatService);
-  source = input.required<ChatMessageSource>();
+  playerService = inject(PlayerService);
+  source = input.required<ChatMessageConversation>();
+
+  playerInfos = this.playerService.getComputedPlayerInfosByAccountId(() => {
+    const ids = new Set<string>();
+    const messages = this.chatService.getMessageSignal(this.source())();
+    for (const msg of messages) {
+      ids.add(msg.fromAccountId);
+    }
+    return Array.from(ids);
+  });
 
   messages = computed(() => {
     const messages = this.chatService.getMessageSignal(this.source())();

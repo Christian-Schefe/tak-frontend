@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, linkedSignal } from '@angular/core';
+import { computed, effect, inject, Injectable, linkedSignal } from '@angular/core';
 import z from 'zod';
 import { WsService } from '../ws-service/ws-service';
 import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
@@ -81,7 +81,10 @@ export class GameService {
 
   gamesResource = smartHttpResource(z.array(gameInfo), () => '/api2/games');
 
-  games = linkedSignal(() => this.gamesResource.lastValue() ?? []);
+  games = linkedSignal(() => {
+    console.log('Updating games from resource');
+    return this.gamesResource.lastValue() ?? [];
+  });
 
   gameStatus(gameId: () => number | undefined) {
     return smartHttpResource(gameStatus, () => {
@@ -89,6 +92,19 @@ export class GameService {
       return gid ? `/api2/games/${gid}` : undefined;
     });
   }
+
+  thisPlayerGames = computed(() => {
+    const identity = this.identityService.identity();
+    if (identity === null) {
+      return [];
+    }
+    const playerId = identity.playerId;
+    const games = this.games().filter(
+      (game) => game.playerIds.white === playerId || game.playerIds.black === playerId,
+    );
+    console.log('This player games:', games);
+    return games;
+  });
 
   constructor() {
     effect(() => {
@@ -100,24 +116,22 @@ export class GameService {
       this.games.update((games) => {
         return [...games, game];
       });
+      this.maybeNavigateToThisPlayerGame(game);
     });
     this.wsService.subscribeEffect('gameEnded', gameEndedMessage, ({ gameId }) => {
       this.games.update((games) => {
         return games.filter((game) => game.id !== gameId);
       });
     });
-    effect(() => {
-      const games = this.games();
-      const identity = this.identityService.identity();
-      const thisPlayerGame = games.find((game) => {
-        return (
-          identity &&
-          (game.playerIds.white === identity.playerId || game.playerIds.black === identity.playerId)
-        );
-      });
-      if (thisPlayerGame) {
-        this.router.navigate(['/app/online/', thisPlayerGame.id]);
-      }
-    });
+  }
+
+  maybeNavigateToThisPlayerGame(game: GameInfo) {
+    const identity = this.identityService.identity();
+    const thisPlayerGame =
+      identity !== null &&
+      (game.playerIds.white === identity.playerId || game.playerIds.black === identity.playerId);
+    if (thisPlayerGame) {
+      this.router.navigate(['/app/online/', game.id]);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, linkedSignal } from '@angular/core';
+import { computed, effect, inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { GuestService } from '../guest-service/guest-service';
 import { AuthService } from '../auth-service/auth-service';
@@ -12,16 +12,11 @@ export const accountInfo = z.object({
   wsJwt: z.string(),
 });
 
-const accountInfoResponse = z.union([
-  z.object({ type: z.literal('authenticated'), ...accountInfo.shape }),
-  z.object({ type: z.literal('unauthenticated') }),
-]);
+const accountInfoResponse = z.union([accountInfo, z.null()]);
 
 type AccountInfoResponse = z.infer<typeof accountInfoResponse>;
 
 type AccountInfo = z.infer<typeof accountInfo>;
-
-type IdentityState = { type: 'loading' } | { type: 'loaded'; account: AccountInfo | null };
 
 @Injectable({
   providedIn: 'root',
@@ -31,36 +26,28 @@ export class IdentityService {
   authService = inject(AuthService);
   guestService = inject(GuestService);
 
-  identityState = computed<IdentityState>(() => {
-    const val = this.account.value();
-    if (val !== null) {
-      return { type: 'loaded', account: val.type === 'authenticated' ? val : null };
+  identityState = computed<AccountInfo | null | undefined>(() => {
+    if (this.account.resource.hasValue()) {
+      return this.account.value();
     } else {
-      return { type: 'loading' };
+      return undefined;
     }
-  });
-
-  identity = linkedSignal<IdentityState, AccountInfo | null>({
-    source: () => this.identityState(),
-    computation: (source, prev) => {
-      if (source.type === 'loaded') {
-        return source.account;
-      } else {
-        return prev?.value ?? null;
-      }
-    },
   });
 
   account = smartHttpResource<AccountInfoResponse>(accountInfoResponse, () => {
     console.log('Fetching account info');
     return '/api2/whoami';
   });
+  identity = this.account.lastValue;
 
   constructor() {
     effect(() => {
-      this.authService.authState();
-      this.guestService.guestJwt();
-      this.account.refetch();
+      const authState = this.authService.authState();
+      if (authState.type !== 'loading') {
+        console.log('Auth state changed, refetching account info', authState);
+        this.guestService.guestJwt();
+        this.account.refetch();
+      }
     });
   }
 }

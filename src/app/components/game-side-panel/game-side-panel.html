@@ -2,19 +2,34 @@
   class="w-full h-full bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-md flex flex-col"
 >
   <p-scrollpanel [style]="{ width: '100%', height: '150px', flexGrow: '1' }">
-    <div class="grid grid-cols-2 gap-2 min-w-50 p-2">
-      @for (item of historyItems(); track $index) {
-        @if (item) {
-          <div
-            [class]="
-              `${item.color === 'white' ? 'bg-surface-50 outline-surface-300 text-surface-900' : 'bg-surface-800 outline-surface-600 text-surface-200'} outline p-2 rounded-md font-mono font-bold`
-            "
-          >
-            {{ item.move }}
-          </div>
-        } @else {
-          <div class="p-2 rounded-md"></div>
-        }
+    <div class="flex flex-col min-w-70 p-2">
+      @for (row of historyItems(); track $index) {
+        <div [class]="`p-2 flex w-full ${$index % 2 === 0 ? 'bg-emphasis' : ''} rounded-md`">
+          @for (item of row; track $index) {
+            @switch (item.type) {
+              @case ('moveNumber') {
+                <div class="font-mono text-muted-color min-w-12">
+                  {{ item.text }}
+                </div>
+              }
+              @case ('whiteMove') {
+                <div class="font-mono font-bold min-w-20">
+                  {{ item.text }}
+                </div>
+              }
+              @case ('blackMove') {
+                <div class="font-mono font-bold min-w-20 ml-4">
+                  {{ item.text }}
+                </div>
+              }
+              @case ('gameResult') {
+                <div class="font-mono font-bold">
+                  {{ item.text }}
+                </div>
+              }
+            }
+          }
+        </div>
       }
     </div>
   </p-scrollpanel>

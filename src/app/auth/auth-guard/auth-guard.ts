@@ -11,8 +11,8 @@ export const authGuard: CanActivateFn = () => {
   console.log('Auth Guard - checking authentication status');
 
   return toObservable(identityService.identityState).pipe(
-    filter((v) => v.type === 'loaded'),
+    filter((v) => v !== undefined),
     take(1),
-    map((v) => (v.account !== null ? true : router.createUrlTree(['/']))),
+    map((v) => (v !== null ? true : router.createUrlTree(['/']))),
   );
 };
