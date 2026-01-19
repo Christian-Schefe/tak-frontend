@@ -4,6 +4,64 @@ import { DatePipe } from '@angular/common';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { PlayerService } from '../../services/player-service/player-service';
 
+type TextToken =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | { type: 'emote'; emote: Emote };
+
+interface Emote {
+  code: string;
+  name: string;
+  url: string;
+}
+const EMOTE_RE = /:([a-z0-9_-]+):/gi;
+
+function parseMessage(text: string, emotes: Map<string, Emote>): TextToken[] {
+  const tokens: TextToken[] = [];
+  let last = 0;
+
+  for (const match of text.matchAll(EMOTE_RE)) {
+    if (match.index > last) {
+      tokens.push({ type: 'text', text: text.slice(last, match.index) });
+    }
+
+    const shortcode = `:${match[1]}:`;
+    const emote = emotes.get(shortcode);
+
+    if (emote) {
+      tokens.push({ type: 'emote', emote: emote });
+    } else {
+      tokens.push({ type: 'text', text: shortcode });
+    }
+
+    last = match.index + shortcode.length;
+  }
+
+  if (last < text.length) {
+    tokens.push({ type: 'text', text: text.slice(last) });
+  }
+
+  return tokens;
+}
+
+const emotes: Emote[] = [
+  {
+    code: ':road-toad:',
+    name: 'Road Toad',
+    url: '/emotes/road_toad.png',
+  },
+
+  {
+    code: ':flat-rat:',
+    name: 'Flat Rat',
+    url: '/emotes/flat_rat.png',
+  },
+];
+
+const emoteMap = new Map<string, Emote>(emotes.map((e) => [e.code, e]));
+
 @Component({
   selector: 'app-chat-conversation',
   imports: [DatePipe, ScrollPanelModule],
@@ -31,7 +89,8 @@ export class ChatConversation {
       const prev = i > 0 ? messages[i - 1] : null;
       const showTimestamp =
         !prev || areTimestampsDifferentMinutes(prev.timestamp, messages[i].timestamp);
-      result.push({ msg: messages[i], showTimestamp });
+      const tokens = parseMessage(messages[i].message, emoteMap);
+      result.push({ msg: messages[i], tokens, showTimestamp });
     }
     return result;
   });

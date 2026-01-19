@@ -1,51 +1,53 @@
 <form class="w-full h-full gap-2 flex flex-col" (ngSubmit)="onSubmit()">
   <div class="grid grid-cols-2 w-full gap-2">
-    <p-ifta-label>
-      <input
-        pInputText
-        [(ngModel)]="opponentName"
-        inputId="opponent-name"
-        name="opponentName"
-        fluid
-        placeholder="Anyone"
-        [invalid]="!isValidOpponent()"
-      />
-      <label for="opponent-name">Opponent Name</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-select
-        [options]="presets"
-        [(ngModel)]="preset"
-        inputId="preset"
-        appendTo="body"
-        name="preset"
-        fluid
-      ></p-select>
-      <label for="preset">Preset</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-select
-        [options]="colorOptions"
-        [(ngModel)]="color"
-        inputId="color"
-        appendTo="body"
-        name="color"
-        fluid
-      ></p-select>
-      <label for="color">Color</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-select
-        [options]="ratedOptions"
-        [(ngModel)]="rated"
-        inputId="rated"
-        appendTo="body"
-        name="rated"
-        fluid
-        [disabled]="preset().isRated !== undefined"
-      ></p-select>
-      <label for="rated">Game Type</label>
-    </p-ifta-label>
+    @if (!isForLocal()) {
+      <p-ifta-label>
+        <input
+          pInputText
+          [(ngModel)]="opponentName"
+          inputId="opponent-name"
+          name="opponentName"
+          fluid
+          placeholder="Anyone"
+          [invalid]="!isValidOpponent()"
+        />
+        <label for="opponent-name">Opponent Name</label>
+      </p-ifta-label>
+      <p-ifta-label>
+        <p-select
+          [options]="presets"
+          [(ngModel)]="preset"
+          inputId="preset"
+          appendTo="body"
+          name="preset"
+          fluid
+        ></p-select>
+        <label for="preset">Preset</label>
+      </p-ifta-label>
+      <p-ifta-label>
+        <p-select
+          [options]="colorOptions"
+          [(ngModel)]="color"
+          inputId="color"
+          appendTo="body"
+          name="color"
+          fluid
+        ></p-select>
+        <label for="color">Color</label>
+      </p-ifta-label>
+      <p-ifta-label>
+        <p-select
+          [options]="ratedOptions"
+          [(ngModel)]="rated"
+          inputId="rated"
+          appendTo="body"
+          name="rated"
+          fluid
+          [disabled]="preset().isRated !== undefined"
+        ></p-select>
+        <label for="rated">Game Type</label>
+      </p-ifta-label>
+    }
     <p-ifta-label>
       <p-select
         [options]="boardSizes"

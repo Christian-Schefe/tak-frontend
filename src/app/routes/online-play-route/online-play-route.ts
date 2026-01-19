@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, linkedSignal } from '@angular/core';
+import { Component, computed, effect, inject, input, linkedSignal, OnDestroy } from '@angular/core';
 import {
   GameComponent,
   GameMode,
@@ -19,7 +19,7 @@ interface CurrentGame {
   settings: TakGameSettings;
   mode: GameMode;
   actions: string[];
-  gameState: TakGameState | null;
+  gameState: TakGameState;
 }
 
 @Component({
@@ -28,7 +28,7 @@ interface CurrentGame {
   templateUrl: './online-play-route.html',
   styleUrl: './online-play-route.css',
 })
-export class OnlinePlayRoute {
+export class OnlinePlayRoute implements OnDestroy {
   gameService = inject(GameService);
   identityService = inject(IdentityService);
   wsService = inject(WsService);
@@ -89,7 +89,9 @@ export class OnlinePlayRoute {
       gameId: game.id,
       mode,
       actions: game.actions,
-      gameState: gameStateFromStr(game.status.type === 'ended' ? game.status.result : ''),
+      gameState: gameStateFromStr(game.status.type === 'ended' ? game.status.result : '') ?? {
+        type: 'ongoing',
+      },
     };
   });
 
@@ -102,11 +104,7 @@ export class OnlinePlayRoute {
     for (const actionRecord of currentGame.actions) {
       doMove(game, moveFromString(actionRecord));
     }
-    if (
-      game.actualGame.gameState.type === 'ongoing' &&
-      currentGame.gameState &&
-      currentGame.gameState.type !== 'ongoing'
-    ) {
+    if (game.actualGame.gameState.type === 'ongoing' && currentGame.gameState.type !== 'ongoing') {
       game.actualGame.gameState = currentGame.gameState;
     }
     console.log(`Replayed ${currentGame.actions.length} actions from server.`);
@@ -124,41 +122,85 @@ export class OnlinePlayRoute {
     };
   });
 
-  constructor() {
-    this.wsService.subscribeEffect(
-      'gameAction',
-      z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number() }),
-      ({ gameId, action, plyIndex }) => {
-        const currentGame = this.currentGame();
-        if (!currentGame || currentGame.gameId !== gameId) {
-          return;
-        }
-        this.onRemoteAction(moveFromString(action), plyIndex);
-      },
-    );
-    this.wsService.subscribeEffect(
-      'gameTimeUpdate',
-      z.object({
-        gameId: z.number(),
-        remainingMs: z.object({ white: z.number(), black: z.number() }),
-      }),
-      ({ gameId, remainingMs }) => {
-        const currentGame = this.currentGame();
-        if (!currentGame || currentGame.gameId !== gameId) {
-          return;
-        }
-        this.game.update((game) => {
-          if (!game) {
-            return game;
-          }
-          console.log('Received time update from server:', remainingMs);
-          setTimeRemaining(game.actualGame, remainingMs, new Date());
-          return { ...game };
-        });
-      },
-    );
+  private isSubscribedToGameId: number | null = null;
 
-    this.wsService.subscribeEffect('gameEnded', gameEndedMessage, ({ gameId, result }) => {
+  private _subscribeSpectateEffect = effect(() => {
+    const currentGame = this.currentGame();
+    const game = this.game();
+    const shouldBeSubscribedToGameId =
+      currentGame !== null &&
+      game !== null &&
+      currentGame.mode.type === 'spectator' &&
+      game.actualGame.gameState.type === 'ongoing'
+        ? currentGame.gameId
+        : null;
+    if (
+      this.isSubscribedToGameId === shouldBeSubscribedToGameId ||
+      !this.wsService.authenticated()
+    ) {
+      return;
+    }
+    console.log('setting spectate subscription to', shouldBeSubscribedToGameId);
+    this.isSubscribedToGameId = shouldBeSubscribedToGameId;
+    this.wsService
+      .sendMessage('spectateGame', { gameId: shouldBeSubscribedToGameId, spectate: true })
+      .subscribe(() => {
+        if (shouldBeSubscribedToGameId !== null) {
+          console.log('Subscribed to spectate game:', currentGame?.gameId);
+        } else {
+          console.log('Unsubscribed from spectating game.');
+        }
+      });
+  });
+
+  ngOnDestroy() {
+    if (this.isSubscribedToGameId !== null) {
+      this.wsService
+        .sendMessage('spectateGame', { gameId: this.isSubscribedToGameId, spectate: false })
+        .subscribe(() => {
+          console.log('Unsubscribed from spectating game on destroy.');
+        });
+    }
+  }
+
+  private readonly _gameActionEffect = this.wsService.subscribeEffect(
+    'gameAction',
+    z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number() }),
+    ({ gameId, action, plyIndex }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.onRemoteAction(moveFromString(action), plyIndex);
+    },
+  );
+
+  private readonly _gameTimeUpdateEffect = this.wsService.subscribeEffect(
+    'gameTimeUpdate',
+    z.object({
+      gameId: z.number(),
+      remainingMs: z.object({ white: z.number(), black: z.number() }),
+    }),
+    ({ gameId, remainingMs }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.game.update((game) => {
+        if (!game) {
+          return game;
+        }
+        console.log('Received time update from server:', remainingMs);
+        setTimeRemaining(game.actualGame, remainingMs, new Date());
+        return { ...game };
+      });
+    },
+  );
+
+  private readonly _gameEndedEffect = this.wsService.subscribeEffect(
+    'gameEnded',
+    gameEndedMessage,
+    ({ gameId, result }) => {
       const currentGame = this.currentGame();
       if (!currentGame || currentGame.gameId !== gameId) {
         return;
@@ -174,8 +216,8 @@ export class OnlinePlayRoute {
         }
         return game;
       });
-    });
-  }
+    },
+  );
 
   onLocalAction(action: TakAction) {
     this.game.update((game) => {

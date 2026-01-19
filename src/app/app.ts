@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './services/theme-service/theme-service';
 import { SettingsService } from './services/settings-service/settings-service';
@@ -14,26 +14,21 @@ import { ToastModule } from 'primeng/toast';
   styleUrl: './app.css',
   providers: [MessageService],
 })
-export class App {
+export class App implements OnInit {
   themeService = inject(ThemeService);
   settingsService = inject(SettingsService);
   wsService = inject(WsService);
   gameService = inject(GameService);
   messageService = inject(MessageService);
 
-  thisPlayerGameCount = computed(() => this.gameService.thisPlayerGames().length);
-
-  constructor() {
-    this.settingsService.load();
-    this.wsService.initialize();
-
-    effect(() => {
-      const thisPlayerGames = this.thisPlayerGameCount();
+  ngOnInit() {
+    const thisPlayerGames = this.gameService.thisPlayerGames();
+    if (thisPlayerGames.length > 0) {
       this.messageService.add({
         severity: 'info',
         summary: 'Ongoing Game',
-        detail: 'You have ' + thisPlayerGames + ' ongoing games.',
+        detail: 'You have ' + thisPlayerGames.length + ' ongoing games.',
       });
-    });
+    }
   }
 }

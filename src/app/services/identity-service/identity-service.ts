@@ -40,14 +40,12 @@ export class IdentityService {
   });
   identity = this.account.lastValue;
 
-  constructor() {
-    effect(() => {
-      const authState = this.authService.authState();
-      if (authState.type !== 'loading') {
-        console.log('Auth state changed, refetching account info', authState);
-        this.guestService.guestJwt();
-        this.account.refetch();
-      }
-    });
-  }
+  private readonly _refetchOnAuthChangeEffect = effect(() => {
+    const authState = this.authService.authState();
+    if (authState.type !== 'loading') {
+      console.log('Auth state changed, refetching account info', authState);
+      this.guestService.guestJwt();
+      this.account.refetch();
+    }
+  });
 }

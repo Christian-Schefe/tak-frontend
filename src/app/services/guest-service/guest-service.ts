@@ -16,17 +16,15 @@ export class GuestService {
 
   guestJwt = signal<string | null>(localStorage.getItem(JWT_STORAGE_KEY) || null);
 
-  constructor() {
-    effect(() => {
-      const token = this.guestJwt();
-      console.log('Syncing guest JWT:', token);
-      if (token) {
-        localStorage.setItem(JWT_STORAGE_KEY, token);
-      } else {
-        localStorage.removeItem(JWT_STORAGE_KEY);
-      }
-    });
-  }
+  private readonly _syncGuestJwtEffect = effect(() => {
+    const token = this.guestJwt();
+    console.log('Syncing guest JWT:', token);
+    if (token) {
+      localStorage.setItem(JWT_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(JWT_STORAGE_KEY);
+    }
+  });
 
   getGuestAccount() {
     return this.httpClient.get<GuestInfo>('/api2/guest').pipe(

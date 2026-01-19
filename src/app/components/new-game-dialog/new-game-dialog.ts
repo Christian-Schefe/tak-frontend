@@ -3,6 +3,9 @@ import { DialogModule } from 'primeng/dialog';
 import { TabsModule } from 'primeng/tabs';
 import { NewSeekForm } from '../new-seek-form/new-seek-form';
 import { CreateSeekPayload, SeekService } from '../../services/seek-service/seek-service';
+import { Router } from '@angular/router';
+import { GameService } from '../../services/game-service/game-service';
+import { TakGameSettings } from '../../../tak-core';
 
 @Component({
   selector: 'app-new-game-dialog',
@@ -13,10 +16,19 @@ import { CreateSeekPayload, SeekService } from '../../services/seek-service/seek
 export class NewGameDialog {
   visible = model.required<boolean>();
   seekService = inject(SeekService);
+  router = inject(Router);
+  gameService = inject(GameService);
 
   onCreateSeek(payload: CreateSeekPayload) {
     this.seekService.createSeek(payload).subscribe(() => {
       console.log('Seek created');
     });
+    this.visible.set(false);
+  }
+
+  onPlayLocal(payload: TakGameSettings) {
+    this.gameService.startNewLocalGame(payload);
+    this.visible.set(false);
+    this.router.navigate(['/app/local']);
   }
 }

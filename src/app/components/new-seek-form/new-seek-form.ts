@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { IftaLabelModule } from 'primeng/iftalabel';
@@ -11,6 +11,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PlayerService } from '../../services/player-service/player-service';
+import { TakGameSettings } from '../../../tak-core';
 
 interface SeekPreset {
   name: string;
@@ -59,6 +60,7 @@ export class NewSeekForm {
     value: preset,
   }));
   preset = signal<SeekPreset>(noPreset);
+  isForLocal = input<boolean>(false);
 
   colorOptions = [
     { label: 'Random', value: 'random' },
@@ -120,39 +122,34 @@ export class NewSeekForm {
   capstones = signal<number | undefined>(undefined);
 
   createSeek = output<CreateSeekPayload>();
+  playLocal = output<TakGameSettings>();
 
-  constructor() {
-    this.opponentPlayerInfo.subscribe((res) => {
-      console.log('opponentPlayerInfo', res);
-    });
-
-    effect(() => {
-      const preset = this.preset();
-      if (preset) {
-        if (preset.boardSize !== undefined) {
-          this.boardSize.set(preset.boardSize);
-        }
-        if (preset.halfKomi !== undefined) {
-          this.halfKomi.set(preset.halfKomi);
-        }
-        if (preset.timeContingentMinutes !== undefined) {
-          this.timeContingentMinutes.set(preset.timeContingentMinutes);
-        }
-        if (preset.timeIncrementSeconds !== undefined) {
-          this.timeIncrementSeconds.set(preset.timeIncrementSeconds);
-        }
-        if (preset.pieces !== undefined) {
-          this.pieces.set(preset.pieces);
-        }
-        if (preset.capstones !== undefined) {
-          this.capstones.set(preset.capstones);
-        }
-        if (preset.isRated !== undefined) {
-          this.rated.set(preset.isRated);
-        }
+  private readonly _presetEffect = effect(() => {
+    const preset = this.preset();
+    if (preset) {
+      if (preset.boardSize !== undefined) {
+        this.boardSize.set(preset.boardSize);
       }
-    });
-  }
+      if (preset.halfKomi !== undefined) {
+        this.halfKomi.set(preset.halfKomi);
+      }
+      if (preset.timeContingentMinutes !== undefined) {
+        this.timeContingentMinutes.set(preset.timeContingentMinutes);
+      }
+      if (preset.timeIncrementSeconds !== undefined) {
+        this.timeIncrementSeconds.set(preset.timeIncrementSeconds);
+      }
+      if (preset.pieces !== undefined) {
+        this.pieces.set(preset.pieces);
+      }
+      if (preset.capstones !== undefined) {
+        this.capstones.set(preset.capstones);
+      }
+      if (preset.isRated !== undefined) {
+        this.rated.set(preset.isRated);
+      }
+    }
+  });
 
   onSubmit() {
     const gameSettings: GameSettings = {
@@ -165,15 +162,32 @@ export class NewSeekForm {
       extra: null,
     };
 
-    const opponentId = this.opponentPlayerInfoSignal()?.id ?? null;
+    if (this.isForLocal()) {
+      const takGameSettings: TakGameSettings = {
+        boardSize: gameSettings.boardSize,
+        halfKomi: gameSettings.halfKomi,
+        reserve: {
+          pieces: gameSettings.pieces,
+          capstones: gameSettings.capstones,
+        },
+        clock: {
+          contingentMs: gameSettings.contingentMs,
+          incrementMs: gameSettings.incrementMs,
+          extra: undefined,
+        },
+      };
+      this.playLocal.emit(takGameSettings);
+    } else {
+      const opponentId = this.opponentPlayerInfoSignal()?.id ?? null;
 
-    console.log('Creating seek with settings:', gameSettings, 'opponentId:', opponentId);
+      console.log('Creating seek with settings:', gameSettings, 'opponentId:', opponentId);
 
-    this.createSeek.emit({
-      opponentId,
-      color: this.color(),
-      isRated: true,
-      gameSettings,
-    });
+      this.createSeek.emit({
+        opponentId,
+        color: this.color(),
+        isRated: true,
+        gameSettings,
+      });
+    }
   }
 }

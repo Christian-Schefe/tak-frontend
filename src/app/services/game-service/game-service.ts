@@ -1,9 +1,10 @@
-import { computed, effect, inject, Injectable, linkedSignal } from '@angular/core';
+import { computed, effect, inject, Injectable, linkedSignal, signal } from '@angular/core';
 import z from 'zod';
 import { WsService } from '../ws-service/ws-service';
 import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 import { IdentityService } from '../identity-service/identity-service';
 import { Router } from '@angular/router';
+import { TakGameSettings } from '../../../tak-core';
 
 export const gameSettings = z.object({
   boardSize: z.number(),
@@ -79,6 +80,17 @@ export class GameService {
   identityService = inject(IdentityService);
   router = inject(Router);
 
+  localGameSettings = signal<TakGameSettings>({
+    boardSize: 5,
+    halfKomi: 0,
+    reserve: { pieces: 21, capstones: 1 },
+    clock: undefined,
+  });
+
+  startNewLocalGame(settings: TakGameSettings) {
+    this.localGameSettings.set(settings);
+  }
+
   gamesResource = smartHttpResource(z.array(gameInfo), () => '/api2/games');
 
   games = linkedSignal(() => {
@@ -106,24 +118,32 @@ export class GameService {
     return games;
   });
 
-  constructor() {
-    effect(() => {
-      if (this.wsService.connected()) {
-        this.gamesResource.refetch();
-      }
-    });
-    this.wsService.subscribeEffect('gameStarted', z.object({ game: gameInfo }), ({ game }) => {
+  private readonly _refetchGamesOnConnectEffect = effect(() => {
+    if (this.wsService.connected()) {
+      this.gamesResource.refetch();
+    }
+  });
+
+  private readonly _gameStartedEffect = this.wsService.subscribeEffect(
+    'gameStarted',
+    z.object({ game: gameInfo }),
+    ({ game }) => {
       this.games.update((games) => {
         return [...games, game];
       });
       this.maybeNavigateToThisPlayerGame(game);
-    });
-    this.wsService.subscribeEffect('gameEnded', gameEndedMessage, ({ gameId }) => {
+    },
+  );
+
+  private readonly _gameUpdatedEffect = this.wsService.subscribeEffect(
+    'gameEnded',
+    gameEndedMessage,
+    ({ gameId }) => {
       this.games.update((games) => {
         return games.filter((game) => game.id !== gameId);
       });
-    });
-  }
+    },
+  );
 
   maybeNavigateToThisPlayerGame(game: GameInfo) {
     const identity = this.identityService.identity();

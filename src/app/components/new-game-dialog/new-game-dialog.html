@@ -17,7 +17,10 @@
         <app-new-seek-form (createSeek)="onCreateSeek($event)"></app-new-seek-form>
       </p-tabpanel>
       <p-tabpanel value="1">
-        <p class="m-0">Nothing here yet!</p>
+        <app-new-seek-form
+          (playLocal)="onPlayLocal($event)"
+          [isForLocal]="true"
+        ></app-new-seek-form>
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>

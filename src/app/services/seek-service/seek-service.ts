@@ -35,23 +35,31 @@ export class SeekService {
   seeksResource = smartHttpResource<SeekInfo[]>(z.array(seekInfo), () => '/api2/seeks');
   seeks = linkedSignal(() => this.seeksResource.lastValue() ?? []);
 
-  constructor() {
-    effect(() => {
-      if (this.wsService.connected()) {
-        this.seeksResource.refetch();
-      }
-    });
-    this.wsService.subscribeEffect('seekCreated', z.object({ seek: seekInfo }), ({ seek }) => {
+  private readonly _refreshSeeksOnWsConnectedEffect = effect(() => {
+    if (this.wsService.connected()) {
+      this.seeksResource.refetch();
+    }
+  });
+
+  private readonly _seekCreatedEffect = this.wsService.subscribeEffect(
+    'seekCreated',
+    z.object({ seek: seekInfo }),
+    ({ seek }) => {
       this.seeks.update((seeks) => {
         return [...seeks, seek];
       });
-    });
-    this.wsService.subscribeEffect('seekRemoved', z.object({ seekId }), ({ seekId }) => {
+    },
+  );
+
+  private readonly _seekRemovedEffect = this.wsService.subscribeEffect(
+    'seekRemoved',
+    z.object({ seekId }),
+    ({ seekId }) => {
       this.seeks.update((seeks) => {
         return seeks.filter((seek) => seek.id !== seekId);
       });
-    });
-  }
+    },
+  );
 
   createSeek(payload: CreateSeekPayload) {
     return this.httpClient.post(`/api2/seeks`, payload);

@@ -36,13 +36,6 @@ export class VerificationRoute {
     },
   });
 
-  constructor() {
-    this.route.queryParams.subscribe(() => {
-      const res = this.flow.reload();
-      console.log('Query params changed, reloading verification flow: ', res);
-    });
-  }
-
   onSubmit(data: unknown) {
     this.doSubmit(data);
   }

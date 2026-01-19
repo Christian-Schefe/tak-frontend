@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import Aura from '@primeuix/themes/aura';
+import Material from '@primeuix/themes/material';
 import { Preset } from '@primeuix/themes/types';
 import { definePreset, usePreset } from '@primeuix/themes';
 
-const MyPreset = definePreset(Aura, {
+const AuraBlue = definePreset(Aura, {
   semantic: {
     primary: {
       50: '{blue.50}',
@@ -21,6 +22,82 @@ const MyPreset = definePreset(Aura, {
   },
 });
 
+const ClassicTheme = definePreset(Material, {
+  semantic: {
+    primary: {
+      50: '#e6ecf8',
+      100: '#cdd9f1',
+      200: '#a3b8e4',
+      300: '#7997d7',
+      400: '#567bc7',
+      500: '#3f63b5',
+      600: '#2f5aa8',
+      700: '#274f99',
+      800: '#20448a',
+      900: '#1a3a7a',
+    },
+  },
+});
+
+export const SunsetTheme = definePreset(Aura, {
+  semantic: {
+    primary: {
+      50: '{orange.50}',
+      100: '{orange.100}',
+      200: '{orange.200}',
+      300: '{orange.300}',
+      400: '{orange.400}',
+      500: '{orange.500}',
+      600: '{orange.600}',
+      700: '{orange.700}',
+      800: '{orange.800}',
+      900: '{orange.900}',
+      950: '{orange.950}',
+    },
+    borderRadius: {
+      xs: '0.5rem',
+      sm: '0.5rem',
+      md: '0.5rem',
+      lg: '0.5rem',
+      xl: '0.5rem',
+    },
+    colorScheme: {
+      light: {
+        surface: {
+          0: '#ffffff',
+          50: '{amber.50}',
+          100: '{amber.100}',
+          200: '{amber.200}',
+          300: '{amber.300}',
+          400: '{amber.400}',
+          500: '{amber.500}',
+          600: '{amber.600}',
+          700: '{amber.700}',
+          800: '{amber.800}',
+          900: '{amber.900}',
+          950: '{amber.950}',
+        },
+      },
+      dark: {
+        surface: {
+          0: '#ffffff',
+          50: '{stone.50}',
+          100: '{stone.100}',
+          200: '{stone.200}',
+          300: '{stone.300}',
+          400: '{stone.400}',
+          500: '{stone.500}',
+          600: '{stone.600}',
+          700: '{stone.700}',
+          800: '{stone.800}',
+          900: '{stone.900}',
+          950: '{stone.950}',
+        },
+      },
+    },
+  },
+});
+
 export interface Theme {
   id: string;
   name: string;
@@ -31,18 +108,32 @@ export interface Theme {
 export const lightTheme: Theme = {
   id: 'light',
   name: 'Light',
-  primengTheme: MyPreset,
+  primengTheme: AuraBlue,
   isDark: false,
 };
 
 export const darkTheme: Theme = {
   id: 'dark',
   name: 'Dark',
-  primengTheme: MyPreset,
+  primengTheme: AuraBlue,
   isDark: true,
 };
 
-export const themesList = [lightTheme, darkTheme];
+export const classicTheme: Theme = {
+  id: 'classic',
+  name: 'Classic',
+  primengTheme: ClassicTheme,
+  isDark: true,
+};
+
+export const sunsetTheme: Theme = {
+  id: 'sunset',
+  name: 'Sunset',
+  primengTheme: SunsetTheme,
+  isDark: true,
+};
+
+export const themesList = [lightTheme, darkTheme, classicTheme, sunsetTheme];
 
 @Injectable({
   providedIn: 'root',

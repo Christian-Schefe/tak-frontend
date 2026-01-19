@@ -3,6 +3,7 @@ import {
   Session,
   UpdateLoginFlowBody,
   UpdateRegistrationFlowBody,
+  UpdateSettingsFlowBody,
   UpdateVerificationFlowBody,
 } from '@ory/client';
 import { kratos } from '../../auth/kratos';
@@ -64,8 +65,12 @@ export class AuthService {
     return session !== null;
   }
 
-  async startLoginFlow() {
-    return await kratos.createBrowserLoginFlow();
+  async getLoginFlow(flowId: string) {
+    return await kratos.getLoginFlow({ id: flowId });
+  }
+
+  async startLoginFlow(refresh?: boolean) {
+    return await kratos.createBrowserLoginFlow({ refresh });
   }
 
   async submitLogin(flowId: string, data: UpdateLoginFlowBody) {
@@ -107,5 +112,20 @@ export class AuthService {
     const flow = await kratos.createBrowserLogoutFlow();
     await kratos.updateLogoutFlow({ token: flow.data.logout_token });
     this.sessionResource.reload();
+  }
+
+  async startSettingsFlow() {
+    return await kratos.createBrowserSettingsFlow();
+  }
+
+  async submitSettings(flowId: string, data: UpdateSettingsFlowBody) {
+    return await kratos.updateSettingsFlow({
+      flow: flowId,
+      updateSettingsFlowBody: data,
+    });
+  }
+
+  async getSettingsFlow(flowId: string) {
+    return await kratos.getSettingsFlow({ id: flowId });
   }
 }

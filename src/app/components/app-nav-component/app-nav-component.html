@@ -21,9 +21,14 @@
     }
   </ng-template>
   <ng-template #end>
-    @if (player) {
-      <app-player-label [playerInfo]="player"></app-player-label>
-    }
+    <div class="flex items-center gap-2">
+      @if (player) {
+        <app-player-label [playerInfo]="player"></app-player-label>
+      }
+      <button pRipple class="flex px-2 items-center py-1 gap-2 cursor-pointer" (click)="onLogout()">
+        <ng-icon name="lucideLogOut" size="20px" />
+      </button>
+    </div>
   </ng-template>
 </p-menubar>
 <app-seeks-dialog-component [(visible)]="seeksDialogVisible" />

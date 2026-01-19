@@ -43,6 +43,7 @@ export class SeeksDialogComponent {
     this.seekService.acceptSeek(seekId).subscribe(() => {
       console.log('Seek accepted:', seekId);
     });
+    this.visible.set(false);
   }
 
   onCancelSeek(seekId: number) {

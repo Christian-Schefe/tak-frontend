@@ -1,3 +1,8 @@
-@let accountVal = playerInfo();
-<h1>Welcome, {{ accountVal?.displayName }}</h1>
-<p>Welcome to the Playtak application!</p>
+@let flowVal = shownFlow();
+<h1 class="text-3xl font-bold text-center mb-4">Account</h1>
+@if (flowVal !== undefined) {
+  <app-kratos-form-component
+    [ui]="flowVal.ui"
+    (submitForm)="onSubmit($event)"
+  ></app-kratos-form-component>
+}

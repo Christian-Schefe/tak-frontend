@@ -3,10 +3,10 @@ import { BoardNinjaComponent } from '../board-ninja-component/board-ninja-compon
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { GamePlayerBar } from '../game-player-bar/game-player-bar';
-import { TakGameSettings, TakAction, TakPlayer } from '../../../tak-core';
+import { TakAction, TakPlayer } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
-import { GameSidePanel } from "../game-side-panel/game-side-panel";
-import { GameChatPanel } from "../game-chat-panel/game-chat-panel";
+import { GameSidePanel } from '../game-side-panel/game-side-panel';
+import { GameChatPanel } from '../game-chat-panel/game-chat-panel';
 
 export type GameMode =
   | { type: 'local' }
@@ -25,12 +25,18 @@ export type GamePlayer =
 
 @Component({
   selector: 'app-game-component',
-  imports: [BoardNinjaComponent, ButtonModule, DialogModule, GamePlayerBar, GameSidePanel, GameChatPanel],
+  imports: [
+    BoardNinjaComponent,
+    ButtonModule,
+    DialogModule,
+    GamePlayerBar,
+    GameSidePanel,
+    GameChatPanel,
+  ],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })
 export class GameComponent {
-  settings = input.required<TakGameSettings>();
   game = input.required<TakGameUI>();
   action = output<TakAction>();
   mode = input.required<GameMode>();

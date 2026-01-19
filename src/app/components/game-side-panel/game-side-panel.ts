@@ -48,14 +48,12 @@ export class GameSidePanel {
 
   @ViewChild(ScrollPanel) input: ScrollPanel | undefined;
 
-  constructor() {
-    effect(() => {
-      this.historyItems();
-      setTimeout(() => {
-        if (this.input) {
-          this.input.scrollTop(Infinity);
-        }
-      }, 0);
-    });
-  }
+  private readonly _scrollHistoryEffect = effect(() => {
+    this.historyItems();
+    setTimeout(() => {
+      if (this.input) {
+        this.input.scrollTop(Infinity);
+      }
+    }, 0);
+  });
 }

@@ -51,14 +51,12 @@ export class AuthRoute {
     },
   });
 
-  constructor() {
-    effect(() => {
-      const authState = this.authService.authState();
-      if (authState.type === 'logged_in') {
-        this.router.navigate(['/app']);
-      }
-    });
-  }
+  private readonly _navigateIfLoggedInEffect = effect(() => {
+    const authState = this.authService.authState();
+    if (authState.type === 'logged_in') {
+      this.router.navigate(['/app']);
+    }
+  });
 
   setAuthState(state: AuthFlowState) {
     this.authFlowState.set(state);

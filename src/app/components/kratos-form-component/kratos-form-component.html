@@ -1,5 +1,5 @@
 <form (ngSubmit)="onSubmit()">
-  @for (item of ui().nodes; track item) {
+  @for (item of ui().nodes; track $index) {
     @switch (item.attributes.node_type) {
       @case ('input') {
         <app-kratos-input-component

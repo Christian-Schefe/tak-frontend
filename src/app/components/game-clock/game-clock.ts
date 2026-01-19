@@ -1,6 +1,5 @@
-import { Component, computed, input, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, input, signal } from '@angular/core';
 import { Pipe, PipeTransform } from '@angular/core';
-import { interval, Subscription } from 'rxjs';
 import { TagModule } from 'primeng/tag';
 import { TakGameUI } from '../../../tak-core/ui';
 import { TakPlayer } from '../../../tak-core';
@@ -25,7 +24,7 @@ export class ClockFormatPipe implements PipeTransform {
   templateUrl: './game-clock.html',
   styleUrl: './game-clock.css',
 })
-export class GameClock implements OnInit, OnDestroy {
+export class GameClock {
   game = input.required<TakGameUI>();
   player = input.required<TakPlayer>();
   updateClock = signal(0);
@@ -40,15 +39,11 @@ export class GameClock implements OnInit, OnDestroy {
     return { remainingMs, isActive };
   });
 
-  private sub: Subscription | undefined;
-
-  ngOnInit() {
-    this.sub = interval(100).subscribe(() => {
+  private readonly _tick = effect((onCleanup) => {
+    const id = setInterval(() => {
       this.updateClock.update((n) => n + 1);
-    });
-  }
+    }, 100);
 
-  ngOnDestroy() {
-    this.sub?.unsubscribe();
-  }
+    onCleanup(() => clearInterval(id));
+  });
 }

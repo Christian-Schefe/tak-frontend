@@ -14,9 +14,11 @@ export class SettingsService {
 
   themeId = signal<ThemeStore>(themesList[0].id);
 
-  load() {
+  private readonly _loadSettingsEffect = this.loadSettingsEffect();
+
+  private loadSettingsEffect() {
     const syncThemeSetting = this.linkSettingsSignal('theme', this.themeId, themeStore);
-    effect(() => {
+    return effect(() => {
       const themeId = this.themeId();
       const theme = themesList.find((t) => t.id === themeId) ?? themesList[0];
 

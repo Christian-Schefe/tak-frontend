@@ -1,13 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { MenubarModule } from 'primeng/menubar';
 import { RippleModule } from 'primeng/ripple';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideEye,
-  lucideGamepad2,
   lucideHome,
+  lucideLogOut,
   lucidePlay,
   lucideSettings,
   lucideSwords,
@@ -19,6 +19,7 @@ import { SeeksDialogComponent } from '../seeks-dialog-component/seeks-dialog-com
 import { GamesDialogComponent } from '../games-dialog-component/games-dialog-component';
 import { PlayerLabel } from '../player-label/player-label';
 import { NewGameDialog } from '../new-game-dialog/new-game-dialog';
+import { AuthService } from '../../services/auth-service/auth-service';
 
 @Component({
   selector: 'app-app-nav-component',
@@ -36,19 +37,21 @@ import { NewGameDialog } from '../new-game-dialog/new-game-dialog';
   styleUrl: './app-nav-component.css',
   viewProviders: [
     provideIcons({
-      lucideGamepad2,
       lucideSettings,
       lucideUser,
       lucidePlay,
       lucideSwords,
       lucideEye,
       lucideHome,
+      lucideLogOut,
     }),
   ],
 })
 export class AppNavComponent {
   identityService = inject(IdentityService);
   playerService = inject(PlayerService);
+  authService = inject(AuthService);
+  router = inject(Router);
 
   private playerInfoRef = this.playerService.getPlayerInfoRef(() => {
     const identity = this.identityService.identity();
@@ -74,12 +77,7 @@ export class AppNavComponent {
     {
       label: 'Home',
       icon: 'lucideHome',
-      routerLink: '/',
-    },
-    {
-      label: 'Play Local',
-      icon: 'lucideGamepad2',
-      routerLink: '/app/local',
+      routerLink: '/app',
     },
     {
       label: 'New Game',
@@ -113,4 +111,9 @@ export class AppNavComponent {
       routerLink: '/app/account',
     },
   ];
+
+  onLogout() {
+    this.authService.logout();
+    this.router.navigate(['/']);
+  }
 }

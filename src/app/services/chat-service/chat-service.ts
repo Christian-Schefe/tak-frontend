@@ -72,8 +72,10 @@ export class ChatService {
     return map;
   });
 
-  constructor() {
-    this.wsService.subscribeEffect('chatMessage', wsChatMessage, (data) => {
+  private readonly _chatMessageEffect = this.wsService.subscribeEffect(
+    'chatMessage',
+    wsChatMessage,
+    (data) => {
       const newMessage: ChatMessage = {
         fromAccountId: data.fromAccountId,
         message: data.message,
@@ -106,8 +108,8 @@ export class ChatService {
       }
       const messageSignal = this.getMessageSignal(conversation);
       messageSignal.update((messages) => [...messages, newMessage]);
-    });
-  }
+    },
+  );
 
   getMessageSignal(conversation: ChatMessageConversation): WritableSignal<ChatMessage[]> {
     const messages = this.messageSignals.get(conversation.id);

@@ -55,29 +55,28 @@ export class WsService {
   authenticated = signal(false);
   private wsSubscription: Subscription | null = null;
 
-  initialize() {
-    effect(() => {
-      const identity = this.identityService.identity();
+  private readonly _connectWsEffect = effect(() => {
+    const identity = this.identityService.identity();
 
-      if (this.wsSubscription) {
-        this.wsSubscription.unsubscribe();
-      }
-      if (identity) {
-        console.log('Connecting WebSocket with identity:', identity);
-        this.wsSubscription = this.connect();
-      }
-    });
-    effect(() => {
-      const identity = this.identityService.identity();
-      const connected = this.connected();
-      const authenticated = this.authenticated();
+    if (this.wsSubscription) {
+      this.wsSubscription.unsubscribe();
+    }
+    if (identity) {
+      console.log('Connecting WebSocket with identity:', identity);
+      this.wsSubscription = this.connect();
+    }
+  });
 
-      if (connected && !authenticated && identity) {
-        console.log('Authenticating WebSocket with identity:', identity);
-        this.sendAuthenticateMessage(identity.wsJwt);
-      }
-    });
-  }
+  private readonly _authenticateOnConnectEffect = effect(() => {
+    const identity = this.identityService.identity();
+    const connected = this.connected();
+    const authenticated = this.authenticated();
+
+    if (connected && !authenticated && identity) {
+      console.log('Authenticating WebSocket with identity:', identity);
+      this.sendAuthenticateMessage(identity.wsJwt);
+    }
+  });
 
   private connect() {
     console.log('WebSocket Service initialized');
@@ -164,6 +163,24 @@ export class WsService {
 
   subscribeEffect<D>(type: string, parser: z.ZodType<D>, handler: (msg: D) => void) {
     return effect((onCleanup) => {
+      const unsubscribe = this.subscribe(type, parser, handler);
+      onCleanup(() => {
+        unsubscribe();
+      });
+    });
+  }
+
+  conditionalSubscribe<D>(
+    condition: () => boolean,
+    type: string,
+    parser: z.ZodType<D>,
+    handler: (msg: D) => void,
+  ) {
+    return effect((onCleanup) => {
+      const doSubscribe = condition();
+      if (!doSubscribe) {
+        return;
+      }
       const unsubscribe = this.subscribe(type, parser, handler);
       onCleanup(() => {
         unsubscribe();
