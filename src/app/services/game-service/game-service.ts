@@ -5,6 +5,7 @@ import { smartHttpResource } from '../../util/smart-http-resource/smart-http-res
 import { IdentityService } from '../identity-service/identity-service';
 import { Router } from '@angular/router';
 import { TakGameSettings } from '../../../tak-core';
+import { HttpClient } from '@angular/common/http';
 
 export const gameSettings = z.object({
   boardSize: z.number(),
@@ -45,6 +46,9 @@ export const gameStatus = z.object({
       result: z.string(),
     }),
     z.object({
+      type: z.literal('aborted'),
+    }),
+    z.object({
       type: z.literal('ongoing'),
       drawOffers: z.object({
         white: z.boolean(),
@@ -79,12 +83,21 @@ export class GameService {
   wsService = inject(WsService);
   identityService = inject(IdentityService);
   router = inject(Router);
+  httpClient = inject(HttpClient);
 
   localGameSettings = signal<TakGameSettings>({
     boardSize: 5,
     halfKomi: 0,
     reserve: { pieces: 21, capstones: 1 },
-    clock: undefined,
+    clock: {
+      contingentMs: 10 * 60 * 1000,
+      incrementMs: 5 * 1000,
+      externallyDriven: false,
+      extra: {
+        move: 5,
+        amountMs: 30 * 1000,
+      },
+    },
   });
 
   startNewLocalGame(settings: TakGameSettings) {
@@ -153,5 +166,9 @@ export class GameService {
     if (thisPlayerGame) {
       this.router.navigate(['/app/online/', game.id]);
     }
+  }
+
+  resignGame(gameId: number) {
+    return this.httpClient.post(`/api2/games/${gameId}/resign`, {});
   }
 }

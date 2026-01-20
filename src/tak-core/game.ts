@@ -43,22 +43,19 @@ export function newGame(settings: TakGameSettings): TakGame {
   };
 }
 
-export function canDoMove(game: TakGame, move: TakAction, now?: Date): string | null {
-  now ??= new Date();
+export function canDoMove(game: TakGame, move: TakAction, now: Date): string | null {
   if (isTimeout(game, now)) {
     return 'Game is over: timeout';
   }
 
-  if (game.gameState.type !== 'ongoing')
-    return `Game is not ongoing: ${game.gameState.type}`;
+  if (game.gameState.type !== 'ongoing') return `Game is not ongoing: ${game.gameState.type}`;
 
   if (move.type === 'place') {
     if (game.history.length < 2 && move.variant !== 'flat') {
       return 'Invalid place move';
     }
     const reserve = game.reserves[game.currentPlayer];
-    const reserveNumber =
-      move.variant === 'capstone' ? reserve.capstones : reserve.pieces;
+    const reserveNumber = move.variant === 'capstone' ? reserve.capstones : reserve.pieces;
     if (reserveNumber <= 0) {
       return 'Not enough pieces in reserve';
     }
@@ -67,13 +64,7 @@ export function canDoMove(game: TakGame, move: TakAction, now?: Date): string | 
     if (game.history.length < 2) {
       return 'Cannot move piece';
     }
-    return canMovePiece(
-      game.board,
-      move.from,
-      move.dir,
-      move.drops,
-      game.currentPlayer,
-    );
+    return canMovePiece(game.board, move.from, move.dir, move.drops, game.currentPlayer);
   }
 }
 
@@ -93,15 +84,11 @@ export function isClockActive(game: TakGame, player: TakPlayer): boolean {
   );
 }
 
-export function gameFromPlyCount(
-  game: TakGame,
-  plyCount: number,
-  removeClock?: boolean,
-): TakGame {
+export function gameFromPlyCount(game: TakGame, plyCount: number, removeClock?: boolean): TakGame {
   const resultGame = newGame({ ...game.settings, clock: undefined });
   const history = game.history.slice(0, plyCount);
   for (const move of history) {
-    doMove(resultGame, move);
+    doMove(resultGame, move, new Date());
   }
   if (removeClock !== true) {
     resultGame.clock = game.clock;
@@ -110,17 +97,12 @@ export function gameFromPlyCount(
   return resultGame;
 }
 
-export function getTimeRemaining(
-  game: TakGame,
-  player: TakPlayer,
-  now?: Date,
-): number | null {
+export function getTimeRemaining(game: TakGame, player: TakPlayer, now: Date): number | null {
   if (game.clock) {
     return Math.max(
       0,
       game.clock.remainingMs[player] -
-        (now &&
-        game.gameState.type === 'ongoing' &&
+        (game.gameState.type === 'ongoing' &&
         game.currentPlayer === player &&
         game.clock.hasStarted &&
         game.clock.lastUpdate
@@ -131,11 +113,7 @@ export function getTimeRemaining(
   return null;
 }
 
-export function setTimeRemaining(
-  game: TakGame,
-  remaining: Record<TakPlayer, number>,
-  now: Date,
-) {
+export function setTimeRemaining(game: TakGame, remaining: Record<TakPlayer, number>, now: Date) {
   if (game.clock) {
     game.clock.remainingMs.white = remaining.white;
     game.clock.remainingMs.black = remaining.black;
@@ -144,7 +122,7 @@ export function setTimeRemaining(
   }
 }
 
-function applyTimeToClock(game: TakGame, now: Date) {
+export function applyTimeToClock(game: TakGame, now: Date) {
   const remaining = getTimeRemaining(game, game.currentPlayer, now);
   if (game.clock && remaining !== null) {
     game.clock.remainingMs[game.currentPlayer] = remaining;
@@ -177,14 +155,12 @@ export function checkTimeout(game: TakGame, now: Date): number | null {
   return timeRemaining ?? null;
 }
 
-export function canUndoMove(game: TakGame, now?: Date): string | null {
-  now ??= new Date();
+export function canUndoMove(game: TakGame, now: Date): string | null {
   if (isTimeout(game, now)) {
     return 'Game is over: timeout';
   }
 
-  if (game.gameState.type !== 'ongoing')
-    return `Game is not ongoing: ${game.gameState.type}`;
+  if (game.gameState.type !== 'ongoing') return `Game is not ongoing: ${game.gameState.type}`;
 
   if (game.history.length === 0) {
     return 'No moves to undo';
@@ -193,11 +169,12 @@ export function canUndoMove(game: TakGame, now?: Date): string | null {
   return null;
 }
 
-export function withUndoneMove(game: TakGame, now?: Date) {
-  now ??= new Date();
+export function undoMove(game: TakGame, now: Date) {
+  const timeRemaining =
+    game.settings.clock?.externallyDriven !== true ? checkTimeout(game, now) : null;
 
-  if (game.settings.clock?.externallyDriven !== true) {
-    checkTimeout(game, now);
+  if (game.settings.clock?.externallyDriven === true) {
+    applyTimeToClock(game, now);
   }
 
   const err = canUndoMove(game, now);
@@ -205,19 +182,24 @@ export function withUndoneMove(game: TakGame, now?: Date) {
     throw new Error(`Cannot undo: ${err}`);
   }
 
-  const gameClone = structuredClone(game);
-  const undoneGame = gameFromPlyCount(gameClone, game.history.length - 1);
+  const player = game.currentPlayer;
+
+  const undoneGame = gameFromPlyCount(game, game.history.length - 1);
   const undoneMove = game.history[game.history.length - 1];
-  return { undoneGame, undoneMove };
+  game.board = undoneGame.board;
+  game.currentPlayer = undoneGame.currentPlayer;
+  game.reserves = undoneGame.reserves;
+  game.gameState = undoneGame.gameState;
+  game.history = undoneGame.history;
+
+  startOrUpdateClock(game, timeRemaining, player, now, false);
+
+  return undoneMove;
 }
 
-export function doMove(game: TakGame, move: TakAction, now?: Date) {
-  now ??= new Date();
-
+export function doMove(game: TakGame, move: TakAction, now: Date) {
   const timeRemaining =
-    game.settings.clock?.externallyDriven !== true
-      ? checkTimeout(game, now)
-      : null;
+    game.settings.clock?.externallyDriven !== true ? checkTimeout(game, now) : null;
 
   if (game.settings.clock?.externallyDriven === true) {
     applyTimeToClock(game, now);
@@ -232,8 +214,7 @@ export function doMove(game: TakGame, move: TakAction, now?: Date) {
 
   let record: TakActionRecord;
   if (move.type === 'place') {
-    const placingPlayer =
-      game.history.length < 2 ? playerOpposite(player) : player;
+    const placingPlayer = game.history.length < 2 ? playerOpposite(player) : player;
 
     record = placePiece(game.board, move.pos, placingPlayer, move.variant);
 
@@ -244,42 +225,15 @@ export function doMove(game: TakGame, move: TakAction, now?: Date) {
       reserve.pieces--;
     }
   } else {
-    record = movePiece(
-      game.board,
-      move.from,
-      move.dir,
-      move.drops,
-      game.currentPlayer,
-    );
+    record = movePiece(game.board, move.from, move.dir, move.drops, game.currentPlayer);
   }
 
-  if (game.clock && game.settings.clock) {
-    if (timeRemaining !== null) {
-      const move = Math.floor(game.history.length / 2) + 1;
-      const shouldGainExtra =
-        game.settings.clock.extra !== undefined &&
-        move === game.settings.clock.extra.move &&
-        !game.clock.hasGainedExtra[player];
-
-      if (shouldGainExtra) {
-        game.clock.hasGainedExtra[player] = true;
-      }
-      const extraGain = shouldGainExtra
-        ? (game.settings.clock.extra?.amountMs ?? 0)
-        : 0;
-      game.clock.remainingMs[game.currentPlayer] =
-        timeRemaining + game.settings.clock.incrementMs + extraGain;
-    }
-    game.clock.lastUpdate = now;
-    game.clock.hasStarted = true;
-  }
+  startOrUpdateClock(game, timeRemaining, player, now, true);
 
   game.history.push(record);
   game.currentPlayer = playerOpposite(player);
 
-  const road =
-    findRoads(game.board, player) ??
-    findRoads(game.board, playerOpposite(player));
+  const road = findRoads(game.board, player) ?? findRoads(game.board, playerOpposite(player));
   if (road) {
     game.gameState = {
       type: 'win',
@@ -310,20 +264,44 @@ export function doMove(game: TakGame, move: TakAction, now?: Date) {
   }
 }
 
+function startOrUpdateClock(
+  game: TakGame,
+  timeRemaining: number | null,
+  player: TakPlayer,
+  now: Date,
+  allowGainExtra: boolean,
+) {
+  if (game.clock && game.settings.clock) {
+    if (timeRemaining !== null) {
+      const move = Math.floor(game.history.length / 2) + 1;
+      const shouldGainExtra =
+        allowGainExtra &&
+        game.settings.clock.extra !== undefined &&
+        move === game.settings.clock.extra.move &&
+        !game.clock.hasGainedExtra[player];
+
+      if (shouldGainExtra) {
+        game.clock.hasGainedExtra[player] = true;
+      }
+      const extraGain = shouldGainExtra ? (game.settings.clock.extra?.amountMs ?? 0) : 0;
+      game.clock.remainingMs[player] = timeRemaining + game.settings.clock.incrementMs + extraGain;
+    }
+    game.clock.lastUpdate = now;
+    game.clock.hasStarted = true;
+  }
+}
+
 export function gameResultToString(gameResult: TakGameState) {
   switch (gameResult.type) {
     case 'win': {
-      const letter =
-        gameResult.reason === 'flats'
-          ? 'F'
-          : gameResult.reason === 'road'
-            ? 'R'
-            : '1';
+      const letter = gameResult.reason === 'flats' ? 'F' : gameResult.reason === 'road' ? 'R' : '1';
       return gameResult.player === 'white' ? `${letter}-0` : `0-${letter}`;
     }
     case 'draw':
       return '1/2-1/2';
     case 'ongoing':
       return null;
+    case 'aborted':
+      return '0-0';
   }
 }

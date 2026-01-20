@@ -14,8 +14,9 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import z from 'zod';
 import { GameMode } from '../game-component/game-component';
 import { TakGameUI } from '../../../tak-core/ui';
-import { moveFromString, moveRecordToString } from '../../../tak-core/move';
+import { moveFromString } from '../../../tak-core/move';
 import { TakAction } from '../../../tak-core';
+import { gameToPTN } from '../../../tak-core/ptn';
 
 const params =
   '&moveNumber=false&unplayedPieces=true&disableStoneCycling=true&showBoardPrefsBtn=false&disableNavigation=true&disablePTN=true&disableText=true&flatCounts=false&turnIndicator=false&showHeader=false&showEval=false&showRoads=false&stackCounts=false&notifyGame=false';
@@ -35,7 +36,6 @@ export class BoardNinjaComponent {
   game = input.required<TakGameUI>();
   action = output<TakAction>();
   mode = input.required<GameMode>();
-  plyIndex = signal(0);
 
   sanitizer = inject(DomSanitizer);
   ninjaUrl = computed<SafeResourceUrl>(() => {
@@ -71,29 +71,60 @@ export class BoardNinjaComponent {
     });
   });
 
+  private history = computed(() => this.game().actualGame.history);
+  private settings = computed(() => this.game().actualGame.settings);
+  private gameState = computed(() => this.game().actualGame.gameState);
+
   private readonly _syncGameStateEffect = effect(() => {
     if (!this.hasLoaded()) return;
-    const plyIndex = this.plyIndex();
+
+    const history = this.history();
+    const settings = this.settings();
+    const gameState = this.gameState();
+
+    const ptn = gameToPTN(settings, history, gameState);
+    this.sendMessageToIframe({
+      action: 'SET_CURRENT_PTN',
+      value: ptn,
+    });
+    return;
+  });
+
+  private readonly _historyNavigationEffect = effect(() => {
+    if (!this.hasLoaded()) return;
     const game = this.game();
-    const gameSettings = game.actualGame.settings;
-    if (plyIndex === 0) {
+    const mode = this.mode();
+    if (game.plyIndex === null) {
       this.sendMessageToIframe({
-        action: 'SET_CURRENT_PTN',
-        value: `[Size "${gameSettings.boardSize.toString()}"][Komi "${(gameSettings.halfKomi / 2).toString()}"][Flats "${gameSettings.reserve.pieces.toString()}"][Caps "${gameSettings.reserve.capstones.toString()}"]`,
+        action: 'LAST',
+        value: null,
       });
-    }
-    if (plyIndex < game.actualGame.history.length) {
-      for (let i = plyIndex; i < game.actualGame.history.length; i++) {
+    } else {
+      if (game.plyIndex === 0) {
         this.sendMessageToIframe({
-          action: 'APPEND_PLY',
-          value: moveRecordToString(game.actualGame.history[i]),
+          action: 'FIRST',
+          value: null,
+        });
+      } else {
+        this.sendMessageToIframe({
+          action: 'GO_TO_PLY',
+          value: {
+            plyID: game.plyIndex - 1,
+            isDone: true,
+          },
         });
       }
-      this.plyIndex.set(game.actualGame.history.length);
     }
-    if (plyIndex > game.actualGame.history.length) {
-      this.plyIndex.set(0);
-    }
+    this.sendMessageToIframe({
+      action: 'SET_UI',
+      value: {
+        disableBoard: !(
+          game.plyIndex === null &&
+          mode.type !== 'spectator' &&
+          game.actualGame.gameState.type === 'ongoing'
+        ),
+      },
+    });
   });
 
   private readonly _sendPlayerSettingsEffect = effect(() => {
@@ -106,30 +137,17 @@ export class BoardNinjaComponent {
     });
   });
 
-  private readonly _disableBoardEffect = effect(() => {
-    if (!this.hasLoaded()) return;
-    const game = this.game();
-    this.sendMessageToIframe({
-      action: 'SET_UI',
-      value: {
-        disableBoard: !(
-          this.mode().type !== 'spectator' && game.actualGame.gameState.type === 'ongoing'
-        ),
-      },
-    });
-  });
-
   @HostListener('window:message', ['$event'])
   onMessage(event: MessageEvent) {
     if (event.origin !== 'https://ptn.ninja') return;
     const parsed = NinjaMessageSchema.safeParse(event.data);
     if (!parsed.success) return;
     const message = parsed.data;
-    if (message.action === 'GAME_STATE' && !this.hasLoaded()) {
+    const hasLoaded = this.hasLoaded();
+    if (message.action === 'GAME_STATE' && !hasLoaded) {
       this.hasLoaded.set(true);
-    } else if (parsed.data.action === 'INSERT_PLY') {
-      this.plyIndex.update((index) => index + 1);
-      this.action.emit(moveFromString(parsed.data.value as string));
+    } else if (hasLoaded && message.action === 'INSERT_PLY') {
+      this.action.emit(moveFromString(message.value as string));
     }
   }
 }

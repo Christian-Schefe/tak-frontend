@@ -14,7 +14,7 @@ export type TakGameState =
   | {
       type: 'win';
       player: TakPlayer;
-      reason: 'resignation' | 'timeout';
+      reason: 'resignation' | 'timeout' | 'timeout or resignation';
     }
   | {
       type: 'win';
@@ -30,7 +30,8 @@ export type TakGameState =
       road?: TakPos[];
     }
   | { type: 'draw'; reason: 'flats'; counts?: Record<TakPlayer, number> }
-  | { type: 'draw'; reason: 'mutual agreement' };
+  | { type: 'draw'; reason: 'mutual agreement' }
+  | { type: 'aborted' };
 
 export type TakAction =
   | { type: 'place'; pos: TakPos; variant: TakPieceVariant }

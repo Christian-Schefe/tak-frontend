@@ -3,7 +3,7 @@ import { BoardNinjaComponent } from '../board-ninja-component/board-ninja-compon
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { GamePlayerBar } from '../game-player-bar/game-player-bar';
-import { TakAction, TakPlayer } from '../../../tak-core';
+import { TakAction, TakGameState, TakPlayer } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
 import { GameSidePanel } from '../game-side-panel/game-side-panel';
 import { GameChatPanel } from '../game-chat-panel/game-chat-panel';
@@ -41,6 +41,12 @@ export class GameComponent {
   action = output<TakAction>();
   mode = input.required<GameMode>();
   players = input.required<Record<TakPlayer, GamePlayer>>();
+  setHistoryPlyIndex = output<number>();
+  drawState = input.required<'none' | 'offered' | 'requested'>();
+  undoState = input.required<'none' | 'offered' | 'requested'>();
+  requestDraw = output<boolean>();
+  requestUndo = output<boolean>();
+  resign = output<void>();
 
   playerOrder = computed<{ p1: TakPlayer; p2: TakPlayer }>(() => {
     const mode = this.mode();
@@ -50,8 +56,10 @@ export class GameComponent {
     return { p1: 'white', p2: 'black' };
   });
 
-  showGameOverInfo = linkedSignal<boolean>(() => {
-    const game = this.game();
-    return game.actualGame.gameState.type !== 'ongoing';
+  gameStateTrigger = computed<TakGameState>(() => {
+    return this.game().actualGame.gameState;
+  });
+  showGameOverInfo = linkedSignal(() => {
+    return this.gameStateTrigger().type !== 'ongoing';
   });
 }

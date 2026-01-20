@@ -1,20 +1,33 @@
-import type { TakGame, TakGameSettings, TakGameState, TakPlayer } from '.';
+import type { TakActionRecord, TakGame, TakGameSettings, TakGameState, TakPlayer } from '.';
 import { doMove, gameResultToString, newGame } from './game';
-import { moveFromString, moveToString } from './move';
+import { moveFromString, moveRecordToString } from './move';
 import { getDefaultReserve } from './piece';
 
-export function gameToPTN(game: TakGame, usernames: Record<TakPlayer, string>) {
+export function gameToPTN(
+  settings: TakGameSettings,
+  history: TakActionRecord[],
+  gameState: TakGameState,
+  usernames?: Record<TakPlayer, string>,
+) {
   const attributes = [
-    { name: 'Size', value: game.board.size.toString() },
-    { name: 'Player1', value: usernames.white },
-    { name: 'Player2', value: usernames.black },
-    { name: 'Komi', value: (game.settings.halfKomi / 2).toString() },
-    { name: 'Flats', value: game.settings.reserve.pieces.toString() },
-    { name: 'Caps', value: game.settings.reserve.capstones.toString() },
-    { name: 'Result', value: gameResultToString(game.gameState) ?? '' },
+    { name: 'Size', value: settings.boardSize.toString() },
+    { name: 'Komi', value: (settings.halfKomi / 2).toString() },
+    { name: 'Flats', value: settings.reserve.pieces.toString() },
+    { name: 'Caps', value: settings.reserve.capstones.toString() },
   ];
 
-  const moves = game.history.map((move) => moveToString(move));
+  if (gameState.type !== 'ongoing' && gameState.type !== 'aborted') {
+    attributes.push({ name: 'Result', value: gameResultToString(gameState) ?? '' });
+  }
+
+  if (usernames) {
+    attributes.push(
+      { name: 'Player1', value: usernames.white },
+      { name: 'Player2', value: usernames.black },
+    );
+  }
+
+  const moves = history.map((move) => moveRecordToString(move));
 
   const movePairs = [];
   for (let i = 0; i < moves.length; i += 2) {
@@ -84,9 +97,10 @@ export function PTNToGame(ptn: string): {
     reserve,
   };
   const game = newGame(gameSettings);
+  const now = new Date();
   for (const move of filteredMoves) {
     try {
-      doMove(game, move);
+      doMove(game, move, now);
     } catch (error) {
       console.error('Error applying move:', move, error);
       return null;
@@ -103,9 +117,9 @@ export function gameStateFromStr(gameOverStr: string): TakGameState | null {
     case '1/2-1/2':
       return { type: 'draw', reason: 'mutual agreement' };
     case '0-1':
-      return { type: 'win', player: 'black', reason: 'resignation' };
+      return { type: 'win', player: 'black', reason: 'timeout or resignation' };
     case '1-0':
-      return { type: 'win', player: 'white', reason: 'resignation' };
+      return { type: 'win', player: 'white', reason: 'timeout or resignation' };
     case '0-F':
       return { type: 'win', player: 'black', reason: 'flats' };
     case 'F-0':

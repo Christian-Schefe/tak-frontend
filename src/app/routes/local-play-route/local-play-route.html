@@ -1,6 +1,12 @@
 <app-game-component
   [game]="game()"
   (action)="onAction($event)"
+  (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
   [mode]="{ type: 'local' }"
   [players]="players()"
+  drawState="none"
+  undoState="none"
+  (requestUndo)="onRequestUndo()"
+  (requestDraw)="onRequestDraw()"
+  (resign)="onResign()"
 ></app-game-component>

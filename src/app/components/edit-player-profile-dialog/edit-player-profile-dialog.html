@@ -1,0 +1,31 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [dismissableMask]="true"
+  header="Games"
+  [draggable]="false"
+  [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
+  [style]="{ width: '50vw' }"
+>
+  <form class="flex flex-col gap-2 w-full max-w-sm mx-auto" (ngSubmit)="onSubmit()">
+    <p-ifta-label>
+      <p-select
+        [options]="countries"
+        [(ngModel)]="selectedCountry"
+        name="country"
+        inputId="country"
+        filter
+        fluid
+        appendTo="body"
+        virtualScroll
+        virtualScrollItemSize="40"
+        showClear
+      ></p-select>
+      <label for="country">Country</label>
+    </p-ifta-label>
+    <div class="flex justify-end gap-4 mt-8">
+      <p-button (onClick)="visible.set(false)">Cancel</p-button>
+      <p-button type="submit">Save</p-button>
+    </div>
+  </form>
+</p-dialog>

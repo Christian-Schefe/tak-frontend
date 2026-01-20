@@ -1,1 +1,19 @@
-<p>Nothing here</p>
+@for (item of ongoingGames(); track $index) {
+  @let playerInfo = playerInfos();
+  @let whiteInfo = playerInfo[item.playerIds.white];
+  @let blackInfo = playerInfo[item.playerIds.black];
+  <p-card header="Rejoin Ongoing Game">
+    <div class="flex flex-col gap-2">
+      <p>
+        <app-player-label
+          [playerInfo]="whiteInfo.hasValue() ? whiteInfo.value() : null"
+        ></app-player-label>
+        <span> vs </span>
+        <app-player-label
+          [playerInfo]="blackInfo.hasValue() ? blackInfo.value() : null"
+        ></app-player-label>
+      </p>
+      <a pButton [routerLink]="['/app/online/', item.id]">Rejoin</a>
+    </div>
+  </p-card>
+}

@@ -8,9 +8,11 @@ import {
   type TakPieceVariant,
   type TakPlayer,
   type TakReserve,
+  TakGameState,
 } from '.';
 import { isValidCoord } from './board';
 import { coordEquals, dirFromAdjacent, offsetCoord } from './coord';
+import { isDraft, current } from 'immer';
 import * as game from './game';
 
 export interface TakUIPiece {
@@ -84,16 +86,25 @@ export function setPlyIndex(ui: TakGameUI, index: number | null) {
   onGameUpdate(ui);
 }
 
-export function doResign(ui: TakGameUI, player: TakPlayer) {
-  if (ui.actualGame.gameState.type !== 'ongoing') {
+export function setGameOverState(ui: TakGameUI, newGameState: TakGameState) {
+  if (ui.actualGame.gameState.type !== 'ongoing' || newGameState.type === 'ongoing') {
     return;
   }
-  ui.actualGame.gameState = {
+  game.applyTimeToClock(ui.actualGame, new Date());
+  ui.actualGame.gameState = newGameState;
+  onGameUpdate(ui);
+}
+
+export function doResign(ui: TakGameUI, player: TakPlayer) {
+  setGameOverState(ui, {
     type: 'win',
     player: playerOpposite(player),
     reason: 'resignation',
-  };
-  onGameUpdate(ui);
+  });
+}
+
+export function doDraw(ui: TakGameUI) {
+  setGameOverState(ui, { type: 'draw', reason: 'mutual agreement' });
 }
 
 export function checkTimeout(ui: TakGameUI) {
@@ -102,7 +113,7 @@ export function checkTimeout(ui: TakGameUI) {
 }
 
 export function canDoMove(ui: TakGameUI, move: TakAction): boolean {
-  const err = game.canDoMove(ui.actualGame, move);
+  const err = game.canDoMove(ui.actualGame, move, new Date());
   if (err !== null) {
     return false;
   }
@@ -110,17 +121,23 @@ export function canDoMove(ui: TakGameUI, move: TakAction): boolean {
 }
 
 export function doMove(ui: TakGameUI, move: TakAction) {
-  game.doMove(ui.actualGame, move);
+  game.doMove(ui.actualGame, move, new Date());
   ui.partialMove = null;
   ui.plyIndex = null;
   ui.priorityPieces = getLastMovePiecesInOrder(ui.actualGame);
   onGameUpdate(ui);
 }
 
+export function canUndoMove(ui: TakGameUI): boolean {
+  const err = game.canUndoMove(ui.actualGame, new Date());
+  if (err !== null) {
+    return false;
+  }
+  return true;
+}
+
 export function undoMove(ui: TakGameUI) {
-  const gameClone = structuredClone(ui.actualGame);
-  const { undoneGame, undoneMove } = game.withUndoneMove(gameClone);
-  ui.actualGame = undoneGame;
+  const undoneMove = game.undoMove(ui.actualGame, new Date());
   ui.plyIndex = null;
   ui.partialMove = null;
   ui.priorityPieces = undoneMove.affectedPieces;
@@ -255,13 +272,13 @@ function getLastMovePiecesInOrder(game: TakGame): TakPieceId[] {
 }
 
 export function onGameUpdate(ui: TakGameUI) {
-  const gameClone = structuredClone(ui.actualGame);
+  const gameClone = isDraft(ui) ? current(ui).actualGame : structuredClone(ui.actualGame);
   const shownGame =
     ui.plyIndex !== null ? game.gameFromPlyCount(gameClone, ui.plyIndex, true) : gameClone;
 
   const partialMove = partialMoveToMove(ui.partialMove);
   if (partialMove) {
-    game.doMove(shownGame, partialMove.move);
+    game.doMove(shownGame, partialMove.move, new Date());
     ui.priorityPieces = getLastMovePiecesInOrder(shownGame);
   }
 

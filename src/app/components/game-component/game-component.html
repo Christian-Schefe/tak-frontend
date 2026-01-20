@@ -10,7 +10,15 @@
   <div></div>
 
   <div class="h-full w-full">
-    <app-game-side-panel [game]="takGame"></app-game-side-panel>
+    <app-game-side-panel
+      [game]="takGame"
+      [drawState]="drawState()"
+      [undoState]="undoState()"
+      (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
+      (requestDraw)="requestDraw.emit($event)"
+      (requestUndo)="requestUndo.emit($event)"
+      (resign)="resign.emit()"
+    ></app-game-side-panel>
   </div>
   <app-board-ninja-component
     [game]="takGame"
@@ -28,7 +36,7 @@
     [playerColor]="pOrder.p1"
   ></app-game-player-bar>
   <div></div>
-  @let gameState = takGame.actualGame.gameState;
+  @let gameState = gameStateTrigger();
   @if (gameState.type !== 'ongoing') {
     <p-button (click)="showGameOverInfo.set(true)" class="absolute top-15 left-1/2 -translate-x-1/2"
       >Show Game Over Info</p-button
@@ -42,25 +50,37 @@
       [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
       [style]="{ width: '30vw' }"
     >
-      @if (gameState.type === 'win') {
-        <p>
-          {{ gameState.player === 'white' ? 'White' : 'Black' }} wins by
-          @switch (gameState.reason) {
-            @case ('road') {
-              completing a road!
+      @switch (gameState.type) {
+        @case ('aborted') {
+          <p>The game was aborted.</p>
+        }
+        @case ('win') {
+          <p>
+            {{ gameState.player === 'white' ? 'White' : 'Black' }} wins by
+            @switch (gameState.reason) {
+              @case ('road') {
+                completing a road!
+              }
+              @case ('flats') {
+                flat count! ({{ gameState.counts?.white }} to {{ gameState.counts?.black }} +
+                {{ takGame.actualGame.settings.halfKomi / 2 }})
+              }
+              @case ('timeout') {
+                timeout!
+              }
+              @case ('resignation') {
+                resignation!
+              }
+              @case ('timeout or resignation') {
+                timeout or resignation!
+              }
             }
-            @case ('flats') {
-              flat count!
-            }
-            @case ('timeout') {
-              timeout!
-            }
-            @case ('resignation') {
-              resignation!
-            }
-          }
-        </p>
-      } @else {}
+          </p>
+        }
+        @case ('draw') {
+          <p>The game is a draw!</p>
+        }
+      }
     </p-dialog>
   }
 </div>

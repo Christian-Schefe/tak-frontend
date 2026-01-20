@@ -10,5 +10,5 @@ import { RoundPipe } from '../../util/round-pipe/round-pipe';
   styleUrl: './player-label.css',
 })
 export class PlayerLabel {
-  playerInfo = input.required<PlayerInfo>();
+  playerInfo = input.required<PlayerInfo | null>();
 }

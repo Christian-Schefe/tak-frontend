@@ -9,6 +9,11 @@ export interface SmartHttpResource<T> {
   lastValue: Signal<T | null>;
 }
 
+export interface ZodHttpResource<T> {
+  resource: HttpResourceRef<T | undefined>;
+  value: Signal<T | null>;
+}
+
 export function smartHttpResource<T>(
   schema: z.ZodSchema<T>,
   urlFn: () => string | undefined,
@@ -52,5 +57,29 @@ export function smartHttpResource<T>(
     refetch,
     value,
     lastValue,
+  };
+}
+
+export function zodHttpResource<T>(
+  schema: z.ZodSchema<T>,
+  urlFn: () => string | undefined,
+): ZodHttpResource<T> {
+  const resource = httpResource<T>(() => urlFn());
+
+  const value = computed<T | null>(() => {
+    if (resource.hasValue()) {
+      const parsed = schema.safeParse(resource.value());
+      if (parsed.success) {
+        return parsed.data;
+      } else {
+        console.error('Error parsing HTTP resource:', parsed.error);
+      }
+    }
+    return null;
+  });
+
+  return {
+    resource,
+    value,
   };
 }

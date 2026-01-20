@@ -9,10 +9,11 @@ import { IdentityService } from '../../services/identity-service/identity-servic
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
 import { TakGameSettings, TakGameState, TakAction, TakPlayer } from '../../../tak-core';
-import { doMove, TakGameUI, newGameUI } from '../../../tak-core/ui';
+import { doMove, TakGameUI, newGameUI, setPlyIndex, setGameOverState } from '../../../tak-core/ui';
 import { newGame, setTimeRemaining } from '../../../tak-core/game';
 import { moveFromString, moveToString } from '../../../tak-core/move';
 import { gameStateFromStr } from '../../../tak-core/ptn';
+import { produce } from 'immer';
 
 interface CurrentGame {
   gameId: number;
@@ -20,6 +21,7 @@ interface CurrentGame {
   mode: GameMode;
   actions: string[];
   gameState: TakGameState;
+  remainingMs: Record<TakPlayer, number>;
 }
 
 @Component({
@@ -62,6 +64,7 @@ export class OnlinePlayRoute implements OnDestroy {
       clock: {
         contingentMs: game.gameSettings.contingentMs,
         incrementMs: game.gameSettings.incrementMs,
+        externallyDriven: true,
         extra: game.gameSettings.extra
           ? {
               move: game.gameSettings.extra.onMove,
@@ -84,14 +87,21 @@ export class OnlinePlayRoute implements OnDestroy {
           : {
               type: 'spectator',
             };
+
+    const gameState: TakGameState | null =
+      game.status.type === 'ended'
+        ? gameStateFromStr(game.status.result)
+        : game.status.type === 'aborted'
+          ? { type: 'aborted' }
+          : null;
+
     return {
       settings,
       gameId: game.id,
       mode,
       actions: game.actions,
-      gameState: gameStateFromStr(game.status.type === 'ended' ? game.status.result : '') ?? {
-        type: 'ongoing',
-      },
+      gameState: gameState ?? { type: 'ongoing' },
+      remainingMs: game.remainingMs,
     };
   });
 
@@ -104,6 +114,7 @@ export class OnlinePlayRoute implements OnDestroy {
     for (const actionRecord of currentGame.actions) {
       doMove(game, moveFromString(actionRecord));
     }
+    setTimeRemaining(game.actualGame, currentGame.remainingMs, new Date());
     if (game.actualGame.gameState.type === 'ongoing' && currentGame.gameState.type !== 'ongoing') {
       game.actualGame.gameState = currentGame.gameState;
     }
@@ -186,13 +197,14 @@ export class OnlinePlayRoute implements OnDestroy {
       if (!currentGame || currentGame.gameId !== gameId) {
         return;
       }
+      console.log('Received time update from server:', remainingMs);
       this.game.update((game) => {
         if (!game) {
           return game;
         }
-        console.log('Received time update from server:', remainingMs);
-        setTimeRemaining(game.actualGame, remainingMs, new Date());
-        return { ...game };
+        return produce(game, (game) => {
+          setTimeRemaining(game.actualGame, remainingMs, new Date());
+        });
       });
     },
   );
@@ -206,15 +218,13 @@ export class OnlinePlayRoute implements OnDestroy {
         return;
       }
       this.game.update((game) => {
-        if (!game || game.actualGame.gameState.type !== 'ongoing') {
+        const newGameState = gameStateFromStr(result);
+        if (!game || !newGameState) {
           return game;
         }
-        const newGameState = gameStateFromStr(result);
-        if (newGameState && newGameState.type !== 'ongoing') {
-          game.actualGame.gameState = newGameState;
-          return { ...game };
-        }
-        return game;
+        return produce(game, (game) => {
+          setGameOverState(game, newGameState);
+        });
       });
     },
   );
@@ -224,8 +234,9 @@ export class OnlinePlayRoute implements OnDestroy {
       if (!game) {
         return null;
       }
-      doMove(game, action);
-      return { ...game };
+      return produce(game, (game) => {
+        doMove(game, action);
+      });
     });
     const currentGame = this.currentGame();
     if (!currentGame) {
@@ -245,10 +256,12 @@ export class OnlinePlayRoute implements OnDestroy {
     console.log('Received action from Board:', action);
     this.game.update((game) => {
       if (!game) {
-        return null;
+        return game;
       }
       if (game.actualGame.history.length === plyIndex) {
-        doMove(game, action);
+        return produce(game, (game) => {
+          doMove(game, action);
+        });
       } else if (game.actualGame.history.length === plyIndex + 1) {
         // This is our own action echoed back; ignore it.
         console.log('Ignoring echoed back action.');
@@ -256,7 +269,36 @@ export class OnlinePlayRoute implements OnDestroy {
         console.error(`Ply index mismatch: got ${plyIndex}`);
         this.ongoingGameStatus.refetch();
       }
-      return { ...game };
+      return game;
     });
+  }
+
+  onSetHistoryPlyIndex(plyIndex: number) {
+    this.game.update((game) => {
+      if (!game) {
+        return game;
+      }
+      return produce(game, (game) => {
+        setPlyIndex(game, plyIndex);
+      });
+    });
+  }
+
+  onResign() {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.resignGame(game.gameId).subscribe(() => {
+      console.log('Resigned successfully.');
+    });
+  }
+
+  onRequestDraw(request: boolean) {
+    console.log('Request draw:', request);
+  }
+
+  onRequestUndo(request: boolean) {
+    console.log('Request undo:', request);
   }
 }

@@ -5,8 +5,14 @@
   <app-game-component
     [game]="ongoingGame"
     (action)="onLocalAction($event)"
+    (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
     [mode]="curGame.mode"
     [players]="gamePlayers"
+    drawState="none"
+    undoState="none"
+    (resign)="onResign()"
+    (requestDraw)="onRequestDraw($event)"
+    (requestUndo)="onRequestUndo($event)"
   ></app-game-component>
 } @else {
   <p>No ongoing game.</p>

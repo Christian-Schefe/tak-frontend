@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './services/theme-service/theme-service';
 import { SettingsService } from './services/settings-service/settings-service';
@@ -14,14 +14,17 @@ import { ToastModule } from 'primeng/toast';
   styleUrl: './app.css',
   providers: [MessageService],
 })
-export class App implements OnInit {
+export class App {
   themeService = inject(ThemeService);
   settingsService = inject(SettingsService);
   wsService = inject(WsService);
   gameService = inject(GameService);
   messageService = inject(MessageService);
 
-  ngOnInit() {
+  hasNotified = false;
+
+  private readonly _notifyEffect = effect(() => {
+    if (this.hasNotified) return;
     const thisPlayerGames = this.gameService.thisPlayerGames();
     if (thisPlayerGames.length > 0) {
       this.messageService.add({
@@ -29,6 +32,7 @@ export class App implements OnInit {
         summary: 'Ongoing Game',
         detail: 'You have ' + thisPlayerGames.length + ' ongoing games.',
       });
+      this.hasNotified = true;
     }
-  }
+  });
 }
