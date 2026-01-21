@@ -1,0 +1,82 @@
+@let settings = boardSettings();
+@let themeParams = settings.theme;
+@let backgroundColor = bgColor();
+@let tile = data();
+@let opacityTransition = opacityTransitionStr();
+@let isSpecialHighlight = specialHighlight();
+<button
+  class="relative flex items-center justify-center h-full w-full"
+  (click)="interactive() && tileClick.emit()"
+>
+  <div
+    class="absolute inset-0 flex items-center justify-center"
+    [style.backgroundColor]="
+      themeParams.tileSpecial?.hideBackground !== true ? backgroundColor.toString() : null
+    "
+    [style.margin]="themeParams.board.spacing"
+    [style.borderRadius]="themeParams.board.rounded"
+  >
+    @if (themeParams.tileSpecial) {
+      <div
+        class="rounded-full"
+        [style.backgroundColor]="themeParams.tileSpecial.color"
+        [style.width]="themeParams.tileSpecial.size"
+        [style.height]="themeParams.tileSpecial.size"
+        [style.borderRadius]="themeParams.tileSpecial.rounded"
+        [style.transform]="themeParams.tileSpecial.transform"
+        [style.outlineColor]="themeParams.tileSpecial.borderColor"
+        [style.outlineWidth]="themeParams.tileSpecial.border"
+        style="outline-style: solid"
+      ></div>
+    }
+  </div>
+
+  <div
+    class="absolute inset-0"
+    [style.backgroundColor]="themeParams.highlight"
+    [style.opacity]="tile.lastMove ? 1 : 0"
+    [style.transition]="opacityTransition"
+    [style.margin]="themeParams.board.spacing"
+    [style.borderRadius]="themeParams.board.rounded"
+  ></div>
+
+  <div
+    class="absolute inset-0"
+    [style.backgroundColor]="themeParams.hover"
+    [style.opacity]="tile.selectable ? 0.8 : 0"
+    [style.transition]="opacityTransition"
+    [style.margin]="themeParams.board.spacing"
+    [style.borderRadius]="themeParams.board.rounded"
+  ></div>
+
+  <div
+    class="absolute inset-0"
+    [class.opacity-0]="!isSpecialHighlight"
+    [class.opacity-100]="isSpecialHighlight"
+    [class.hover:opacity-100]="isHover()"
+    [style.backgroundColor]="themeParams.hover"
+    [style.transition]="opacityTransition"
+    [style.margin]="themeParams.board.spacing"
+    [style.borderRadius]="themeParams.board.rounded"
+  ></div>
+
+  @if (y() === 0 && settings.axisLabels) {
+    <div
+      class="flex absolute right-1 bottom-0 justify-end items-end font-mono font-bold opacity-70"
+      [style.color]="themeParams.text"
+      [style.fontSize]="settings.axisLabelSize"
+    >
+      {{ xChar() }}
+    </div>
+  }
+
+  @if (x() === 0 && settings.axisLabels) {
+    <div
+      class="flex absolute left-1 top-0 justify-end items-end font-mono font-bold opacity-70"
+      [style.color]="themeParams.text"
+      [style.fontSize]="settings.axisLabelSize"
+    >
+      {{ y() + 1 }}
+    </div>
+  }
+</button>

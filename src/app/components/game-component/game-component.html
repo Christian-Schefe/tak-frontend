@@ -20,11 +20,22 @@
       (resign)="resign.emit()"
     ></app-game-side-panel>
   </div>
-  <app-board-ninja-component
-    [game]="takGame"
-    [mode]="mode()"
-    (action)="action.emit($event)"
-  ></app-board-ninja-component>
+  @switch (boardStyle) {
+    @case ('2d') {
+      <app-board-native-component
+        [game]="takGame"
+        [mode]="mode()"
+        (action)="action.emit($event)"
+      ></app-board-native-component>
+    }
+    @case ('ninja') {
+      <app-board-ninja-component
+        [game]="takGame"
+        [mode]="mode()"
+        (action)="action.emit($event)"
+      ></app-board-ninja-component>
+    }
+  }
   <div class="h-full w-full">
     <app-game-chat-panel></app-game-chat-panel>
   </div>

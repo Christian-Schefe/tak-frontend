@@ -3,13 +3,22 @@ import {
   GameComponent,
   GameMode,
   GamePlayer,
+  TakActionEvent,
 } from '../../components/game-component/game-component';
 import { gameEndedMessage, GameService } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
-import { TakGameSettings, TakGameState, TakAction, TakPlayer } from '../../../tak-core';
-import { doMove, TakGameUI, newGameUI, setPlyIndex, setGameOverState } from '../../../tak-core/ui';
+import { TakGameSettings, TakGameState, TakAction, TakPlayer, TakPos } from '../../../tak-core';
+import {
+  doMove,
+  TakGameUI,
+  newGameUI,
+  setPlyIndex,
+  setGameOverState,
+  tryPlaceOrAddToPartialMove,
+  updatePartialMove,
+} from '../../../tak-core/ui';
 import { newGame, setTimeRemaining } from '../../../tak-core/game';
 import { moveFromString, moveToString } from '../../../tak-core/move';
 import { gameStateFromStr } from '../../../tak-core/ptn';
@@ -229,27 +238,43 @@ export class OnlinePlayRoute implements OnDestroy {
     },
   );
 
-  onLocalAction(action: TakAction) {
-    this.game.update((game) => {
-      if (!game) {
-        return null;
+  onLocalAction(action: TakActionEvent) {
+    const game = this.game();
+    if (!game) {
+      return;
+    }
+    let move: TakAction | null = null;
+    let pos: TakPos | null = null;
+    if (action.type === 'full') {
+      move = action.action;
+    } else {
+      move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
+      pos = action.pos;
+    }
+
+    const newGame = produce(game, (game) => {
+      if (move !== null) {
+        doMove(game, move);
+      } else if (pos !== null) {
+        updatePartialMove(game, pos);
       }
-      return produce(game, (game) => {
-        doMove(game, action);
-      });
     });
+    this.game.set(newGame);
     const currentGame = this.currentGame();
     if (!currentGame) {
       return;
     }
-    this.wsService
-      .sendMessage('gameAction', {
-        gameId: currentGame.gameId,
-        action: moveToString(action),
-      })
-      .subscribe(() => {
-        console.log('Sent action to server:', action);
-      });
+
+    if (move !== null) {
+      this.wsService
+        .sendMessage('gameAction', {
+          gameId: currentGame.gameId,
+          action: moveToString(move),
+        })
+        .subscribe(() => {
+          console.log('Sent action to server:', action);
+        });
+    }
   }
 
   onRemoteAction(action: TakAction, plyIndex: number) {

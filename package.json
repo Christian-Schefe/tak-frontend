@@ -37,6 +37,7 @@
     "@ory/client": "^1.22.15",
     "@primeuix/themes": "^2.0.2",
     "axios": "^1.13.2",
+    "colorjs.io": "^0.6.1",
     "country-flag-icons": "^1.6.4",
     "i18n-iso-countries": "^7.14.0",
     "immer": "^11.1.3",

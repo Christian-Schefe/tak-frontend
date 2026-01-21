@@ -41,16 +41,24 @@ export class GameSidePanel {
     return canUndoMove(game);
   });
 
+  private gamePlyIndex = computed(
+    () => this.game().plyIndex ?? this.game().actualGame.history.length,
+  );
+
+  private gameHistory = computed(() => this.game().actualGame.history);
+
+  private gameState = computed(() => this.game().actualGame.gameState);
+
   historyItems = computed(() => {
-    const game = this.game();
-    const history = game.actualGame.history;
+    const curPlyIndex = this.gamePlyIndex();
+    const history = this.gameHistory();
+    const gameState = this.gameState();
     const items: HistoryEntry[][] = [];
     for (let i = 0; i < history.length; i += 2) {
       const row: HistoryEntry[] = [];
       const whiteMove = history[i];
       const blackMove = i + 1 < history.length ? history[i + 1] : undefined;
       row.push({ type: 'moveNumber', text: `${i / 2 + 1}.` });
-      const curPlyIndex = game.plyIndex ?? game.actualGame.history.length;
       const whitePlyIndex = i + 1 == curPlyIndex ? i : i + 1;
       row.push({
         type: 'whiteMove',
@@ -69,10 +77,10 @@ export class GameSidePanel {
       }
       items.push(row);
     }
-    if (game.actualGame.gameState.type !== 'ongoing') {
+    if (gameState.type !== 'ongoing') {
       const row: HistoryEntry[] = [];
       row.push({ type: 'moveNumber', text: '' });
-      row.push({ type: 'gameResult', text: gameResultToString(game.actualGame.gameState) ?? '' });
+      row.push({ type: 'gameResult', text: gameResultToString(gameState) ?? '' });
       items.push(row);
     }
     return items;

@@ -12,10 +12,9 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import z from 'zod';
-import { GameMode } from '../game-component/game-component';
+import { GameMode, TakActionEvent } from '../game-component/game-component';
 import { TakGameUI } from '../../../tak-core/ui';
 import { moveFromString } from '../../../tak-core/move';
-import { TakAction } from '../../../tak-core';
 import { gameToPTN } from '../../../tak-core/ptn';
 
 const params =
@@ -34,7 +33,7 @@ const NinjaMessageSchema = z.object({
 })
 export class BoardNinjaComponent {
   game = input.required<TakGameUI>();
-  action = output<TakAction>();
+  action = output<TakActionEvent>();
   mode = input.required<GameMode>();
 
   sanitizer = inject(DomSanitizer);
@@ -147,7 +146,7 @@ export class BoardNinjaComponent {
     if (message.action === 'GAME_STATE' && !hasLoaded) {
       this.hasLoaded.set(true);
     } else if (hasLoaded && message.action === 'INSERT_PLY') {
-      this.action.emit(moveFromString(message.value as string));
+      this.action.emit({ type: 'full', action: moveFromString(message.value as string) });
     }
   }
 }

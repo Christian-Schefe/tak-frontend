@@ -1,32 +1,55 @@
-import { effect, inject, Injectable, signal, WritableSignal } from '@angular/core';
+import { effect, Injectable, signal, WritableSignal } from '@angular/core';
 import z from 'zod';
-import { ThemeService, themesList } from '../theme-service/theme-service';
+import { themesList } from '../theme-service/theme-service';
 
-const themeStore = z.string();
-type ThemeStore = z.infer<typeof themeStore>;
+const generatSettingsStore = z.object({
+  theme: z.string(),
+  boardType: z.string(),
+});
+type GeneralSettingsStore = z.infer<typeof generatSettingsStore>;
+
+const boardNativeSettingsStore = z.object({
+  theme: z.string(),
+});
+type BoardNativeSettingsStore = z.infer<typeof boardNativeSettingsStore>;
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
   settingsSignals = new Set<string>();
-  themeService = inject(ThemeService);
 
-  themeId = signal<ThemeStore>(themesList[0].id);
+  generalSettings = signal<GeneralSettingsStore>({
+    theme: themesList[0].id,
+    boardType: 'native',
+  });
+  boardNativeSettings = signal<BoardNativeSettingsStore>({
+    theme: 'classic',
+  });
 
-  private readonly _loadSettingsEffect = this.loadSettingsEffect();
+  private readonly _loadSettingsEffect = this.loadSettingsEffects();
 
-  private loadSettingsEffect() {
-    const syncThemeSetting = this.linkSettingsSignal('theme', this.themeId, themeStore);
-    return effect(() => {
-      const themeId = this.themeId();
-      const theme = themesList.find((t) => t.id === themeId) ?? themesList[0];
-
-      console.log(`Applying theme: ${theme.name}`);
-      this.themeService.applyTheme(theme);
-
-      syncThemeSetting(themeId);
-    });
+  private loadSettingsEffects() {
+    const syncThemeSetting = this.linkSettingsSignal(
+      'generalSettings',
+      this.generalSettings,
+      generatSettingsStore,
+    );
+    const syncBoardNativeSettings = this.linkSettingsSignal(
+      'boardNativeSettings',
+      this.boardNativeSettings,
+      boardNativeSettingsStore,
+    );
+    return [
+      effect(() => {
+        const generalSettings = this.generalSettings();
+        syncThemeSetting(generalSettings);
+      }),
+      effect(() => {
+        const settings = this.boardNativeSettings();
+        syncBoardNativeSettings(settings);
+      }),
+    ];
   }
 
   linkSettingsSignal<T>(

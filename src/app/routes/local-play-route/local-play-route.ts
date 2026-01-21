@@ -1,7 +1,11 @@
 import { Component, computed, effect, inject, linkedSignal } from '@angular/core';
-import { GameComponent, GamePlayer } from '../../components/game-component/game-component';
+import {
+  GameComponent,
+  GamePlayer,
+  TakActionEvent,
+} from '../../components/game-component/game-component';
 
-import { TakAction, TakPlayer } from '../../../tak-core';
+import { TakAction, TakPlayer, TakPos } from '../../../tak-core';
 import {
   checkTimeout,
   doMove,
@@ -11,6 +15,8 @@ import {
   doDraw,
   doResign,
   undoMove,
+  updatePartialMove,
+  tryPlaceOrAddToPartialMove,
 } from '../../../tak-core/ui';
 import { newGame } from '../../../tak-core/game';
 import { GameService } from '../../services/game-service/game-service';
@@ -49,10 +55,23 @@ export class LocalPlayRoute {
     onCleanup(() => clearInterval(id));
   });
 
-  onAction(action: TakAction) {
+  onAction(action: TakActionEvent) {
     this.game.update((game) => {
+      let move: TakAction | null = null;
+      let pos: TakPos | null = null;
+      if (action.type === 'full') {
+        move = action.action;
+      } else {
+        move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
+        pos = action.pos;
+      }
+
       return produce(game, (game) => {
-        doMove(game, action);
+        if (move !== null) {
+          doMove(game, move);
+        } else if (pos !== null) {
+          updatePartialMove(game, pos);
+        }
       });
     });
   }

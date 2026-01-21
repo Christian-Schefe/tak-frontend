@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable } from '@angular/core';
 import Aura from '@primeuix/themes/aura';
 import Material from '@primeuix/themes/material';
 import { Preset } from '@primeuix/themes/types';
 import { definePreset, usePreset } from '@primeuix/themes';
+import { SettingsService } from '../settings-service/settings-service';
 
 const AuraBlue = definePreset(Aura, {
   semantic: {
@@ -139,11 +140,18 @@ export const themesList = [lightTheme, darkTheme, classicTheme, sunsetTheme];
   providedIn: 'root',
 })
 export class ThemeService {
-  applyTheme(theme: Theme) {
+  settingsService = inject(SettingsService);
+  theme = computed(() => {
+    const id = this.settingsService.generalSettings().theme;
+    return themesList.find((t) => t.id === id) ?? themesList[0];
+  });
+
+  private readonly _applyThemeEffect = effect(() => {
+    const theme = this.theme();
     console.log('Applying theme:', theme);
 
     document.documentElement.classList.toggle('dark-mode', theme.isDark);
 
     usePreset(theme.primengTheme);
-  }
+  });
 }
