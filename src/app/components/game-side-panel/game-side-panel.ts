@@ -30,10 +30,11 @@ type HistoryEntry =
 export class GameSidePanel {
   game = input.required<TakGameUI>();
   setHistoryPlyIndex = output<number>();
-  drawState = input.required<'none' | 'offered' | 'requested'>();
-  undoState = input.required<'none' | 'offered' | 'requested'>();
-  requestDraw = output<boolean>();
-  requestUndo = output<boolean>();
+  drawOffer = input.required<number | null>();
+  undoRequest = input.required<number | null>();
+  requestDraw = output<void>();
+  requestUndo = output<void>();
+  retractRequest = output<number>();
   resign = output<void>();
 
   canUndo = computed(() => {
@@ -96,4 +97,22 @@ export class GameSidePanel {
       }
     }, 0);
   });
+
+  onClickUndo() {
+    const requestId = this.undoRequest();
+    if (requestId !== null) {
+      this.retractRequest.emit(requestId);
+    } else {
+      this.requestUndo.emit();
+    }
+  }
+
+  onClickDraw() {
+    const requestId = this.drawOffer();
+    if (requestId !== null) {
+      this.retractRequest.emit(requestId);
+    } else {
+      this.requestDraw.emit();
+    }
+  }
 }

@@ -57,10 +57,10 @@ export class GameComponent {
   mode = input.required<GameMode>();
   players = input.required<Record<TakPlayer, GamePlayer>>();
   setHistoryPlyIndex = output<number>();
-  drawState = input.required<'none' | 'offered' | 'requested'>();
-  undoState = input.required<'none' | 'offered' | 'requested'>();
-  requestDraw = output<boolean>();
-  requestUndo = output<boolean>();
+  requestIds = input.required<{ drawOfferId: number | null; undoRequestId: number | null }>();
+  requestDraw = output<void>();
+  requestUndo = output<void>();
+  retractRequest = output<number>();
   resign = output<void>();
   boardStyle = '2d';
 

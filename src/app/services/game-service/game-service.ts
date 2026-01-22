@@ -171,4 +171,19 @@ export class GameService {
   resignGame(gameId: number) {
     return this.httpClient.post(`/api2/games/${gameId}/resign`, {});
   }
+
+  offerDraw(gameId: number) {
+    return this.httpClient.post(`/api2/games/${gameId}/draw`, {});
+  }
+  requestUndo(gameId: number) {
+    return this.httpClient.post(`/api2/games/${gameId}/undo`, {});
+  }
+  retractRequest(gameId: number, requestId: number) {
+    return this.httpClient.delete(`/api2/games/${gameId}/requests/${requestId}`, {});
+  }
+  respondToRequest(gameId: number, requestId: number, accept: boolean) {
+    return this.httpClient.post(`/api2/games/${gameId}/requests/${requestId}`, {
+      accept,
+    });
+  }
 }

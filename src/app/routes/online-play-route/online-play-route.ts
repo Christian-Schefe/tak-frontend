@@ -1,4 +1,13 @@
-import { Component, computed, effect, inject, input, linkedSignal, OnDestroy } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  linkedSignal,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import {
   GameComponent,
   GameMode,
@@ -238,6 +247,34 @@ export class OnlinePlayRoute implements OnDestroy {
     },
   );
 
+  private readonly _addRequestEffect = this.wsService.subscribeEffect(
+    'requestAdded',
+    z.object({
+      gameId: z.number(),
+      requestId: z.number(),
+      requestType: z.object({ type: z.union([z.literal('draw'), z.literal('undo')]) }),
+    }),
+    ({ gameId, requestId, requestType }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.requestIds.update((ids) => {
+        if (requestType.type === 'draw') {
+          return { ...ids, drawOfferId: requestId };
+        } else if (requestType.type === 'undo') {
+          return { ...ids, undoRequestId: requestId };
+        }
+        return ids;
+      });
+    },
+  );
+
+  requestIds = signal<{ drawOfferId: number | null; undoRequestId: number | null }>({
+    drawOfferId: null,
+    undoRequestId: null,
+  });
+
   onLocalAction(action: TakActionEvent) {
     const game = this.game();
     if (!game) {
@@ -319,11 +356,33 @@ export class OnlinePlayRoute implements OnDestroy {
     });
   }
 
-  onRequestDraw(request: boolean) {
-    console.log('Request draw:', request);
+  onRequestDraw() {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.offerDraw(game.gameId).subscribe(() => {
+      console.log('Offered draw successfully.');
+    });
   }
 
-  onRequestUndo(request: boolean) {
-    console.log('Request undo:', request);
+  onRequestUndo() {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.requestUndo(game.gameId).subscribe(() => {
+      console.log('Requested undo successfully.');
+    });
+  }
+
+  onRetractRequest(requestId: number) {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.retractRequest(game.gameId, requestId).subscribe(() => {
+      console.log('Retracted request successfully.');
+    });
   }
 }

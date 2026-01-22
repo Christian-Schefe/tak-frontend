@@ -8,11 +8,11 @@
     (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
     [mode]="curGame.mode"
     [players]="gamePlayers"
-    drawState="none"
-    undoState="none"
+    [requestIds]="requestIds()"
     (resign)="onResign()"
-    (requestDraw)="onRequestDraw($event)"
-    (requestUndo)="onRequestUndo($event)"
+    (requestDraw)="onRequestDraw()"
+    (requestUndo)="onRequestUndo()"
+    (retractRequest)="onRetractRequest($event)"
   ></app-game-component>
 } @else {
   <p>No ongoing game.</p>

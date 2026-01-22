@@ -2,19 +2,10 @@
   class="w-full h-full bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-md flex flex-col"
 >
   <div class="flex gap-2 p-2">
-    <button
-      pButton
-      class="aspect-square p-2!"
-      [disabled]="!canUndo()"
-      (click)="requestUndo.emit(undoState() !== 'requested')"
-    >
+    <button pButton class="aspect-square p-2!" [disabled]="!canUndo()" (click)="onClickUndo()">
       <ng-icon name="lucideUndo" size="20px"></ng-icon>
     </button>
-    <button
-      pButton
-      class="aspect-square p-2!"
-      (click)="requestDraw.emit(drawState() !== 'requested')"
-    >
+    <button pButton class="aspect-square p-2!" (click)="onClickDraw()">
       <ng-icon name="lucideHandshake" size="20px"></ng-icon>
     </button>
     <button pButton class="aspect-square p-2!" (click)="resign.emit()">

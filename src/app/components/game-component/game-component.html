@@ -12,8 +12,8 @@
   <div class="h-full w-full">
     <app-game-side-panel
       [game]="takGame"
-      [drawState]="drawState()"
-      [undoState]="undoState()"
+      [drawOffer]="requestIds().drawOfferId"
+      [undoRequest]="requestIds().undoRequestId"
       (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
       (requestDraw)="requestDraw.emit($event)"
       (requestUndo)="requestUndo.emit($event)"
