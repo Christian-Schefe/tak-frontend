@@ -132,7 +132,7 @@ export class BoardNinjaComponent {
     if (mode.type !== 'online') return;
     this.sendMessageToIframe({
       action: 'SET_PLAYER',
-      value: mode.localColor === 'white' ? 1 : 2,
+      value: mode.localPlayer === 'white' ? 1 : 2,
     });
   });
 

@@ -6,16 +6,28 @@
     </p-tablist>
     <p-tabpanels>
       <p-tabpanel value="0">
-        <p-iftalabel>
-          <p-select
-            inputId="settings-theme"
-            [options]="themes()"
-            [ngModel]="settingsService.generalSettings().theme"
-            (ngModelChange)="updateGeneralTheme($event)"
-            fluid
-          ></p-select>
-          <label for="settings-theme">Color Theme</label>
-        </p-iftalabel>
+        <div class="w-full flex flex-col gap-2">
+          <p-iftalabel>
+            <p-select
+              inputId="settings-theme"
+              [options]="themes()"
+              [ngModel]="settingsService.generalSettings().theme"
+              (ngModelChange)="updateGeneralSettings({ theme: $event })"
+              fluid
+            ></p-select>
+            <label for="settings-theme">Color Theme</label>
+          </p-iftalabel>
+          <p-iftalabel>
+            <p-select
+              inputId="settings-board-type"
+              [options]="boardTypes()"
+              [ngModel]="settingsService.generalSettings().boardType"
+              (ngModelChange)="updateGeneralSettings({ boardType: $event })"
+              fluid
+            ></p-select>
+            <label for="settings-board-type">Board Type</label>
+          </p-iftalabel>
+        </div>
       </p-tabpanel>
       <p-tabpanel value="1">
         <p-iftalabel>
@@ -23,7 +35,7 @@
             inputId="board-native-settings-theme"
             [options]="boardNativeThemes()"
             [ngModel]="settingsService.boardNativeSettings().theme"
-            (ngModelChange)="updateBoardNativeTheme($event)"
+            (ngModelChange)="updateBoardNativeSettings({ theme: $event })"
             fluid
           ></p-select>
           <label for="board-native-settings-theme">Color Theme</label>

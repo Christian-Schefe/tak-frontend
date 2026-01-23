@@ -42,7 +42,7 @@ export interface TakGameUI {
   priorityPieces: TakPieceId[];
   tiles: TakUITile[][];
   partialMove: PartialAction | null;
-  shownReserves: Record<TakPlayer, TakReserve> | null;
+  shownReserves: Record<TakPlayer, TakReserve>;
 }
 
 interface PartialAction {
@@ -80,7 +80,7 @@ export function newGameUI(game: TakGame): TakGameUI {
     partialMove: null,
     priorityPieces: [],
     plyIndex: null,
-    shownReserves: null,
+    shownReserves: { white: { ...game.reserves.white }, black: { ...game.reserves.black } },
   };
   onGameUpdate(gameUI);
   return gameUI;
@@ -439,7 +439,11 @@ export function onGameUpdate(ui: TakGameUI) {
 
   for (const id of Object.keys(ui.pieces) as TakPieceId[]) {
     if (ui.pieces[id] !== undefined && !presentIds.has(id)) {
-      ui.pieces[id].deleted = true;
+      if (ui.pieces[id].deleted) {
+        delete ui.pieces[id];
+      } else {
+        ui.pieces[id].deleted = true;
+      }
     }
   }
 

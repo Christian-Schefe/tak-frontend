@@ -1,20 +1,15 @@
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  linkedSignal,
-  OnDestroy,
-  signal,
-} from '@angular/core';
+import { Component, computed, effect, inject, input, linkedSignal, OnDestroy } from '@angular/core';
 import {
   GameComponent,
   GameMode,
   GamePlayer,
   TakActionEvent,
 } from '../../components/game-component/game-component';
-import { gameEndedMessage, GameService } from '../../services/game-service/game-service';
+import {
+  gameEndedMessage,
+  GameRequestType,
+  GameService,
+} from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
@@ -27,6 +22,7 @@ import {
   setGameOverState,
   tryPlaceOrAddToPartialMove,
   updatePartialMove,
+  undoMove,
 } from '../../../tak-core/ui';
 import { newGame, setTimeRemaining } from '../../../tak-core/game';
 import { moveFromString, moveToString } from '../../../tak-core/move';
@@ -95,12 +91,12 @@ export class OnlinePlayRoute implements OnDestroy {
       identity.playerId === game.playerIds.white
         ? {
             type: 'online',
-            localColor: 'white',
+            localPlayer: 'white',
           }
         : identity.playerId === game.playerIds.black
           ? {
               type: 'online',
-              localColor: 'black',
+              localPlayer: 'black',
             }
           : {
               type: 'spectator',
@@ -203,6 +199,24 @@ export class OnlinePlayRoute implements OnDestroy {
       this.onRemoteAction(moveFromString(action), plyIndex);
     },
   );
+  private readonly _gameUndoEffect = this.wsService.subscribeEffect(
+    'gameActionUndone',
+    z.object({ gameId: z.number() }),
+    ({ gameId }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.game.update((game) => {
+        if (!game) {
+          return game;
+        }
+        return produce(game, (game) => {
+          undoMove(game);
+        });
+      });
+    },
+  );
 
   private readonly _gameTimeUpdateEffect = this.wsService.subscribeEffect(
     'gameTimeUpdate',
@@ -248,31 +262,47 @@ export class OnlinePlayRoute implements OnDestroy {
   );
 
   private readonly _addRequestEffect = this.wsService.subscribeEffect(
-    'requestAdded',
+    'gameRequestAdded',
     z.object({
       gameId: z.number(),
       requestId: z.number(),
       requestType: z.object({ type: z.union([z.literal('draw'), z.literal('undo')]) }),
+      fromPlayerId: z.string(),
     }),
-    ({ gameId, requestId, requestType }) => {
+    ({ gameId, requestId, requestType, fromPlayerId }) => {
       const currentGame = this.currentGame();
       if (!currentGame || currentGame.gameId !== gameId) {
         return;
       }
-      this.requestIds.update((ids) => {
-        if (requestType.type === 'draw') {
-          return { ...ids, drawOfferId: requestId };
-        } else if (requestType.type === 'undo') {
-          return { ...ids, undoRequestId: requestId };
-        }
-        return ids;
+      this.requests.update((ids) => {
+        return [...ids, { id: requestId, requestType, fromPlayerId }];
       });
     },
   );
 
-  requestIds = signal<{ drawOfferId: number | null; undoRequestId: number | null }>({
-    drawOfferId: null,
-    undoRequestId: null,
+  private readonly _retractRequestEffect = this.wsService.subscribeEffect(
+    'gameRequestRemoved',
+    z.object({
+      gameId: z.number(),
+      requestId: z.number(),
+    }),
+    ({ gameId, requestId }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.requests.update((requests) => {
+        return requests.filter((request) => request.id !== requestId);
+      });
+    },
+  );
+
+  requests = linkedSignal<GameRequestType[]>(() => {
+    const gameStatus = this.ongoingGameStatus.value();
+    if (!gameStatus || gameStatus.status.type !== 'ongoing') {
+      return [];
+    }
+    return gameStatus.status.requests;
   });
 
   onLocalAction(action: TakActionEvent) {
@@ -384,5 +414,17 @@ export class OnlinePlayRoute implements OnDestroy {
     this.gameService.retractRequest(game.gameId, requestId).subscribe(() => {
       console.log('Retracted request successfully.');
     });
+  }
+
+  onRequestDecision(requestId: number, decision: 'accept' | 'reject') {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService
+      .respondToRequest(game.gameId, requestId, decision === 'accept')
+      .subscribe(() => {
+        console.log(`Sent request decision (${decision}) successfully.`);
+      });
   }
 }

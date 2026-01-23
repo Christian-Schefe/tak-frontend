@@ -1,0 +1,8 @@
+<ngt-mesh [position]="currentPos()" [quaternion]="currentQuat()" (click)="onClick($event)">
+  @if (layoutData().variant === 'capstone') {
+    <ngt-cylinder-geometry *args="[pieceSize * 0.4, pieceSize * 0.4, pieceSize, 32]" />
+  } @else {
+    <ngt-box-geometry *args="[pieceSize, pieceHeight, pieceSize]" />
+  }
+  <ngt-mesh-standard-material [color]="layoutData().player === 'white' ? '#EEEEEE' : '#444444'" />
+</ngt-mesh>

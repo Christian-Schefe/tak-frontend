@@ -1,0 +1,55 @@
+<ngts-perspective-camera [options]="{ makeDefault: true, position: [-3, 5, 5] }" />
+<ngt-ambient-light [intensity]="1" />
+<ngt-spot-light
+  [position]="[5, 10, -10]"
+  [intensity]="0.5 * PI"
+  [angle]="0.5"
+  [penumbra]="1"
+  [decay]="0"
+/>
+<ngt-point-light [position]="-10" [intensity]="0.5 * PI" [decay]="0" />
+@let settings = gameSettings();
+<ngt-mesh [position]="[0, -0.25, 0]">
+  <ngt-box-geometry *args="[settings.boardSize + 6, 0.3, settings.boardSize + 3]" />
+  <ngt-mesh-standard-material [color]="'#6B4F2A'" />
+</ngt-mesh>
+<ngt-mesh [position]="[0, -0.05, 0]">
+  <ngt-box-geometry *args="[settings.boardSize + 0.5, 0.1, settings.boardSize + 0.5]" />
+  <ngt-mesh-standard-material [color]="'gold'" />
+</ngt-mesh>
+<ngt-group>
+  @for (item of tilePositions(); track $index) {
+    <ngt-mesh
+      [position]="[
+        item.pos.x - settings.boardSize / 2 + 0.5,
+        0.01,
+        item.pos.y - settings.boardSize / 2 + 0.5,
+      ]"
+      [rotation]="tileRotation"
+      (click)="onTileClick(item.pos)"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+    >
+      <ngt-plane-geometry [args]="[1, 1]" />
+      <ngt-mesh-standard-material
+        [color]="(item.pos.x + item.pos.y) % 2 === 0 ? '#8b4513' : '#a0522d'"
+      />
+    </ngt-mesh>
+  }
+  @for (piece of pieceData(); track $index) {
+    <app-board-ngt-piece
+      [id]="piece.id"
+      [data]="piece.data"
+      [settings]="gameSettings()"
+      [game]="game()"
+      [mode]="mode()"
+      [currentVariant]="currentVariant()"
+      (clickPiece)="setCurrentVariant($event)"
+    ></app-board-ngt-piece>
+  }
+</ngt-group>
+
+<ngts-orbit-controls
+  [options]="{ makeDefault: true, enablePan: false, mouseButtons: mouseButtons }"
+>
+</ngts-orbit-controls>

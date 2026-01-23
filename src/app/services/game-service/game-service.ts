@@ -22,6 +22,15 @@ export const gameSettings = z.object({
     .nullable(),
 });
 
+export const gameRequest = z.object({
+  id: z.number(),
+  requestType: z.object({
+    type: z.union([z.literal('undo'), z.literal('draw')]),
+  }),
+  fromPlayerId: z.string(),
+});
+export type GameRequestType = z.infer<typeof gameRequest>;
+
 export const gameEndedMessage = z.object({
   gameId: z.number(),
   result: z.string(),
@@ -50,14 +59,7 @@ export const gameStatus = z.object({
     }),
     z.object({
       type: z.literal('ongoing'),
-      drawOffers: z.object({
-        white: z.boolean(),
-        black: z.boolean(),
-      }),
-      undoRequests: z.object({
-        white: z.boolean(),
-        black: z.boolean(),
-      }),
+      requests: z.array(gameRequest),
     }),
   ]),
 });

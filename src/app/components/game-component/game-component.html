@@ -12,21 +12,31 @@
   <div class="h-full w-full">
     <app-game-side-panel
       [game]="takGame"
-      [drawOffer]="requestIds().drawOfferId"
-      [undoRequest]="requestIds().undoRequestId"
+      [drawOffer]="myDrawOffer()"
+      [undoRequest]="myUndoRequest()"
+      [requests]="opponentRequests()"
       (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
       (requestDraw)="requestDraw.emit($event)"
       (requestUndo)="requestUndo.emit($event)"
+      (retractRequest)="retractRequest.emit($event)"
+      (requestDecision)="requestDecision.emit($event)"
       (resign)="resign.emit()"
     ></app-game-side-panel>
   </div>
-  @switch (boardStyle) {
+  @switch (settingsService.generalSettings().boardType) {
     @case ('2d') {
       <app-board-native-component
         [game]="takGame"
         [mode]="mode()"
         (action)="action.emit($event)"
       ></app-board-native-component>
+    }
+    @case ('3d') {
+      <app-board-ngt-component
+        [game]="takGame"
+        [mode]="mode()"
+        (action)="action.emit($event)"
+      ></app-board-ngt-component>
     }
     @case ('ninja') {
       <app-board-ninja-component

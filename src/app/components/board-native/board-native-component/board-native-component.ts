@@ -1,11 +1,14 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
-import { TakPieceId, TakPieceVariant, TakPos } from '../../../../tak-core';
+import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
+import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
 import { GameMode, TakActionEvent } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { BoardPiece } from '../board-piece/board-piece';
 import { BoardTile } from '../board-tile/board-tile';
 import { SettingsService } from '../../../services/settings-service/settings-service';
 import { defaultTheme, ThemeParams, themes } from '../../../../2d-themes';
+import { ButtonModule } from 'primeng/button';
+import { RippleModule } from 'primeng/ripple';
+import { filterTruthy } from '../../../util';
 
 export interface BoardSettings {
   theme: ThemeParams;
@@ -15,7 +18,7 @@ export interface BoardSettings {
 
 @Component({
   selector: 'app-board-native-component',
-  imports: [BoardPiece, BoardTile],
+  imports: [BoardPiece, BoardTile, ButtonModule, RippleModule],
   templateUrl: './board-native-component.html',
   styleUrl: './board-native-component.css',
 })
@@ -31,7 +34,33 @@ export class BoardNativeComponent {
     return { theme, axisLabels: true, axisLabelSize: 14 };
   });
 
-  currentVariant = signal<TakPieceVariant>('flat');
+  currentVariant = linkedSignal<
+    {
+      flat: boolean;
+      standing: boolean;
+      capstone: boolean;
+    } | null,
+    TakPieceVariant
+  >({
+    source: () => this.canPlace(),
+    computation: (source, prev) => {
+      if (source && prev) {
+        if (prev.value === 'flat' && !source.flat) {
+          if (source.standing) return 'standing';
+          if (source.capstone) return 'capstone';
+        }
+        if (prev.value === 'standing' && !source.standing) {
+          if (source.flat) return 'flat';
+          if (source.capstone) return 'capstone';
+        }
+        if (prev.value === 'capstone' && !source.capstone) {
+          if (source.flat) return 'flat';
+          if (source.standing) return 'standing';
+        }
+      }
+      return prev?.value ?? 'flat';
+    },
+  });
 
   gameSettings = computed(() => {
     return this.game().actualGame.settings;
@@ -53,7 +82,7 @@ export class BoardNativeComponent {
 
   pieces = computed(() => this.game().pieces);
 
-  pieceIds = computed(() => {
+  pieceData = computed(() => {
     const pieces = this.pieces();
     const pieceIds = Object.entries(pieces)
       .map(([id, data]) =>
@@ -69,15 +98,41 @@ export class BoardNativeComponent {
     return pieceIds;
   });
 
+  areTilesInteractive = computed(() => {
+    const mode = this.mode();
+    const game = this.game();
+    return (
+      ((mode.type === 'online' && game.actualGame.currentPlayer === mode.localPlayer) ||
+        mode.type === 'local') &&
+      game.actualGame.gameState.type === 'ongoing'
+    );
+  });
+
   onClickTile(pos: TakPos) {
     this.action.emit({ type: 'partial', pos, variant: this.currentVariant() });
-    return;
-    this.currentVariant.update((v) =>
-      v === 'flat' ? 'standing' : v === 'standing' ? 'capstone' : 'flat',
-    );
   }
-}
 
-function filterTruthy<T>(val: T | undefined | null): val is T {
-  return !!val;
+  canPlace = computed(() => {
+    const game = this.game();
+    const mode = this.mode();
+    let player: TakPlayer;
+    if (mode.type === 'local') {
+      player = game.actualGame.currentPlayer;
+    } else if (mode.type === 'online') {
+      player = mode.localPlayer;
+    } else {
+      return null;
+    }
+    const isOngoing = game.actualGame.gameState.type === 'ongoing';
+    const reserves = game.actualGame.reserves[player];
+    return {
+      flat: isOngoing && reserves.pieces > 0,
+      standing: isOngoing && reserves.pieces > 0 && game.actualGame.history.length >= 2,
+      capstone: isOngoing && reserves.capstones > 0 && game.actualGame.history.length >= 2,
+    };
+  });
+
+  setVariant(variant: TakPieceVariant) {
+    this.currentVariant.set(variant);
+  }
 }

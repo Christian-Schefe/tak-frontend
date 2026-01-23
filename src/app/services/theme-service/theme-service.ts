@@ -100,41 +100,46 @@ export const SunsetTheme = definePreset(Aura, {
 });
 
 export interface Theme {
-  id: string;
   name: string;
   primengTheme: Preset;
   isDark: boolean;
 }
 
 export const lightTheme: Theme = {
-  id: 'light',
   name: 'Light',
   primengTheme: AuraBlue,
   isDark: false,
 };
 
 export const darkTheme: Theme = {
-  id: 'dark',
   name: 'Dark',
   primengTheme: AuraBlue,
   isDark: true,
 };
 
 export const classicTheme: Theme = {
-  id: 'classic',
   name: 'Classic',
   primengTheme: ClassicTheme,
   isDark: true,
 };
 
 export const sunsetTheme: Theme = {
-  id: 'sunset',
   name: 'Sunset',
   primengTheme: SunsetTheme,
   isDark: true,
 };
 
-export const themesList = [lightTheme, darkTheme, classicTheme, sunsetTheme];
+const themeObj = {
+  light: lightTheme,
+  dark: darkTheme,
+  classic: classicTheme,
+  sunset: sunsetTheme,
+};
+
+export type ThemeId = keyof typeof themeObj;
+
+export const themes: Record<ThemeId, Theme> = themeObj;
+export const themeIds: ThemeId[] = Object.keys(themeObj) as ThemeId[];
 
 @Injectable({
   providedIn: 'root',
@@ -142,8 +147,7 @@ export const themesList = [lightTheme, darkTheme, classicTheme, sunsetTheme];
 export class ThemeService {
   settingsService = inject(SettingsService);
   theme = computed(() => {
-    const id = this.settingsService.generalSettings().theme;
-    return themesList.find((t) => t.id === id) ?? themesList[0];
+    return themes[this.settingsService.generalSettings().theme];
   });
 
   private readonly _applyThemeEffect = effect(() => {

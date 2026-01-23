@@ -1,19 +1,8 @@
 <div
-  class="w-full h-full bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-md flex flex-col"
+  class="w-full max-w-80 h-full bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-md flex flex-col"
 >
-  <div class="flex gap-2 p-2">
-    <button pButton class="aspect-square p-2!" [disabled]="!canUndo()" (click)="onClickUndo()">
-      <ng-icon name="lucideUndo" size="20px"></ng-icon>
-    </button>
-    <button pButton class="aspect-square p-2!" (click)="onClickDraw()">
-      <ng-icon name="lucideHandshake" size="20px"></ng-icon>
-    </button>
-    <button pButton class="aspect-square p-2!" (click)="resign.emit()">
-      <ng-icon name="lucideFlag" size="20px"></ng-icon>
-    </button>
-  </div>
   <p-scrollpanel [style]="{ width: '100%', height: '150px', flexGrow: '1' }">
-    <div class="flex flex-col min-w-70 p-2">
+    <div class="flex flex-col p-2">
       @for (row of historyItems(); track $index) {
         <div [class]="`p-2 flex w-full ${$index % 2 === 0 ? 'bg-emphasis' : ''} rounded-md`">
           @for (item of row; track $index) {
@@ -54,4 +43,37 @@
       }
     </div>
   </p-scrollpanel>
+  <div class="flex flex-col p-2 gap-2">
+    @for (item of requests(); track $index) {
+      <app-game-request
+        [request]="item"
+        (decision)="requestDecision.emit({ requestId: item.id, decision: $event })"
+      ></app-game-request>
+    }
+  </div>
+  <div class="flex gap-2 p-2">
+    @let isOngoing = gameState().type === 'ongoing';
+    <p-button
+      [disabled]="!isOngoing || !canUndo()"
+      (click)="onClickUndo()"
+      [severity]="hasUndoRequest() ? 'primary' : 'secondary'"
+      text
+    >
+      <ng-icon name="lucideUndo" size="20px"></ng-icon>
+      <p>Undo</p>
+    </p-button>
+    <p-button
+      [disabled]="!isOngoing"
+      (click)="onClickDraw()"
+      [severity]="hasDrawOffer() ? 'primary' : 'secondary'"
+      text
+    >
+      <ng-icon name="lucideHandshake" size="20px"></ng-icon>
+      <p>Draw</p>
+    </p-button>
+    <p-button [disabled]="!isOngoing" (click)="resign.emit()" severity="danger" text>
+      <ng-icon name="lucideFlag" size="20px"></ng-icon>
+      <p>Resign</p>
+    </p-button>
+  </div>
 </div>

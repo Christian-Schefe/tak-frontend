@@ -1,17 +1,18 @@
 import { effect, Injectable, signal, WritableSignal } from '@angular/core';
 import z from 'zod';
-import { themesList } from '../theme-service/theme-service';
+import { themeIds as primeNgThemes } from '../theme-service/theme-service';
+import { themeIds as themeIdsNative } from '../../../2d-themes';
 
-const generatSettingsStore = z.object({
-  theme: z.string(),
-  boardType: z.string(),
+const generalSettings = z.object({
+  theme: z.enum(primeNgThemes),
+  boardType: z.enum(['ninja', '2d', '3d']),
 });
-type GeneralSettingsStore = z.infer<typeof generatSettingsStore>;
+export type GeneralSettings = z.infer<typeof generalSettings>;
 
 const boardNativeSettingsStore = z.object({
-  theme: z.string(),
+  theme: z.enum(themeIdsNative),
 });
-type BoardNativeSettingsStore = z.infer<typeof boardNativeSettingsStore>;
+export type BoardNativeSettings = z.infer<typeof boardNativeSettingsStore>;
 
 @Injectable({
   providedIn: 'root',
@@ -19,11 +20,11 @@ type BoardNativeSettingsStore = z.infer<typeof boardNativeSettingsStore>;
 export class SettingsService {
   settingsSignals = new Set<string>();
 
-  generalSettings = signal<GeneralSettingsStore>({
-    theme: themesList[0].id,
-    boardType: 'native',
+  generalSettings = signal<GeneralSettings>({
+    theme: 'light',
+    boardType: '2d',
   });
-  boardNativeSettings = signal<BoardNativeSettingsStore>({
+  boardNativeSettings = signal<BoardNativeSettings>({
     theme: 'classic',
   });
 
@@ -33,7 +34,7 @@ export class SettingsService {
     const syncThemeSetting = this.linkSettingsSignal(
       'generalSettings',
       this.generalSettings,
-      generatSettingsStore,
+      generalSettings,
     );
     const syncBoardNativeSettings = this.linkSettingsSignal(
       'boardNativeSettings',

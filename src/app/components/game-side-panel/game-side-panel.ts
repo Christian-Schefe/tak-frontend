@@ -7,6 +7,8 @@ import { gameResultToString } from '../../../tak-core/game';
 import { ButtonModule } from 'primeng/button';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFlag, lucideHandshake, lucideUndo } from '@ng-icons/lucide';
+import { GameRequest } from '../game-request/game-request';
+import { GameRequestType } from '../../services/game-service/game-service';
 
 type HistoryEntry =
   | {
@@ -22,7 +24,7 @@ type HistoryEntry =
 
 @Component({
   selector: 'app-game-side-panel',
-  imports: [CardModule, ScrollPanelModule, ButtonModule, NgIcon],
+  imports: [CardModule, ScrollPanelModule, ButtonModule, NgIcon, GameRequest],
   templateUrl: './game-side-panel.html',
   styleUrl: './game-side-panel.css',
   viewProviders: [provideIcons({ lucideFlag, lucideHandshake, lucideUndo })],
@@ -30,11 +32,13 @@ type HistoryEntry =
 export class GameSidePanel {
   game = input.required<TakGameUI>();
   setHistoryPlyIndex = output<number>();
+  requests = input.required<GameRequestType[]>();
   drawOffer = input.required<number | null>();
   undoRequest = input.required<number | null>();
   requestDraw = output<void>();
   requestUndo = output<void>();
   retractRequest = output<number>();
+  requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
   resign = output<void>();
 
   canUndo = computed(() => {
@@ -48,7 +52,7 @@ export class GameSidePanel {
 
   private gameHistory = computed(() => this.game().actualGame.history);
 
-  private gameState = computed(() => this.game().actualGame.gameState);
+  gameState = computed(() => this.game().actualGame.gameState);
 
   historyItems = computed(() => {
     const curPlyIndex = this.gamePlyIndex();
@@ -96,6 +100,14 @@ export class GameSidePanel {
         this.input.scrollTop(Infinity);
       }
     }, 0);
+  });
+
+  hasUndoRequest = computed(() => {
+    return this.undoRequest() !== null;
+  });
+
+  hasDrawOffer = computed(() => {
+    return this.drawOffer() !== null;
   });
 
   onClickUndo() {
