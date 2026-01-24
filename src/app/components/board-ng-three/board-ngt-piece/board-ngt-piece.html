@@ -1,4 +1,10 @@
-<ngt-mesh [position]="currentPos()" [quaternion]="currentQuat()" (click)="onClick($event)">
+<ngt-mesh
+  [position]="currentPos()"
+  [quaternion]="currentQuat()"
+  (click)="onClick($event)"
+  [castShadow]="true"
+  [receiveShadow]="true"
+>
   @if (layoutData().variant === 'capstone') {
     <ngt-cylinder-geometry *args="[pieceSize * 0.4, pieceSize * 0.4, pieceSize, 32]" />
   } @else {

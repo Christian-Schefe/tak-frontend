@@ -6,10 +6,23 @@ import {
   linkedSignal,
   output,
 } from '@angular/core';
-import { extend, NgtArgs, NgtThreeEvent } from 'angular-three';
+import { extend, NgtArgs } from 'angular-three';
 import { NgtsPerspectiveCamera } from 'angular-three-soba/cameras';
 import { NgtsOrbitControls } from 'angular-three-soba/controls';
-import { Mesh, BoxGeometry, MeshBasicMaterial, CylinderGeometry, MOUSE } from 'three';
+import { NgtsSoftShadows } from 'angular-three-soba/misc';
+import { NgtpEffectComposer, NgtpSMAA } from 'angular-three-postprocessing';
+import { NgtpN8AO } from 'angular-three-postprocessing/n8ao';
+import {
+  Mesh,
+  BoxGeometry,
+  MeshBasicMaterial,
+  CylinderGeometry,
+  MOUSE,
+  SpotLight,
+  PointLight,
+  AmbientLight,
+  PlaneGeometry,
+} from 'three';
 import { GameMode, TakActionEvent } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
@@ -17,14 +30,23 @@ import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
 
 @Component({
   selector: 'app-board-ngt-canvas',
-  imports: [NgtsOrbitControls, NgtsPerspectiveCamera, NgtArgs, BoardNgtPiece],
+  imports: [
+    NgtsOrbitControls,
+    NgtsPerspectiveCamera,
+    NgtArgs,
+    BoardNgtPiece,
+    NgtpEffectComposer,
+    NgtpN8AO,
+    NgtsSoftShadows,
+    NgtpSMAA,
+  ],
   templateUrl: './board-ngt-canvas.html',
   styleUrl: './board-ngt-canvas.css',
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class BoardNgtCanvas {
   mouseButtons = {
-    LEFT: MOUSE.ROTATE,
+    LEFT: undefined,
     MIDDLE: undefined,
     RIGHT: MOUSE.ROTATE,
   };
@@ -36,7 +58,16 @@ export class BoardNgtCanvas {
   tileRotation = [-Math.PI / 2, 0, 0];
 
   constructor() {
-    extend({ Mesh, BoxGeometry, CylinderGeometry, MeshBasicMaterial });
+    extend({
+      Mesh,
+      BoxGeometry,
+      CylinderGeometry,
+      PlaneGeometry,
+      MeshBasicMaterial,
+      SpotLight,
+      PointLight,
+      AmbientLight,
+    });
   }
 
   gameSettings = computed(() => {
@@ -86,32 +117,9 @@ export class BoardNgtCanvas {
   });
 
   onTileClick(pos: TakPos) {
-    if (this.dragged) {
-      console.log('Drag detected, not emitting action.');
-      return;
-    }
     this.action.emit({ type: 'partial', pos, variant: this.currentVariant() });
     if (this.mode().type === 'local' && this.canPlace()?.flat === true) {
       this.currentVariant.set('flat');
-    }
-  }
-
-  private startX = 0;
-  private startY = 0;
-  private dragged = false;
-
-  onPointerDown(event: NgtThreeEvent<PointerEvent>) {
-    this.startX = event.clientX;
-    this.startY = event.clientY;
-    this.dragged = false;
-  }
-
-  onPointerMove(event: NgtThreeEvent<PointerEvent>) {
-    const dx = event.clientX - this.startX;
-    const dy = event.clientY - this.startY;
-
-    if (dx * dx + dy * dy > 9) {
-      this.dragged = true;
     }
   }
 
