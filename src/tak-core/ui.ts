@@ -108,8 +108,7 @@ export function setGameOverState(ui: TakGameUI, newGameState: TakGameState) {
   if (ui.actualGame.gameState.type !== 'ongoing' || newGameState.type === 'ongoing') {
     return;
   }
-  game.applyTimeToClock(ui.actualGame, new Date());
-  ui.actualGame.gameState = newGameState;
+  game.setGameOver(ui.actualGame, newGameState, new Date());
   onGameUpdate(ui);
 }
 

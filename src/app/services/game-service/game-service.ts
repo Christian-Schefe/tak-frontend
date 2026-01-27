@@ -12,14 +12,23 @@ export const gameSettings = z.object({
   halfKomi: z.number(),
   pieces: z.number(),
   capstones: z.number(),
-  contingentMs: z.number(),
-  incrementMs: z.number(),
-  extra: z
-    .object({
-      onMove: z.number(),
-      extraMs: z.number(),
-    })
-    .nullable(),
+  timeSettings: z.union([
+    z.object({
+      type: z.literal('realtime'),
+      contingentMs: z.number(),
+      incrementMs: z.number(),
+      extra: z
+        .object({
+          onMove: z.number(),
+          extraMs: z.number(),
+        })
+        .nullable(),
+    }),
+    z.object({
+      type: z.literal('async'),
+      contingentMs: z.number(),
+    }),
+  ]),
 });
 
 export const gameRequest = z.object({
@@ -91,14 +100,20 @@ export class GameService {
     boardSize: 5,
     halfKomi: 0,
     reserve: { pieces: 21, capstones: 1 },
-    clock: {
+    /* clock: {
+      type: 'realtime',
       contingentMs: 10 * 60 * 1000,
       incrementMs: 5 * 1000,
       externallyDriven: false,
       extra: {
-        move: 5,
-        amountMs: 30 * 1000,
+        onMove: 5,
+        extraMs: 5 * 60 * 1000,
       },
+    },*/
+    clock: {
+      type: 'async',
+      contingentMs: 24 * 60 * 60 * 1000,
+      externallyDriven: false,
     },
   });
 

@@ -1,3 +1,4 @@
+@let presetVal = preset();
 <form class="w-full h-full gap-2 flex flex-col" (ngSubmit)="onSubmit()">
   <div class="grid grid-cols-2 w-full gap-2">
     @if (!isForLocal()) {
@@ -43,11 +44,12 @@
           appendTo="body"
           name="rated"
           fluid
-          [disabled]="preset().isRated !== undefined"
+          [disabled]="presetVal.isRated !== undefined"
         ></p-select>
         <label for="rated">Game Type</label>
       </p-ifta-label>
     }
+    <p class="col-span-full">Game Settings</p>
     <p-ifta-label>
       <p-select
         [options]="boardSizes"
@@ -56,7 +58,7 @@
         appendTo="body"
         name="boardSize"
         fluid
-        [disabled]="preset().boardSize !== undefined"
+        [disabled]="presetVal.boardSize !== undefined"
       ></p-select>
       <label for="board-size">Board Size</label>
     </p-ifta-label>
@@ -68,38 +70,11 @@
         appendTo="body"
         name="halfKomi"
         fluid
-        [disabled]="preset().halfKomi !== undefined"
+        [disabled]="presetVal.halfKomi !== undefined"
       ></p-select>
       <label for="half-komi">Komi</label>
     </p-ifta-label>
     <p-ifta-label>
-      <p-inputnumber
-        [(ngModel)]="timeContingentMinutes"
-        inputId="time-contingent"
-        name="timeContingent"
-        fluid
-        [useGrouping]="false"
-        [min]="1"
-        [max]="100000"
-        [placeholder]="timeContingentDefault.toString()"
-        [disabled]="preset().timeContingentMinutes !== undefined"
-      ></p-inputnumber>
-      <label for="time-contingent">Time Contingent (minutes)</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-inputnumber
-        [(ngModel)]="timeIncrementSeconds"
-        inputId="time-increment"
-        name="timeIncrement"
-        fluid
-        [useGrouping]="false"
-        [min]="1"
-        [max]="100000"
-        [placeholder]="timeIncrementDefault.toString()"
-        [disabled]="preset().timeIncrementSeconds !== undefined"
-      ></p-inputnumber>
-      <label for="time-increment">Time Increment (seconds)</label> </p-ifta-label
-    ><p-ifta-label>
       <p-inputnumber
         [(ngModel)]="pieces"
         inputId="pieces"
@@ -109,10 +84,11 @@
         [min]="5"
         [max]="150"
         [placeholder]="piecesDefault().toString()"
-        [disabled]="preset().pieces !== undefined"
+        [disabled]="presetVal.pieces !== undefined"
       ></p-inputnumber>
-      <label for="pieces">Pieces</label> </p-ifta-label
-    ><p-ifta-label>
+      <label for="pieces">Pieces</label>
+    </p-ifta-label>
+    <p-ifta-label>
       <p-inputnumber
         [(ngModel)]="capstones"
         inputId="capstones"
@@ -122,12 +98,87 @@
         [min]="0"
         [max]="150"
         [placeholder]="capstonesDefault().toString()"
-        [disabled]="preset().capstones !== undefined"
+        [disabled]="presetVal.capstones !== undefined"
       ></p-inputnumber>
       <label for="capstones">Capstones</label>
     </p-ifta-label>
+    <p class="col-span-full">Time Control</p>
+    @if (!isForLocal()) {
+      <p-ifta-label>
+        <p-select
+          [options]="timeModes"
+          [(ngModel)]="timeMode"
+          inputId="time-mode"
+          appendTo="body"
+          name="timeMode"
+          fluid
+          [disabled]="presetVal.timeMode !== undefined"
+        ></p-select>
+        <label for="time-mode">Time Mode</label>
+      </p-ifta-label>
+    }
+    @switch (timeMode()) {
+      @case ('realtime') {
+        <p-ifta-label>
+          <p-inputnumber
+            [(ngModel)]="timeContingentMinutes"
+            inputId="time-contingent"
+            name="timeContingent"
+            fluid
+            [useGrouping]="false"
+            [min]="1"
+            [max]="100000"
+            [placeholder]="timeContingentDefault.toString()"
+            [disabled]="
+              presetVal.timeMode !== undefined &&
+              presetVal.timeMode.type === 'realtime' &&
+              presetVal.timeMode.timeContingentMinutes !== undefined
+            "
+          ></p-inputnumber>
+          <label for="time-contingent">Time Contingent (minutes)</label>
+        </p-ifta-label>
+        <p-ifta-label>
+          <p-inputnumber
+            [(ngModel)]="timeIncrementSeconds"
+            inputId="time-increment"
+            name="timeIncrement"
+            fluid
+            [useGrouping]="false"
+            [min]="1"
+            [max]="100000"
+            [placeholder]="timeIncrementDefault.toString()"
+            [disabled]="
+              presetVal.timeMode !== undefined &&
+              presetVal.timeMode.type === 'realtime' &&
+              presetVal.timeMode.timeIncrementSeconds !== undefined
+            "
+          ></p-inputnumber>
+          <label for="time-increment">Time Increment (seconds)</label>
+        </p-ifta-label>
+      }
+      @case ('async') {
+        <p-ifta-label>
+          <p-inputnumber
+            [(ngModel)]="daysPerMove"
+            inputId="days-per-move"
+            name="daysPerMove"
+            fluid
+            [useGrouping]="false"
+            [min]="1"
+            [max]="100000"
+            [placeholder]="daysPerMoveDefault.toString()"
+            [disabled]="
+              presetVal.timeMode !== undefined &&
+              presetVal.timeMode.type === 'async' &&
+              presetVal.timeMode.daysPerMove !== undefined
+            "
+          ></p-inputnumber>
+          <label for="days-per-move">Days Per Move</label>
+        </p-ifta-label>
+      }
+    }
   </div>
   <button class="mt-4" pButton pRipple type="submit" [disabled]="!isValidOpponent()">
-    <span pButtonLabel>Create Seek</span>
+    <span pButtonLabel>{{ isForLocal() ? 'Play' : 'Create Seek' }}</span>
   </button>
 </form>

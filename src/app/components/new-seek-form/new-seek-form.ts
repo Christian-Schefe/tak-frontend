@@ -17,11 +17,12 @@ interface SeekPreset {
   name: string;
   boardSize?: number;
   halfKomi?: number;
-  timeContingentMinutes?: number;
-  timeIncrementSeconds?: number;
   pieces?: number;
   capstones?: number;
   isRated?: boolean;
+  timeMode?:
+    | { type: 'realtime'; timeContingentMinutes?: number; timeIncrementSeconds?: number }
+    | { type: 'async'; daysPerMove?: number };
 }
 
 const noPreset: SeekPreset = {
@@ -32,12 +33,13 @@ const simplePreset: SeekPreset = {
   name: 'Simple',
   boardSize: 5,
   halfKomi: 0,
-  timeContingentMinutes: 10,
-  timeIncrementSeconds: 5,
   pieces: 21,
   capstones: 1,
   isRated: true,
+  timeMode: { type: 'realtime', timeContingentMinutes: 10, timeIncrementSeconds: 5 },
 };
+
+export type TimeMode = Exclude<SeekPreset['timeMode'], undefined>['type'];
 
 @Component({
   selector: 'app-new-seek-form',
@@ -99,10 +101,19 @@ export class NewSeekForm {
     return !name || name.trim() === '' || this.opponentPlayerInfoSignal() !== null;
   });
 
+  timeModes: { label: string; value: TimeMode }[] = [
+    { label: 'Realtime', value: 'realtime' },
+    { label: 'Async', value: 'async' },
+  ];
+  timeMode = signal<TimeMode>('realtime');
+
   timeContingentDefault = 10;
   timeIncrementDefault = 5;
   timeContingentMinutes = signal<number | undefined>(this.timeContingentDefault);
   timeIncrementSeconds = signal<number | undefined>(this.timeIncrementDefault);
+
+  daysPerMoveDefault = 3;
+  daysPerMove = signal<number | undefined>(this.daysPerMoveDefault);
 
   piecesDefault = computed(() => {
     const size = this.boardSize();
@@ -133,11 +144,22 @@ export class NewSeekForm {
       if (preset.halfKomi !== undefined) {
         this.halfKomi.set(preset.halfKomi);
       }
-      if (preset.timeContingentMinutes !== undefined) {
-        this.timeContingentMinutes.set(preset.timeContingentMinutes);
-      }
-      if (preset.timeIncrementSeconds !== undefined) {
-        this.timeIncrementSeconds.set(preset.timeIncrementSeconds);
+      if (preset.timeMode !== undefined) {
+        this.timeMode.set(preset.timeMode.type);
+
+        if (preset.timeMode.type === 'realtime') {
+          if (preset.timeMode.timeContingentMinutes !== undefined) {
+            this.timeContingentMinutes.set(preset.timeMode.timeContingentMinutes);
+          }
+          if (preset.timeMode.timeIncrementSeconds !== undefined) {
+            this.timeIncrementSeconds.set(preset.timeMode.timeIncrementSeconds);
+          }
+        }
+        if (preset.timeMode.type === 'async') {
+          if (preset.timeMode.daysPerMove !== undefined) {
+            this.daysPerMove.set(preset.timeMode.daysPerMove);
+          }
+        }
       }
       if (preset.pieces !== undefined) {
         this.pieces.set(preset.pieces);
@@ -157,12 +179,25 @@ export class NewSeekForm {
       halfKomi: this.halfKomi(),
       pieces: this.pieces() ?? this.piecesDefault(),
       capstones: this.capstones() ?? this.capstonesDefault(),
-      contingentMs: (this.timeContingentMinutes() ?? this.timeContingentDefault) * 60 * 1000,
-      incrementMs: (this.timeIncrementSeconds() ?? this.timeIncrementDefault) * 1000,
-      extra: null,
+      timeSettings:
+        this.timeMode() === 'realtime'
+          ? {
+              type: 'realtime',
+              contingentMs:
+                (this.timeContingentMinutes() ?? this.timeContingentDefault) * 60 * 1000,
+              incrementMs: (this.timeIncrementSeconds() ?? this.timeIncrementDefault) * 1000,
+              extra: null,
+            }
+          : {
+              type: 'async',
+              contingentMs: (this.daysPerMove() ?? this.daysPerMoveDefault) * 24 * 60 * 60 * 1000,
+            },
     };
 
     if (this.isForLocal()) {
+      if (gameSettings.timeSettings.type !== 'realtime') {
+        throw new Error('Local games must use realtime time settings');
+      }
       const takGameSettings: TakGameSettings = {
         boardSize: gameSettings.boardSize,
         halfKomi: gameSettings.halfKomi,
@@ -171,9 +206,11 @@ export class NewSeekForm {
           capstones: gameSettings.capstones,
         },
         clock: {
-          contingentMs: gameSettings.contingentMs,
-          incrementMs: gameSettings.incrementMs,
-          extra: undefined,
+          type: 'realtime',
+          externallyDriven: false,
+          contingentMs: gameSettings.timeSettings.contingentMs,
+          incrementMs: gameSettings.timeSettings.incrementMs,
+          extra: gameSettings.timeSettings.extra,
         },
       };
       this.playLocal.emit(takGameSettings);

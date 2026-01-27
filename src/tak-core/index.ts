@@ -76,11 +76,17 @@ export interface TakReserve {
   capstones: number;
 }
 
+export type TakClockUpdatePolicy =
+  | {
+      type: 'realtime';
+      hasGainedExtra: Record<TakPlayer, boolean>;
+    }
+  | { type: 'async' };
+
 export interface TakClock {
-  hasStarted: boolean;
-  lastUpdate: Date | null;
+  isTicking: boolean;
+  lastUpdate: Date;
   remainingMs: Record<TakPlayer, number>;
-  hasGainedExtra: Record<TakPlayer, boolean>;
 }
 
 export interface TakGame {
@@ -90,22 +96,26 @@ export interface TakGame {
   reserves: Record<TakPlayer, TakReserve>;
   gameState: TakGameState;
   history: TakActionRecord[];
-  clock?: TakClock;
+  clock: { clock: TakClock; updatePolicy: TakClockUpdatePolicy } | null;
 }
 
 export interface TakGameSettings {
   boardSize: number;
   halfKomi: number;
   reserve: TakReserve;
-  clock?: {
-    externallyDriven?: boolean;
-    contingentMs: number;
-    incrementMs: number;
-    extra?: {
-      move: number;
-      amountMs: number;
-    };
-  };
+  clock:
+    | {
+        type: 'realtime';
+        externallyDriven: boolean;
+        contingentMs: number;
+        incrementMs: number;
+        extra: {
+          onMove: number;
+          extraMs: number;
+        } | null;
+      }
+    | { type: 'async'; externallyDriven: boolean; contingentMs: number }
+    | null;
 }
 
 export function playerOpposite(player: TakPlayer): TakPlayer {

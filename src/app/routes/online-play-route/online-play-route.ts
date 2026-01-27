@@ -76,15 +76,8 @@ export class OnlinePlayRoute implements OnDestroy {
         capstones: game.gameSettings.capstones,
       },
       clock: {
-        contingentMs: game.gameSettings.contingentMs,
-        incrementMs: game.gameSettings.incrementMs,
+        ...game.gameSettings.timeSettings,
         externallyDriven: true,
-        extra: game.gameSettings.extra
-          ? {
-              move: game.gameSettings.extra.onMove,
-              amountMs: game.gameSettings.extra.extraMs,
-            }
-          : undefined,
       },
     };
     const mode: GameMode =
