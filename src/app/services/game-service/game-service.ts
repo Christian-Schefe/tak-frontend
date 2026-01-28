@@ -131,7 +131,7 @@ export class GameService {
   gameStatus(gameId: () => number | undefined) {
     return smartHttpResource(gameStatus, () => {
       const gid = gameId();
-      return gid ? `/api2/games/${gid}` : undefined;
+      return gid !== undefined ? `/api2/games/${gid.toString()}` : undefined;
     });
   }
 
@@ -181,26 +181,32 @@ export class GameService {
       identity !== null &&
       (game.playerIds.white === identity.playerId || game.playerIds.black === identity.playerId);
     if (thisPlayerGame) {
-      this.router.navigate(['/app/online/', game.id]);
+      void this.router.navigate(['/app/online/', game.id]);
     }
   }
 
   resignGame(gameId: number) {
-    return this.httpClient.post(`/api2/games/${gameId}/resign`, {});
+    return this.httpClient.post(`/api2/games/${gameId.toString()}/resign`, {});
   }
 
   offerDraw(gameId: number) {
-    return this.httpClient.post(`/api2/games/${gameId}/draw`, {});
+    return this.httpClient.post(`/api2/games/${gameId.toString()}/draw`, {});
   }
   requestUndo(gameId: number) {
-    return this.httpClient.post(`/api2/games/${gameId}/undo`, {});
+    return this.httpClient.post(`/api2/games/${gameId.toString()}/undo`, {});
   }
   retractRequest(gameId: number, requestId: number) {
-    return this.httpClient.delete(`/api2/games/${gameId}/requests/${requestId}`, {});
+    return this.httpClient.delete(
+      `/api2/games/${gameId.toString()}/requests/${requestId.toString()}`,
+      {},
+    );
   }
   respondToRequest(gameId: number, requestId: number, accept: boolean) {
-    return this.httpClient.post(`/api2/games/${gameId}/requests/${requestId}`, {
-      accept,
-    });
+    return this.httpClient.post(
+      `/api2/games/${gameId.toString()}/requests/${requestId.toString()}`,
+      {
+        accept,
+      },
+    );
   }
 }

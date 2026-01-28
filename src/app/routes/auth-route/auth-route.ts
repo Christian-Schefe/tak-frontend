@@ -32,12 +32,9 @@ export class AuthRoute {
       if (state === 'registration') {
         const flow = await this.authService.startRegistrationFlow();
         return flow.data;
-      } else if (state === 'login') {
+      } else {
         const flow = await this.authService.startLoginFlow();
         return flow.data;
-      } else {
-        console.error('Unknown auth state:', state);
-        throw new Error('Unknown auth state: ' + state);
       }
     },
   });
@@ -54,7 +51,7 @@ export class AuthRoute {
   private readonly _navigateIfLoggedInEffect = effect(() => {
     const authState = this.authService.authState();
     if (authState.type === 'logged_in') {
-      this.router.navigate(['/app']);
+      void this.router.navigate(['/app']);
     }
   });
 
@@ -63,7 +60,7 @@ export class AuthRoute {
   }
 
   onSubmit(data: unknown) {
-    this.doSubmit(data);
+    void this.doSubmit(data);
   }
 
   private async doSubmit(data: unknown) {
@@ -77,7 +74,7 @@ export class AuthRoute {
       if (authState === 'login') {
         const result = await this.authService.submitLogin(flow.id, data as UpdateLoginFlowBody);
         console.log('Login successful:', result);
-      } else if (authState === 'registration') {
+      } else {
         const result = await this.authService.submitRegistration(
           flow.id,
           data as UpdateRegistrationFlowBody,
@@ -91,13 +88,11 @@ export class AuthRoute {
             await this.router.navigate(['/verify'], { queryParams: { flow: verificationFlowId } });
           }
         }
-      } else {
-        console.error('Unknown authentication state:', authState);
       }
     } catch (error: unknown) {
       const response = error as { response?: { status: number; data: AuthFlow } };
       if (response.response) {
-        this.flow.set(response.response?.data);
+        this.flow.set(response.response.data);
       } else {
         console.error('Unexpected error during authentication:', error);
       }

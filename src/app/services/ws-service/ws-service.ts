@@ -10,7 +10,7 @@ const retryConfig: RetryConfig = {
 
 interface WsSubscription {
   type: string;
-  parser: z.ZodType<unknown>;
+  parser: z.ZodType;
   handler: (msg: unknown) => void;
 }
 
@@ -83,7 +83,12 @@ export class WsService {
     return this.websocket.pipe(retry(retryConfig)).subscribe({
       next: (msg) => {
         console.log('WebSocket message received:', msg);
-        if (!msg || typeof msg !== 'object' || !('type' in msg) || typeof msg.type !== 'string') {
+        if (
+          typeof msg !== 'object' ||
+          msg === null ||
+          !('type' in msg) ||
+          typeof msg.type !== 'string'
+        ) {
           console.error('Invalid WebSocket message format:', msg);
           return;
         }
@@ -115,7 +120,9 @@ export class WsService {
           const responseId = parsed.data.responseId;
           const subscriber = this.inFlightMessages.get(responseId);
           if (subscriber) {
-            subscriber.error(new Error(`Error ${parsed.data.code}: ${parsed.data.message}`));
+            subscriber.error(
+              new Error(`Error ${parsed.data.code.toString()}: ${parsed.data.message}`),
+            );
             this.inFlightMessages.delete(responseId);
           } else {
             console.error('No subscriber found for responseId:', responseId);
@@ -151,7 +158,7 @@ export class WsService {
     const id = crypto.randomUUID();
     this.subscriptions.set(id, {
       type,
-      parser: parser as z.ZodType<unknown>,
+      parser,
       handler: handler as (msg: unknown) => void,
     });
     console.log('WebSocket subscription added:', id);

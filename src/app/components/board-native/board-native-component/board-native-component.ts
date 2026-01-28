@@ -5,7 +5,7 @@ import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { BoardPiece } from '../board-piece/board-piece';
 import { BoardTile } from '../board-tile/board-tile';
 import { SettingsService } from '../../../services/settings-service/settings-service';
-import { defaultTheme, ThemeParams, themes } from '../../../../2d-themes';
+import { ThemeParams, themes } from '../../../../2d-themes';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
 import { filterTruthy } from '../../../util';
@@ -30,7 +30,7 @@ export class BoardNativeComponent {
 
   boardSettings = computed<BoardSettings>(() => {
     const settings = this.settingsService.boardNativeSettings();
-    const theme = themes[settings.theme] || defaultTheme;
+    const theme = themes[settings.theme];
     return { theme, axisLabels: true, axisLabelSize: 14 };
   });
 

@@ -23,8 +23,8 @@ export class VerificationRoute {
   authService = inject(AuthService);
   flow = resource({
     loader: async () => {
-      const flowId = this.route.snapshot.queryParams['flow'];
-      if (flowId) {
+      const flowId: unknown = this.route.snapshot.queryParams['flow'];
+      if (typeof flowId === 'string') {
         const flow = await this.authService.getVerificationFlow(flowId);
         console.log('Fetched existing verification flow data:', flow.data);
         return flow.data;
@@ -37,7 +37,7 @@ export class VerificationRoute {
   });
 
   onSubmit(data: unknown) {
-    this.doSubmit(data);
+    void this.doSubmit(data);
   }
 
   private async doSubmit(data: unknown) {
@@ -56,7 +56,7 @@ export class VerificationRoute {
     } catch (error: unknown) {
       const err = error as { response?: { status: number; data: AuthFlow } };
       if (err.response) {
-        this.flow.set(err.response?.data);
+        this.flow.set(err.response.data);
       } else {
         console.error('Unexpected error during authentication:', err);
       }

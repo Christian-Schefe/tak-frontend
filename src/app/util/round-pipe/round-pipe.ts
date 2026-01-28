@@ -4,7 +4,7 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: 'round',
 })
 export class RoundPipe implements PipeTransform {
-  transform(value: number | unknown): number | unknown {
+  transform(value: unknown): unknown {
     if (typeof value !== 'number') {
       return value;
     }

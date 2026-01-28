@@ -65,7 +65,7 @@ export class OnlinePlayRoute implements OnDestroy {
     const numId = this.numId();
     const identity = this.identityService.identity();
     const game = this.ongoingGameStatus.value();
-    if (!identity || !numId || !game) {
+    if (!identity || numId === undefined || !game) {
       return null;
     }
     const settings: TakGameSettings = {
@@ -125,7 +125,7 @@ export class OnlinePlayRoute implements OnDestroy {
     if (game.actualGame.gameState.type === 'ongoing' && currentGame.gameState.type !== 'ongoing') {
       game.actualGame.gameState = currentGame.gameState;
     }
-    console.log(`Replayed ${currentGame.actions.length} actions from server.`);
+    console.log(`Replayed ${currentGame.actions.length.toString()} actions from server.`);
     return game;
   });
 
@@ -351,7 +351,7 @@ export class OnlinePlayRoute implements OnDestroy {
         // This is our own action echoed back; ignore it.
         console.log('Ignoring echoed back action.');
       } else {
-        console.error(`Ply index mismatch: got ${plyIndex}`);
+        console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
         this.ongoingGameStatus.refetch();
       }
       return game;

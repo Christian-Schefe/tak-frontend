@@ -439,6 +439,7 @@ export function onGameUpdate(ui: TakGameUI) {
   for (const id of Object.keys(ui.pieces) as TakPieceId[]) {
     if (ui.pieces[id] !== undefined && !presentIds.has(id)) {
       if (ui.pieces[id].deleted) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete ui.pieces[id];
       } else {
         ui.pieces[id].deleted = true;

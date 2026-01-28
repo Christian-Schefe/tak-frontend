@@ -63,8 +63,8 @@ export class SettingsService {
     } else {
       try {
         const storedValue = localStorage.getItem(`settings.${key}`);
-        if (storedValue) {
-          const parsedStoredValue = JSON.parse(storedValue);
+        if (storedValue !== null) {
+          const parsedStoredValue: unknown = JSON.parse(storedValue);
           const result = parser.safeParse(parsedStoredValue);
           if (result.success) {
             signal.set(result.data);

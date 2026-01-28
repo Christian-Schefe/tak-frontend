@@ -37,7 +37,7 @@ export class SettingsRoute {
 
   boardNativeThemes = computed(() => {
     return Object.entries(boardNativeThemeList).map(([key, theme]) => ({
-      label: theme?.name ?? '',
+      label: theme.name,
       value: key,
     }));
   });

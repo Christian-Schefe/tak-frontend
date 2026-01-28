@@ -29,12 +29,10 @@ export class GamePlayerBar {
     const player = this.gamePlayer();
     if (player.type === 'local') {
       return player.name;
-    } else if (player.type === 'player') {
+    } else {
       if (this.playerInfo.hasValue()) {
         return this.playerInfo.value().displayName;
       }
-      return null;
-    } else {
       return null;
     }
   });
@@ -43,13 +41,11 @@ export class GamePlayerBar {
     const player = this.gamePlayer();
     if (player.type === 'local') {
       return null;
-    } else if (player.type === 'player') {
+    } else {
       if (this.playerInfo.hasValue()) {
         const rating = this.playerInfo.value().rating?.rating;
         return rating !== undefined ? Math.round(rating) : null;
       }
-      return null;
-    } else {
       return null;
     }
   });

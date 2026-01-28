@@ -14,12 +14,12 @@ const JWT_STORAGE_KEY = 'guestJwt';
 export class GuestService {
   httpClient = inject(HttpClient);
 
-  guestJwt = signal<string | null>(localStorage.getItem(JWT_STORAGE_KEY) || null);
+  guestJwt = signal<string | null>(localStorage.getItem(JWT_STORAGE_KEY) ?? null);
 
   private readonly _syncGuestJwtEffect = effect(() => {
     const token = this.guestJwt();
     console.log('Syncing guest JWT:', token);
-    if (token) {
+    if (token !== null && token.length > 0) {
       localStorage.setItem(JWT_STORAGE_KEY, token);
     } else {
       localStorage.removeItem(JWT_STORAGE_KEY);

@@ -18,7 +18,6 @@
         <th>Komi</th>
         <th>Reserves</th>
         <th>Time Control</th>
-        <th>Extra Time</th>
       </tr>
     </ng-template>
     <ng-template #body let-item>
@@ -45,15 +44,7 @@
         <td>{{ seek.gameSettings.boardSize }}</td>
         <td>{{ seek.gameSettings.halfKomi / 2 }}</td>
         <td>{{ seek.gameSettings.pieces }} / {{ seek.gameSettings.capstones }}</td>
-        <td>{{ seek.gameSettings | timeControl }}</td>
-        <td>
-          @if (seek.gameSettings.extra) {
-            On Move: {{ seek.gameSettings.extra.onMove }}, Extra:
-            {{ seek.gameSettings.extra.extraMs / 1000 }}s
-          } @else {
-            None
-          }
-        </td>
+        <td>{{ seek.gameSettings.timeSettings | timeControl }}</td>
       </tr>
     </ng-template>
   </p-table>

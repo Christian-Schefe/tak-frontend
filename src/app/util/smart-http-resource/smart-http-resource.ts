@@ -15,7 +15,7 @@ export interface ZodHttpResource<T> {
 }
 
 export function smartHttpResource<T>(
-  schema: z.ZodSchema<T>,
+  schema: z.ZodType<T>,
   urlFn: () => string | undefined,
 ): SmartHttpResource<T> {
   const refetchSignal = signal(0);
@@ -61,7 +61,7 @@ export function smartHttpResource<T>(
 }
 
 export function zodHttpResource<T>(
-  schema: z.ZodSchema<T>,
+  schema: z.ZodType<T>,
   urlFn: () => string | undefined,
 ): ZodHttpResource<T> {
   const resource = httpResource<T>(() => urlFn());

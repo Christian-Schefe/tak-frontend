@@ -62,14 +62,14 @@ export class SeekService {
   );
 
   createSeek(payload: CreateSeekPayload) {
-    return this.httpClient.post(`/api2/seeks`, payload);
+    return this.httpClient.post('/api2/seeks', payload);
   }
 
   acceptSeek(seekId: number) {
-    return this.httpClient.post(`/api2/seeks/${seekId}/accept`, {});
+    return this.httpClient.post(`/api2/seeks/${seekId.toString()}/accept`, {});
   }
 
   cancelSeek(seekId: number) {
-    return this.httpClient.delete(`/api2/seeks/${seekId}`);
+    return this.httpClient.delete(`/api2/seeks/${seekId.toString()}`);
   }
 }

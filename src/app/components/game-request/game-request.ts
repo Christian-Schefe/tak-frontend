@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { GameRequestType } from '../../services/game-service/game-service';
 import { ButtonModule } from 'primeng/button';
+
 @Component({
   selector: 'app-game-request',
   imports: [ButtonModule],

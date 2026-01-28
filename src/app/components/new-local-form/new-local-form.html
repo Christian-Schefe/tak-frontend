@@ -1,0 +1,110 @@
+<form class="w-full h-full gap-2 flex flex-col" (ngSubmit)="onSubmit()">
+  <div class="grid grid-cols-2 w-full gap-2">
+    <p class="col-span-full">Game Settings</p>
+    <p-ifta-label>
+      <p-select
+        [options]="boardSizes"
+        [(ngModel)]="boardSize"
+        inputId="board-size"
+        appendTo="body"
+        name="boardSize"
+        fluid
+      ></p-select>
+      <label for="board-size">Board Size</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-select
+        [options]="halfKomiOptions"
+        [(ngModel)]="halfKomi"
+        inputId="half-komi"
+        appendTo="body"
+        name="halfKomi"
+        fluid
+      ></p-select>
+      <label for="half-komi">Komi</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="pieces"
+        inputId="pieces"
+        name="pieces"
+        fluid
+        [useGrouping]="false"
+        [min]="5"
+        [max]="150"
+        [placeholder]="piecesDefault().toString()"
+      ></p-inputnumber>
+      <label for="pieces">Pieces</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="capstones"
+        inputId="capstones"
+        name="capstones"
+        fluid
+        [useGrouping]="false"
+        [min]="0"
+        [max]="150"
+        [placeholder]="capstonesDefault().toString()"
+      ></p-inputnumber>
+      <label for="capstones">Capstones</label>
+    </p-ifta-label>
+    <p class="col-span-full">Time Control</p>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="timeContingentMinutes"
+        inputId="time-contingent"
+        name="timeContingent"
+        fluid
+        [useGrouping]="false"
+        [min]="1"
+        [max]="100000"
+        [placeholder]="timeContingentDefault.toString()"
+      ></p-inputnumber>
+      <label for="time-contingent">Time Contingent (minutes)</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="timeIncrementSeconds"
+        inputId="time-increment"
+        name="timeIncrement"
+        fluid
+        [useGrouping]="false"
+        [min]="1"
+        [max]="100000"
+        [placeholder]="timeIncrementDefault.toString()"
+      ></p-inputnumber>
+      <label for="time-increment">Time Increment (seconds)</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="timeExtraMove"
+        inputId="time-extra-move"
+        name="timeExtraMove"
+        fluid
+        [useGrouping]="false"
+        [min]="1"
+        [max]="100000"
+        placeholder="Never"
+      ></p-inputnumber>
+      <label for="time-extra-move">Time Extra Move</label>
+    </p-ifta-label>
+    <p-ifta-label>
+      <p-inputnumber
+        [(ngModel)]="timeExtraMinutes"
+        inputId="time-extra-minutes"
+        name="timeExtraMinutes"
+        fluid
+        [useGrouping]="false"
+        [min]="1"
+        [max]="100000"
+        [placeholder]="timeExtraMinutesDefault.toString()"
+        [disabled]="timeExtraMove() === undefined || timeExtraMove() === null"
+      ></p-inputnumber>
+      <label for="time-extra-minutes">Time Extra Minutes</label>
+    </p-ifta-label>
+  </div>
+  <button class="mt-4" pButton pRipple type="submit">
+    <span pButtonLabel>Play</span>
+  </button>
+</form>

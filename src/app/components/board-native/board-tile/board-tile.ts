@@ -16,13 +16,13 @@ export class BoardTile {
   interactive = input.required<boolean>();
   data = input.required<TakUITile>();
   settings = input.required<TakGameSettings>();
-  tileClick = output<void>();
+  tileClick = output();
   gameState = input.required<TakGameState>();
   plyIndex = input.required<number | null>();
 
   boardSettings = input.required<BoardSettings>();
 
-  opacityTransitionStr = computed(() => `opacity 200ms ease-in-out`);
+  opacityTransitionStr = computed(() => 'opacity 200ms ease-in-out');
 
   xChar = computed(() => String.fromCharCode('A'.charCodeAt(0) + this.x()).toUpperCase());
 

@@ -35,11 +35,11 @@ export class GameSidePanel {
   requests = input.required<GameRequestType[]>();
   drawOffer = input.required<number | null>();
   undoRequest = input.required<number | null>();
-  requestDraw = output<void>();
-  requestUndo = output<void>();
+  requestDraw = output();
+  requestUndo = output();
   retractRequest = output<number>();
   requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
-  resign = output<void>();
+  resign = output();
 
   canUndo = computed(() => {
     const game = this.game();
@@ -63,8 +63,8 @@ export class GameSidePanel {
       const row: HistoryEntry[] = [];
       const whiteMove = history[i];
       const blackMove = i + 1 < history.length ? history[i + 1] : undefined;
-      row.push({ type: 'moveNumber', text: `${i / 2 + 1}.` });
-      const whitePlyIndex = i + 1 == curPlyIndex ? i : i + 1;
+      row.push({ type: 'moveNumber', text: `${(i / 2 + 1).toString()}.` });
+      const whitePlyIndex = i + 1 === curPlyIndex ? i : i + 1;
       row.push({
         type: 'whiteMove',
         text: moveRecordToString(whiteMove),
@@ -72,7 +72,7 @@ export class GameSidePanel {
         active: whitePlyIndex < curPlyIndex,
       });
       if (blackMove !== undefined) {
-        const blackPlyIndex = i + 2 == curPlyIndex ? i + 1 : i + 2;
+        const blackPlyIndex = i + 2 === curPlyIndex ? i + 1 : i + 2;
         row.push({
           type: 'blackMove',
           text: moveRecordToString(blackMove),

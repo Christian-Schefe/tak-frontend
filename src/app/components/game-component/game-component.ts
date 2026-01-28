@@ -11,7 +11,7 @@ import { BoardNativeComponent } from '../board-native/board-native-component/boa
 import { GameRequestType } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { SettingsService } from '../../services/settings-service/settings-service';
-import { BoardNgtComponent } from "../board-ng-three/board-ngt-component/board-ngt-component";
+import { BoardNgtComponent } from '../board-ng-three/board-ngt-component/board-ngt-component';
 
 export type GameMode =
   | { type: 'local' }
@@ -51,8 +51,8 @@ export type TakActionEvent =
     GameSidePanel,
     GameChatPanel,
     BoardNativeComponent,
-    BoardNgtComponent
-],
+    BoardNgtComponent,
+  ],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })
@@ -63,10 +63,10 @@ export class GameComponent {
   players = input.required<Record<TakPlayer, GamePlayer>>();
   setHistoryPlyIndex = output<number>();
   requests = input.required<GameRequestType[]>();
-  requestDraw = output<void>();
-  requestUndo = output<void>();
+  requestDraw = output();
+  requestUndo = output();
   retractRequest = output<number>();
-  resign = output<void>();
+  resign = output();
   settingsService = inject(SettingsService);
   requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
 

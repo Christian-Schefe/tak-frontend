@@ -1,3 +1,3 @@
 export function filterTruthy<T>(val: T | undefined | null): val is T {
-  return !!val;
+  return val !== null && val !== undefined;
 }

@@ -52,7 +52,9 @@ export class LocalPlayRoute {
       });
     }, 300);
 
-    onCleanup(() => clearInterval(id));
+    onCleanup(() => {
+      clearInterval(id);
+    });
   });
 
   onAction(action: TakActionEvent) {

@@ -17,8 +17,8 @@ export class AccountRoute {
   router = inject(Router);
   flow = resource({
     loader: async () => {
-      const flowId = this.route.snapshot.queryParams['flow'];
-      if (flowId) {
+      const flowId: unknown = this.route.snapshot.queryParams['flow'];
+      if (typeof flowId === 'string') {
         const flow = await this.authService.getSettingsFlow(flowId);
         console.log('Fetched existing settings flow data:', flow.data);
         return flow.data;
@@ -40,7 +40,7 @@ export class AccountRoute {
   });
 
   onSubmit(data: unknown) {
-    this.doSubmit(data);
+    void this.doSubmit(data);
   }
 
   private async doSubmit(data: unknown) {
@@ -55,7 +55,7 @@ export class AccountRoute {
       console.log('Settings update successful:', result);
       this.flow.set(result.data);
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<unknown>;
+      const axiosError = error as AxiosError;
       if (axiosError.response) {
         if (axiosError.response.status === 400) {
           console.log('Validation error during settings update:', axiosError.response.data);
@@ -64,7 +64,7 @@ export class AccountRoute {
         }
         if (axiosError.response.status === 401 || axiosError.response.status === 403) {
           console.log('Unauthorized during settings update, redirecting to relogin.');
-          this.router.navigate(['/relogin'], {
+          void this.router.navigate(['/relogin'], {
             queryParams: { return_to: `/app/account?flow=${flow.id}` },
           });
           return;

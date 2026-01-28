@@ -18,10 +18,10 @@ export class ClockFormatPipe implements PipeTransform {
     const millis = Math.floor(milliseconds % 1000);
     if (days > 0) {
       const paddedHours = hours.toString().padStart(2, '0');
-      return `${days}d ${paddedHours}h`;
+      return `${days.toString()}d ${paddedHours}h`;
     } else if (hours > 0) {
       const paddedMinutes = minutes.toString().padStart(2, '0');
-      return `${hours}h ${paddedMinutes}m`;
+      return `${hours.toString()}h ${paddedMinutes}m`;
     } else if (minutes > 0 || seconds >= 10) {
       const paddedMinutes = minutes.toString().padStart(2, '0');
       const paddedSeconds = seconds.toString().padStart(2, '0');
@@ -60,6 +60,8 @@ export class GameClock {
       this.updateClock.update((n) => n + 1);
     }, 100);
 
-    onCleanup(() => clearInterval(id));
+    onCleanup(() => {
+      clearInterval(id);
+    });
   });
 }

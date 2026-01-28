@@ -30,7 +30,7 @@ export class App {
       this.messageService.add({
         severity: 'info',
         summary: 'Ongoing Game',
-        detail: 'You have ' + thisPlayerGames.length + ' ongoing games.',
+        detail: `You have ${thisPlayerGames.length.toString()} ongoing games.`,
       });
       this.hasNotified = true;
     }
