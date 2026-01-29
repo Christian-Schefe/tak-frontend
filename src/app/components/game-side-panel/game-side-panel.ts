@@ -1,4 +1,4 @@
-import { Component, computed, effect, input, output, ViewChild } from '@angular/core';
+import { Component, computed, effect, input, output, viewChild } from '@angular/core';
 import { CardModule } from 'primeng/card';
 import { canUndoMove, TakGameUI } from '../../../tak-core/ui';
 import { moveRecordToString } from '../../../tak-core/move';
@@ -91,14 +91,12 @@ export class GameSidePanel {
     return items;
   });
 
-  @ViewChild(ScrollPanel) input: ScrollPanel | undefined;
+  input = viewChild.required(ScrollPanel);
 
   private readonly _scrollHistoryEffect = effect(() => {
     this.historyItems();
     setTimeout(() => {
-      if (this.input) {
-        this.input.scrollTop(Infinity);
-      }
+      this.input().scrollTop(Infinity);
     }, 0);
   });
 

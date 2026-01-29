@@ -8,7 +8,7 @@ import {
   input,
   output,
   signal,
-  ViewChild,
+  viewChild,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import z from 'zod';
@@ -46,10 +46,10 @@ export class BoardNinjaComponent {
 
   hasLoaded = signal(false);
 
-  @ViewChild('frame') iframe: ElementRef<HTMLIFrameElement> | undefined;
+  iframe = viewChild.required<ElementRef<HTMLIFrameElement>>('frame');
 
   sendMessageToIframe(message: unknown) {
-    this.iframe?.nativeElement.contentWindow?.postMessage(message, '*');
+    this.iframe().nativeElement.contentWindow?.postMessage(message, '*');
   }
 
   private readonly _sendUiSettingsEffect = effect(() => {

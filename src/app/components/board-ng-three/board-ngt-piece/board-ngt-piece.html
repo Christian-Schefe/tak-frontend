@@ -4,11 +4,8 @@
   (click)="onClick($event)"
   [castShadow]="true"
   [receiveShadow]="true"
+  [geometry]="geometry()"
+  [scale]="0.7"
 >
-  @if (layoutData().variant === 'capstone') {
-    <ngt-cylinder-geometry *args="[pieceSize * 0.4, pieceSize * 0.4, pieceSize, 32]" />
-  } @else {
-    <ngt-box-geometry *args="[pieceSize, pieceHeight, pieceSize]" />
-  }
-  <ngt-mesh-standard-material [color]="layoutData().player === 'white' ? '#EEEEEE' : '#444444'" />
+  <ngt-mesh-standard-material [map]="texture()" />
 </ngt-mesh>

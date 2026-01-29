@@ -46,7 +46,7 @@ import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
 })
 export class BoardNgtCanvas {
   mouseButtons = {
-    LEFT: undefined,
+    LEFT: MOUSE.ROTATE,
     MIDDLE: undefined,
     RIGHT: MOUSE.ROTATE,
   };
@@ -88,6 +88,16 @@ export class BoardNgtCanvas {
     return tileData;
   });
 
+  areTilesInteractive = computed(() => {
+    const mode = this.mode();
+    const game = this.game();
+    return (
+      ((mode.type === 'online' && game.actualGame.currentPlayer === mode.localPlayer) ||
+        mode.type === 'local') &&
+      game.actualGame.gameState.type === 'ongoing'
+    );
+  });
+
   pieces = computed(() => this.game().pieces);
 
   piecesWithReserve = computed(() => {
@@ -117,62 +127,66 @@ export class BoardNgtCanvas {
   });
 
   onTileClick(pos: TakPos) {
-    this.action.emit({ type: 'partial', pos, variant: this.currentVariant() });
-    if (this.mode().type === 'local' && this.canPlace()?.flat === true) {
-      this.currentVariant.set('flat');
-    }
+    if (!this.areTilesInteractive()) return;
+    const variant = this.currentVariant();
+    if (variant === null) return;
+    this.action.emit({ type: 'partial', pos, variant });
+    this.currentVariant.set(null);
   }
 
   setCurrentVariant(isCapstone: boolean) {
+    if (!this.areTilesInteractive()) return;
     console.log('Setting current variant, isCapstone:', isCapstone);
     const canPlace = this.canPlace();
     if (!canPlace) return;
 
     this.currentVariant.update((variant) => {
-      if (variant === 'capstone' && canPlace.flat) {
-        return 'flat';
-      } else if (variant === 'flat') {
-        if (isCapstone && canPlace.capstone) {
-          return 'capstone';
-        } else if (!isCapstone && canPlace.standing) {
-          return 'standing';
-        }
-      } else {
-        if (isCapstone && canPlace.capstone) {
-          return 'capstone';
-        } else if (!isCapstone && canPlace.flat) {
-          return 'flat';
-        }
+      if (isCapstone && canPlace.capstone && variant !== 'capstone') {
+        return 'capstone';
+      } else if (isCapstone) {
+        return null;
       }
-      return variant;
+
+      if (variant === 'flat' && canPlace.standing) {
+        return 'standing';
+      }
+      if ((variant === null || variant === 'capstone') && canPlace.flat) {
+        return 'flat';
+      }
+      return null;
     });
   }
 
   currentVariant = linkedSignal<
     {
-      flat: boolean;
-      standing: boolean;
-      capstone: boolean;
-    } | null,
-    TakPieceVariant
+      canPlace: {
+        flat: boolean;
+        standing: boolean;
+        capstone: boolean;
+      } | null;
+      interactive: boolean;
+    },
+    TakPieceVariant | null
   >({
-    source: () => this.canPlace(),
+    source: () => ({ canPlace: this.canPlace(), interactive: this.areTilesInteractive() }),
     computation: (source, prev) => {
-      if (source && prev) {
-        if (prev.value === 'flat' && !source.flat) {
-          if (source.standing) return 'standing';
-          if (source.capstone) return 'capstone';
+      if (!source.interactive) return null;
+      const canPlace = source.canPlace;
+      if (canPlace && prev) {
+        if (prev.value === 'flat' && !canPlace.flat) {
+          if (canPlace.standing) return 'standing';
+          if (canPlace.capstone) return 'capstone';
         }
-        if (prev.value === 'standing' && !source.standing) {
-          if (source.flat) return 'flat';
-          if (source.capstone) return 'capstone';
+        if (prev.value === 'standing' && !canPlace.standing) {
+          if (canPlace.flat) return 'flat';
+          if (canPlace.capstone) return 'capstone';
         }
-        if (prev.value === 'capstone' && !source.capstone) {
-          if (source.flat) return 'flat';
-          if (source.standing) return 'standing';
+        if (prev.value === 'capstone' && !canPlace.capstone) {
+          if (canPlace.flat) return 'flat';
+          if (canPlace.standing) return 'standing';
         }
       }
-      return prev?.value ?? 'flat';
+      return prev?.value ?? null;
     },
   });
 
