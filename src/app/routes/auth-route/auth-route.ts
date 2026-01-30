@@ -98,4 +98,8 @@ export class AuthRoute {
       }
     }
   }
+
+  onForgotPassword() {
+    void this.router.navigate(['/recover']);
+  }
 }

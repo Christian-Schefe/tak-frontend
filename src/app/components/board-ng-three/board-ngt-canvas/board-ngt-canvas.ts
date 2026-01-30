@@ -5,6 +5,7 @@ import {
   input,
   linkedSignal,
   output,
+  signal,
 } from '@angular/core';
 import { extend, NgtArgs } from 'angular-three';
 import { NgtsPerspectiveCamera } from 'angular-three-soba/cameras';
@@ -22,11 +23,14 @@ import {
   PointLight,
   AmbientLight,
   PlaneGeometry,
+  Texture,
+  BufferGeometry,
 } from 'three';
 import { GameMode, TakActionEvent } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
 import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
+import { gltfResource, textureResource } from 'angular-three-soba/loaders';
 
 @Component({
   selector: 'app-board-ngt-canvas',
@@ -56,6 +60,7 @@ export class BoardNgtCanvas {
   mode = input.required<GameMode>();
 
   tileRotation = [-Math.PI / 2, 0, 0];
+  tableRotation = [0, Math.PI / 2, 0];
 
   constructor() {
     extend({
@@ -69,6 +74,39 @@ export class BoardNgtCanvas {
       AmbientLight,
     });
   }
+
+  textures = textureResource(() => ({
+    board_3x3: '/board-3d/textures/board/board_3x3.png',
+    board_4x4: '/board-3d/textures/board/board_4x4.png',
+    board_5x5: '/board-3d/textures/board/board_5x5.png',
+    board_6x6: '/board-3d/textures/board/board_6x6.png',
+    board_7x7: '/board-3d/textures/board/board_7x7.png',
+    board_8x8: '/board-3d/textures/board/board_8x8.png',
+    table: '/board-3d/textures/wooden_table.png',
+  }));
+
+  boardTexture = computed(() => {
+    const settings = this.gameSettings();
+    const boardSizeStr = settings.boardSize.toString();
+    const textureKey = `board_${boardSizeStr}x${boardSizeStr}` as const;
+    const textures = this.textures.value() as Record<string, Texture | undefined> | undefined;
+    return textures ? textures[textureKey] : undefined;
+  });
+  meshes = gltfResource(
+    () => ({
+      table: '/board-3d/models/table.glb',
+    }),
+    {
+      onLoad: (gltf) => {
+        gltf.table.scene.traverse((child) => {
+          if (child instanceof Mesh) {
+            this.tableGeometry.set(child.geometry as BufferGeometry);
+          }
+        });
+      },
+    },
+  );
+  tableGeometry = signal<BufferGeometry | undefined>(undefined);
 
   gameSettings = computed(() => {
     return this.game().actualGame.settings;
@@ -129,7 +167,6 @@ export class BoardNgtCanvas {
   onTileClick(pos: TakPos) {
     if (!this.areTilesInteractive()) return;
     const variant = this.currentVariant();
-    if (variant === null) return;
     this.action.emit({ type: 'partial', pos, variant });
     this.currentVariant.set(null);
   }

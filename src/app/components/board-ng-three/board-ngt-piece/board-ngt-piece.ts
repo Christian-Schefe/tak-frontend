@@ -3,7 +3,7 @@ import { TakGameUI, TakUIPiece } from '../../../../tak-core/ui';
 import { playerOpposite, TakGameSettings, TakPieceId, TakPieceVariant } from '../../../../tak-core';
 import { beforeRender, NgtThreeEvent } from 'angular-three';
 import { GameMode } from '../../game-component/game-component';
-import { BufferGeometry, Euler, Mesh, Quaternion, Vector3 } from 'three';
+import { BufferGeometry, Euler, MathUtils, Mesh, Quaternion, Vector3 } from 'three';
 import { gltfResource, textureResource } from 'angular-three-soba/loaders';
 
 @Component({
@@ -30,9 +30,7 @@ export class BoardNgtPiece {
     {
       onLoad: (gltf) => {
         gltf.piece.scene.traverse((child) => {
-          console.log('Traversing piece gltf child:', child);
           if (child instanceof Mesh) {
-            console.log('Loaded piece geometry');
             this.pieceGeometry.set(child.geometry as BufferGeometry);
           }
         });
@@ -148,9 +146,13 @@ export class BoardNgtPiece {
       const newTargetPos = targetPos
         .clone()
         .addScaledVector(new Vector3(0, 1, 0), targetDist * 0.5);
-
-      this.currentPos.set(new Vector3().copy(this.currentPos()).lerp(newTargetPos, lerpFactor));
-      this.currentQuat.set(new Quaternion().copy(this.currentQuat()).slerp(targetRot, lerpFactor));
+      const actualDist = newTargetPos.clone().sub(this.currentPos().clone()).length();
+      const moveLerpFactor =
+        lerpFactor * MathUtils.lerp(2, 0.5, MathUtils.clamp(actualDist / 3, 0, 1));
+      this.currentPos.set(new Vector3().copy(this.currentPos()).lerp(newTargetPos, moveLerpFactor));
+      this.currentQuat.set(
+        new Quaternion().copy(this.currentQuat()).slerp(targetRot, moveLerpFactor),
+      );
     });
   }
 

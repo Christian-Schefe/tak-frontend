@@ -4,7 +4,6 @@ import { VerificationRoute } from './routes/verification-route/verification-rout
 import { AuthRoute } from './routes/auth-route/auth-route';
 import { authGuard } from './auth/auth-guard/auth-guard';
 import { HomeRoute } from './routes/home-route/home-route';
-import { AccountRoute } from './routes/account-route/account-route';
 import { PublicLayout } from './layout/public-layout/public-layout';
 import { AppLayout } from './layout/app-layout/app-layout';
 import { LocalPlayRoute } from './routes/local-play-route/local-play-route';
@@ -12,6 +11,8 @@ import { SettingsRoute } from './routes/settings-route/settings-route';
 import { OnlinePlayRoute } from './routes/online-play-route/online-play-route';
 import { PlayerProfileRoute } from './routes/player-profile-route/player-profile-route';
 import { ReloginRoute } from './routes/relogin-route/relogin-route';
+import { RecoveryRoute } from './routes/recovery-route/recovery-route';
+import { AccountSettingsRoute } from './routes/account-settings-route/account-settings-route';
 
 export const routes: Routes = [
   {
@@ -20,6 +21,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: MainRoute },
       { path: 'verify', component: VerificationRoute },
+      { path: 'recover', component: RecoveryRoute },
       { path: 'relogin', component: ReloginRoute },
       { path: 'authenticate', component: AuthRoute },
     ],
@@ -31,7 +33,7 @@ export const routes: Routes = [
     component: AppLayout,
     children: [
       { path: '', component: HomeRoute },
-      { path: 'account', component: AccountRoute },
+      { path: 'account', component: AccountSettingsRoute },
       { path: 'local', component: LocalPlayRoute },
       { path: 'online/:id', component: OnlinePlayRoute },
       { path: 'settings', component: SettingsRoute },

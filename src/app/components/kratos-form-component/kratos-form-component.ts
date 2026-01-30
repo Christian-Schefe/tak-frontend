@@ -14,6 +14,13 @@ import { Message } from 'primeng/message';
 })
 export class KratosFormComponent {
   ui = input.required<UiContainer>();
+  uiWithIds = computed(() => {
+    return this.ui().nodes.map((node) => ({
+      node,
+      id: `kratos-node-${crypto.randomUUID()}`,
+    }));
+  });
+
   submitForm = output<Record<string, unknown>>();
   validity = linkedSignal<Record<string, boolean>>(() => this.computeInitialValidity());
   data = linkedSignal<Record<string, unknown>>(() => this.computeInitialData());

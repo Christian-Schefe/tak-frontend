@@ -175,7 +175,7 @@ export function clearPartialMove(ui: TakGameUI) {
 export function tryPlaceOrAddToPartialMove(
   ui: TakGameUI,
   pos: TakPos,
-  variant: TakPieceVariant,
+  variant: TakPieceVariant | null,
 ): TakAction | null {
   if (ui.plyIndex !== null) {
     return null;
@@ -183,9 +183,9 @@ export function tryPlaceOrAddToPartialMove(
   const move: TakAction = {
     type: 'place',
     pos,
-    variant,
+    variant: variant ?? 'flat',
   };
-  if (!ui.partialMove && canDoMove(ui, move)) {
+  if (variant && !ui.partialMove && canDoMove(ui, move)) {
     return move;
   } else {
     return getPartialMove(ui, pos);

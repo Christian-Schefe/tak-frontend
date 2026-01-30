@@ -38,7 +38,7 @@ export type TakActionEvent =
   | {
       type: 'partial';
       pos: TakPos;
-      variant: TakPieceVariant;
+      variant: TakPieceVariant | null;
     };
 
 @Component({

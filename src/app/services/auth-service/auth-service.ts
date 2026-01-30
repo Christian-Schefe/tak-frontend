@@ -128,4 +128,19 @@ export class AuthService {
   async getSettingsFlow(flowId: string) {
     return await kratos.getSettingsFlow({ id: flowId });
   }
+
+  async startRecoveryFlow() {
+    return await kratos.createBrowserRecoveryFlow();
+  }
+
+  async getRecoveryFlow(flowId: string) {
+    return await kratos.getRecoveryFlow({ id: flowId });
+  }
+
+  async submitRecovery(flowId: string, data: UpdateVerificationFlowBody) {
+    return await kratos.updateRecoveryFlow({
+      flow: flowId,
+      updateRecoveryFlowBody: data,
+    });
+  }
 }
