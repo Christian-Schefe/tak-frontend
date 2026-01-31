@@ -41,6 +41,11 @@ export class PlayerProfileRoute {
     return null;
   });
   playerProfile = this.profileService.getProfile(() => this.id());
+  
+  isThisPlayer = computed(() => {
+    const identity = this.identityService.identity();
+    return identity !== null && identity.playerId === this.id();
+  });
 
   sanitizer = inject(DomSanitizer);
 

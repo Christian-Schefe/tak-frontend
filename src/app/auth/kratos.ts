@@ -1,7 +1,7 @@
 import { Configuration, FrontendApi } from '@ory/client';
 
 const kratosConfig = new Configuration({
-  basePath: 'http://localhost:4200/auth',
+  basePath: '/auth',
   baseOptions: {
     withCredentials: true,
   },

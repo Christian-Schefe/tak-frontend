@@ -9,8 +9,8 @@
       @let playerInfo = playerInfos()[item.msg.fromAccountId];
       <p class="text-surface-700 dark:text-surface-400">
         <span class="font-bold wrap-anywhere"
-          >{{ playerInfo.hasValue() ? playerInfo.value().displayName : '' }}: </span
-        >
+          >{{ playerInfo.hasValue() ? playerInfo.value().displayName : '' }}:
+        </span>
         @for (token of item.tokens; track $index) {
           @switch (token.type) {
             @case ('text') {

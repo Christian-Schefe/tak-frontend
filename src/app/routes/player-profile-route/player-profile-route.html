@@ -14,16 +14,18 @@
         </div>
         <p class="text-muted-color mb-4">@{{ player.username }}</p>
       </div>
-      <div>
-        <button
-          pButton
-          severity="secondary"
-          class="aspect-square"
-          (click)="editDialogVisible.set(true)"
-        >
-          <ng-icon name="lucideEdit" size="20px"></ng-icon>
-        </button>
-      </div>
+      @if (isThisPlayer()) {
+        <div>
+          <button
+            pButton
+            severity="secondary"
+            class="aspect-square"
+            (click)="editDialogVisible.set(true)"
+          >
+            <ng-icon name="lucideEdit" size="20px"></ng-icon>
+          </button>
+        </div>
+      }
     </div>
   </p-card>
   <div class="flex gap-4 w-full">
@@ -46,8 +48,10 @@
     <p-metergroup [value]="wdlItems()" [dt]="thickMeter"></p-metergroup>
   }
 }
-<app-edit-player-profile-dialog
-  [(visible)]="editDialogVisible"
-  [currentProfile]="playerProfile.value()"
-  (updateProfile)="onUpdateProfile($event)"
-></app-edit-player-profile-dialog>
+@if (isThisPlayer()) {
+  <app-edit-player-profile-dialog
+    [(visible)]="editDialogVisible"
+    [currentProfile]="playerProfile.value()"
+    (updateProfile)="onUpdateProfile($event)"
+  ></app-edit-player-profile-dialog>
+}

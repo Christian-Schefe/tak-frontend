@@ -67,5 +67,5 @@ export default defineConfig([
     extends: [...angular.configs.templateRecommended, ...angular.configs.templateAccessibility],
     rules: {},
   },
-  globalIgnores(['.angular']),
+  globalIgnores(['.angular', 'dist']),
 ]);

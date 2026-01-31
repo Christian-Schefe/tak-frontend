@@ -21,8 +21,8 @@ export class SettingsService {
   settingsSignals = new Set<string>();
 
   generalSettings = signal<GeneralSettings>({
-    theme: 'light',
-    boardType: '2d',
+    theme: 'dark',
+    boardType: '3d',
   });
   boardNativeSettings = signal<BoardNativeSettings>({
     theme: 'classic',

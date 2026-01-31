@@ -134,8 +134,8 @@ export class BoardNgtPiece {
   currentQuat = signal(new Quaternion());
 
   constructor() {
-    beforeRender(() => {
-      const lerpFactor = 0.2;
+    beforeRender((state) => {
+      const lerpFactor = 0.2 * state.delta * 60;
       const targetPos = this.targetPos();
       const targetRot = this.targetRotation();
       const targetDist = targetPos
