@@ -41,10 +41,10 @@ export class PlayerProfileRoute {
     return null;
   });
   playerProfile = this.profileService.getProfile(() => this.id());
-  
-  isThisPlayer = computed(() => {
+
+  canEditProfile = computed(() => {
     const identity = this.identityService.identity();
-    return identity !== null && identity.playerId === this.id();
+    return identity !== null && identity.playerId === this.id() && !identity.isGuest;
   });
 
   sanitizer = inject(DomSanitizer);

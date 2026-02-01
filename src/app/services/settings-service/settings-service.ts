@@ -1,7 +1,7 @@
 import { effect, Injectable, signal, WritableSignal } from '@angular/core';
 import z from 'zod';
-import { themeIds as primeNgThemes } from '../theme-service/theme-service';
-import { themeIds as themeIdsNative } from '../../../2d-themes';
+import { THEME_IDS as primeNgThemes } from '../theme-service/theme.constants';
+import { THEME_IDS as themeIdsNative } from '../../../2d-themes';
 
 const generalSettings = z.object({
   theme: z.enum(primeNgThemes),

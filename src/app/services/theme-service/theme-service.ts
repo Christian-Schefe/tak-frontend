@@ -4,6 +4,7 @@ import Material from '@primeuix/themes/material';
 import { Preset } from '@primeuix/themes/types';
 import { definePreset, usePreset } from '@primeuix/themes';
 import { SettingsService } from '../settings-service/settings-service';
+import { ThemeId } from './theme.constants';
 
 const AuraBlue = definePreset(Aura, {
   semantic: {
@@ -129,17 +130,12 @@ export const sunsetTheme: Theme = {
   isDark: true,
 };
 
-const themeObj = {
+export const themes: Record<ThemeId, Theme> = {
   light: lightTheme,
   dark: darkTheme,
   classic: classicTheme,
   sunset: sunsetTheme,
 };
-
-export type ThemeId = keyof typeof themeObj;
-
-export const themes: Record<ThemeId, Theme> = themeObj;
-export const themeIds: ThemeId[] = Object.keys(themeObj) as ThemeId[];
 
 @Injectable({
   providedIn: 'root',

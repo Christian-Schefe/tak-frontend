@@ -75,9 +75,27 @@ export type ThemeParams = z.infer<typeof themeSchema>;
 
 export const defaultTheme = themeSchema.parse(classic);
 
-export type ThemeId = keyof typeof themeObj;
+export const THEME_IDS = [
+  'classic',
+  'jungle',
+  'ignis',
+  'neon',
+  'discord',
+  'beach',
+  'assassin',
+  'space',
+  'sakura',
+  'steampunk',
+  'bubblegum',
+  'frost',
+  'papyrus',
+  'galaxy',
+  'mushroom',
+] as const;
 
-const themeObj = {
+export type ThemeId = (typeof THEME_IDS)[number];
+
+export const themes: Record<ThemeId, ThemeParams> = {
   classic: defaultTheme,
   jungle: themeSchema.parse(jungle),
   ignis: themeSchema.parse(ignis),
@@ -94,6 +112,3 @@ const themeObj = {
   galaxy: themeSchema.parse(galaxy),
   mushroom: themeSchema.parse(mushroom),
 };
-
-export const themes: Record<ThemeId, ThemeParams> = themeObj;
-export const themeIds: ThemeId[] = Object.keys(themeObj) as ThemeId[];

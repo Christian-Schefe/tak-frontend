@@ -14,7 +14,7 @@
         </div>
         <p class="text-muted-color mb-4">@{{ player.username }}</p>
       </div>
-      @if (isThisPlayer()) {
+      @if (canEditProfile()) {
         <div>
           <button
             pButton
@@ -48,7 +48,7 @@
     <p-metergroup [value]="wdlItems()" [dt]="thickMeter"></p-metergroup>
   }
 }
-@if (isThisPlayer()) {
+@if (canEditProfile()) {
   <app-edit-player-profile-dialog
     [(visible)]="editDialogVisible"
     [currentProfile]="playerProfile.value()"

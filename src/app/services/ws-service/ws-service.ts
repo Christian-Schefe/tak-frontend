@@ -3,6 +3,7 @@ import { webSocket } from 'rxjs/webSocket';
 import { Observable, retry, RetryConfig, Subscriber, Subscription } from 'rxjs';
 import z from 'zod';
 import { IdentityService } from '../identity-service/identity-service';
+import { environment } from '../../../environments/environment';
 
 const retryConfig: RetryConfig = {
   delay: 3000,
@@ -30,7 +31,7 @@ const errorParser = z.object({
 export class WsService {
   identityService = inject(IdentityService);
   websocket = webSocket({
-    url: 'ws://localhost:3003/ws',
+    url: environment.wsUrl,
     openObserver: {
       next: () => {
         console.log('WebSocket connection opened');
