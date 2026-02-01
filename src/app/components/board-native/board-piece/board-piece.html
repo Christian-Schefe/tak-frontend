@@ -1,0 +1,17 @@
+@let pieceData = data();
+@let style = styleData();
+<div
+  [class]="
+    `outline ${pieceData.player === 'white' ? 'bg-surface-50 outline-surface-900' : 'bg-surface-900 outline-surface-50'} piece`
+  "
+  [style.width.%]="style.width * 100"
+  [style.height.%]="style.height * 100"
+  [style.borderBottomLeftRadius]="style.borderRadius"
+  [style.borderBottomRightRadius]="style.borderRadius"
+  [style.borderTopLeftRadius]="style.borderRadius"
+  [style.borderTopRightRadius]="style.borderRadius"
+  [style.transform]="`rotate(${style.rotation}deg) scale(${this.show() ? 1 : 0.8})`"
+  [style.backgroundColor]="style.backgroundColor"
+  [style.outlineColor]="style.outlineColor"
+  [style.outlineWidth]="style.outlineWidth"
+></div>

@@ -17,8 +17,8 @@ export class ReloginRoute {
   authService = inject(AuthService);
   flow = resource({
     loader: async () => {
-      const flowId = this.route.snapshot.queryParams['flow'];
-      if (flowId) {
+      const flowId: unknown = this.route.snapshot.queryParams['flow'];
+      if (typeof flowId === 'string') {
         const flow = await this.authService.getLoginFlow(flowId);
         console.log('Fetched existing login flow data:', flow.data);
         return flow.data;
@@ -31,7 +31,7 @@ export class ReloginRoute {
   });
 
   onSubmit(data: unknown) {
-    this.doSubmit(data);
+    void this.doSubmit(data);
   }
 
   private async doSubmit(data: unknown) {
@@ -43,13 +43,14 @@ export class ReloginRoute {
       console.log('Submitting login data:', JSON.stringify(data));
       const result = await this.authService.submitLogin(flow.id, data as UpdateLoginFlowBody);
       console.log('Login successful:', result);
-      const returnTo = decodeURI(this.route.snapshot.queryParams['return_to']) || '/app';
+      const returnToParam: unknown = this.route.snapshot.queryParams['return_to'];
+      const returnTo = typeof returnToParam === 'string' ? decodeURI(returnToParam) : '/app';
       console.log('Navigating to return_to URL:', returnTo);
-      this.router.navigateByUrl(returnTo);
+      void this.router.navigateByUrl(returnTo);
     } catch (error: unknown) {
       const err = error as { response?: { status: number; data: LoginFlow } };
       if (err.response) {
-        this.flow.set(err.response?.data);
+        this.flow.set(err.response.data);
       } else {
         console.error('Unexpected error during authentication:', err);
       }

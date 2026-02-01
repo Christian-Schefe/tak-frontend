@@ -12,15 +12,33 @@ export const gameSettings = z.object({
   halfKomi: z.number(),
   pieces: z.number(),
   capstones: z.number(),
-  contingentMs: z.number(),
-  incrementMs: z.number(),
-  extra: z
-    .object({
-      onMove: z.number(),
-      extraMs: z.number(),
-    })
-    .nullable(),
+  timeSettings: z.union([
+    z.object({
+      type: z.literal('realtime'),
+      contingentMs: z.number(),
+      incrementMs: z.number(),
+      extra: z
+        .object({
+          onMove: z.number(),
+          extraMs: z.number(),
+        })
+        .nullable(),
+    }),
+    z.object({
+      type: z.literal('async'),
+      contingentMs: z.number(),
+    }),
+  ]),
 });
+
+export const gameRequest = z.object({
+  id: z.number(),
+  requestType: z.object({
+    type: z.union([z.literal('undo'), z.literal('draw')]),
+  }),
+  fromPlayerId: z.string(),
+});
+export type GameRequestType = z.infer<typeof gameRequest>;
 
 export const gameEndedMessage = z.object({
   gameId: z.number(),
@@ -50,14 +68,7 @@ export const gameStatus = z.object({
     }),
     z.object({
       type: z.literal('ongoing'),
-      drawOffers: z.object({
-        white: z.boolean(),
-        black: z.boolean(),
-      }),
-      undoRequests: z.object({
-        white: z.boolean(),
-        black: z.boolean(),
-      }),
+      requests: z.array(gameRequest),
     }),
   ]),
 });
@@ -89,14 +100,20 @@ export class GameService {
     boardSize: 5,
     halfKomi: 0,
     reserve: { pieces: 21, capstones: 1 },
-    clock: {
+    /* clock: {
+      type: 'realtime',
       contingentMs: 10 * 60 * 1000,
       incrementMs: 5 * 1000,
       externallyDriven: false,
       extra: {
-        move: 5,
-        amountMs: 30 * 1000,
+        onMove: 5,
+        extraMs: 5 * 60 * 1000,
       },
+    },*/
+    clock: {
+      type: 'async',
+      contingentMs: 24 * 60 * 60 * 1000,
+      externallyDriven: false,
     },
   });
 
@@ -114,7 +131,7 @@ export class GameService {
   gameStatus(gameId: () => number | undefined) {
     return smartHttpResource(gameStatus, () => {
       const gid = gameId();
-      return gid ? `/api2/games/${gid}` : undefined;
+      return gid !== undefined ? `/api2/games/${gid.toString()}` : undefined;
     });
   }
 
@@ -164,11 +181,32 @@ export class GameService {
       identity !== null &&
       (game.playerIds.white === identity.playerId || game.playerIds.black === identity.playerId);
     if (thisPlayerGame) {
-      this.router.navigate(['/app/online/', game.id]);
+      void this.router.navigate(['/app/online/', game.id]);
     }
   }
 
   resignGame(gameId: number) {
-    return this.httpClient.post(`/api2/games/${gameId}/resign`, {});
+    return this.httpClient.post(`/api2/games/${gameId.toString()}/resign`, {});
+  }
+
+  offerDraw(gameId: number) {
+    return this.httpClient.post(`/api2/games/${gameId.toString()}/draw`, {});
+  }
+  requestUndo(gameId: number) {
+    return this.httpClient.post(`/api2/games/${gameId.toString()}/undo`, {});
+  }
+  retractRequest(gameId: number, requestId: number) {
+    return this.httpClient.delete(
+      `/api2/games/${gameId.toString()}/requests/${requestId.toString()}`,
+      {},
+    );
+  }
+  respondToRequest(gameId: number, requestId: number, accept: boolean) {
+    return this.httpClient.post(
+      `/api2/games/${gameId.toString()}/requests/${requestId.toString()}`,
+      {
+        accept,
+      },
+    );
   }
 }

@@ -41,13 +41,15 @@ export interface TakGameUI {
   pieces: Record<TakPieceId, TakUIPiece | undefined>;
   priorityPieces: TakPieceId[];
   tiles: TakUITile[][];
-  partialMove: {
-    take: number;
-    drops: number[];
-    pos: TakPos;
-    dir: TakDir | null;
-  } | null;
-  shownReserves: Record<TakPlayer, TakReserve> | null;
+  partialMove: PartialAction | null;
+  shownReserves: Record<TakPlayer, TakReserve>;
+}
+
+interface PartialAction {
+  take: number;
+  drops: number[];
+  pos: TakPos;
+  dir: TakDir | null;
 }
 
 export function boardSize(ui: TakGameUI): number {
@@ -55,14 +57,30 @@ export function boardSize(ui: TakGameUI): number {
 }
 
 export function newGameUI(game: TakGame): TakGameUI {
+  const tiles: TakUITile[][] = [];
+  const size = game.board.size;
+  for (let y = 0; y < size; y++) {
+    const row: TakUITile[] = [];
+    for (let x = 0; x < size; x++) {
+      row.push({
+        owner: null,
+        highlighted: false,
+        selectable: false,
+        hoverable: false,
+        lastMove: false,
+      });
+    }
+    tiles.push(row);
+  }
+
   const gameUI: TakGameUI = {
     actualGame: game,
     pieces: {},
-    tiles: [],
+    tiles,
     partialMove: null,
     priorityPieces: [],
     plyIndex: null,
-    shownReserves: null,
+    shownReserves: { white: { ...game.reserves.white }, black: { ...game.reserves.black } },
   };
   onGameUpdate(gameUI);
   return gameUI;
@@ -90,8 +108,7 @@ export function setGameOverState(ui: TakGameUI, newGameState: TakGameState) {
   if (ui.actualGame.gameState.type !== 'ongoing' || newGameState.type === 'ongoing') {
     return;
   }
-  game.applyTimeToClock(ui.actualGame, new Date());
-  ui.actualGame.gameState = newGameState;
+  game.setGameOver(ui.actualGame, newGameState, new Date());
   onGameUpdate(ui);
 }
 
@@ -108,8 +125,14 @@ export function doDraw(ui: TakGameUI) {
 }
 
 export function checkTimeout(ui: TakGameUI) {
+  const gameState = ui.actualGame.gameState;
+  if (gameState.type !== 'ongoing') {
+    return;
+  }
   game.checkTimeout(ui.actualGame, new Date());
-  onGameUpdate(ui);
+  if (ui.actualGame.gameState.type !== 'ongoing') {
+    onGameUpdate(ui);
+  }
 }
 
 export function canDoMove(ui: TakGameUI, move: TakAction): boolean {
@@ -152,7 +175,7 @@ export function clearPartialMove(ui: TakGameUI) {
 export function tryPlaceOrAddToPartialMove(
   ui: TakGameUI,
   pos: TakPos,
-  variant: TakPieceVariant,
+  variant: TakPieceVariant | null,
 ): TakAction | null {
   if (ui.plyIndex !== null) {
     return null;
@@ -160,14 +183,19 @@ export function tryPlaceOrAddToPartialMove(
   const move: TakAction = {
     type: 'place',
     pos,
-    variant,
+    variant: variant ?? 'flat',
   };
-  if (!ui.partialMove && canDoMove(ui, move)) {
-    doMove(ui, move);
+  if (variant && !ui.partialMove && canDoMove(ui, move)) {
     return move;
   } else {
-    return addToPartialMove(ui, pos);
+    return getPartialMove(ui, pos);
   }
+}
+
+export function updatePartialMove(ui: TakGameUI, pos: TakPos) {
+  const newPartialMove = getNewPartialMove(ui, pos);
+  ui.partialMove = newPartialMove;
+  onGameUpdate(ui);
 }
 
 function partialMoveToMove(
@@ -190,79 +218,81 @@ function partialMoveToMove(
   return null;
 }
 
-export function addToPartialMove(ui: TakGameUI, pos: TakPos): TakAction | null {
-  addToPartialMoveHelper(ui, pos);
-  const partialMove = partialMoveToMove(ui.partialMove);
-
+function getPartialMove(ui: TakGameUI, pos: TakPos): TakAction | null {
+  const newPartialMove = getNewPartialMove(ui, pos);
+  const partialMove = partialMoveToMove(newPartialMove);
   if (partialMove?.complete === true) {
-    doMove(ui, partialMove.move);
     return partialMove.move;
   }
-  onGameUpdate(ui);
   return null;
 }
 
-function addToPartialMoveHelper(ui: TakGameUI, pos: TakPos) {
+function getNewPartialMove(ui: TakGameUI, pos: TakPos): PartialAction | null {
+  let partialMove: PartialAction | null = isDraft(ui)
+    ? structuredClone(current(ui).partialMove)
+    : structuredClone(ui.partialMove);
+
   if (ui.actualGame.gameState.type !== 'ongoing' || ui.actualGame.history.length < 2) {
-    ui.partialMove = null;
-    return;
+    partialMove = null;
+    return partialMove;
   }
 
-  if (!ui.partialMove) {
+  if (!partialMove) {
     const stack = ui.actualGame.board.pieces[pos.y][pos.x];
-    if (!stack) return;
+    if (!stack) return partialMove;
 
     if (stack.composition[stack.composition.length - 1].player !== ui.actualGame.currentPlayer) {
-      return;
+      return partialMove;
     }
-    ui.partialMove = {
+    partialMove = {
       take: Math.min(stack.composition.length, ui.actualGame.board.size),
       drops: [],
       pos,
       dir: null,
     };
-    return;
+    return partialMove;
   }
 
-  const stack = ui.actualGame.board.pieces[ui.partialMove.pos.y][ui.partialMove.pos.x];
+  const stack = ui.actualGame.board.pieces[partialMove.pos.y][partialMove.pos.x];
   if (!stack) {
-    ui.partialMove = null;
-    return;
+    partialMove = null;
+    return partialMove;
   }
 
-  const dropPos = ui.partialMove.dir
-    ? offsetCoord(ui.partialMove.pos, ui.partialMove.dir, ui.partialMove.drops.length)
-    : ui.partialMove.pos;
+  const dropPos = partialMove.dir
+    ? offsetCoord(partialMove.pos, partialMove.dir, partialMove.drops.length)
+    : partialMove.pos;
   if (coordEquals(dropPos, pos)) {
-    if (ui.partialMove.drops.length > 0) {
-      ui.partialMove.drops[ui.partialMove.drops.length - 1]++;
+    if (partialMove.drops.length > 0) {
+      partialMove.drops[partialMove.drops.length - 1]++;
     } else {
-      ui.partialMove.take--;
-      if (ui.partialMove.take <= 0) {
-        ui.partialMove = null;
-        return;
+      partialMove.take--;
+      if (partialMove.take <= 0) {
+        partialMove = null;
+        return partialMove;
       }
     }
   } else {
     const dir = dirFromAdjacent(pos, dropPos);
-    if (!dir || (ui.partialMove.dir && ui.partialMove.dir !== dir)) {
-      ui.partialMove = null;
-      return;
+    if (!dir || (partialMove.dir && partialMove.dir !== dir)) {
+      partialMove = null;
+      return partialMove;
     }
     const otherStack = ui.actualGame.board.pieces[pos.y][pos.x];
     if (otherStack && otherStack.variant !== 'flat') {
       const floatingCount =
-        ui.partialMove.take - ui.partialMove.drops.reduce((acc, drop) => acc + drop, 0);
+        partialMove.take - partialMove.drops.reduce((acc, drop) => acc + drop, 0);
       if (
         !(stack.variant === 'capstone' && otherStack.variant === 'standing' && floatingCount === 1)
       ) {
-        ui.partialMove = null;
-        return;
+        partialMove = null;
+        return partialMove;
       }
     }
-    ui.partialMove.dir = dir;
-    ui.partialMove.drops.push(1);
+    partialMove.dir = dir;
+    partialMove.drops.push(1);
   }
+  return partialMove;
 }
 
 function getLastMovePiecesInOrder(game: TakGame): TakPieceId[] {
@@ -271,8 +301,36 @@ function getLastMovePiecesInOrder(game: TakGame): TakPieceId[] {
   return lastMove.affectedPieces;
 }
 
+function arePiecesDifferent(piece: TakUIPiece | undefined, newData: TakUIPiece): boolean {
+  return (
+    !piece ||
+    piece.player !== newData.player ||
+    piece.variant !== newData.variant ||
+    piece.pos.x !== newData.pos.x ||
+    piece.pos.y !== newData.pos.y ||
+    piece.height !== newData.height ||
+    piece.isFloating !== newData.isFloating ||
+    piece.zPriority !== newData.zPriority ||
+    piece.deleted !== newData.deleted ||
+    piece.buriedPieceCount !== newData.buriedPieceCount ||
+    piece.canBePicked !== newData.canBePicked
+  );
+}
+
+function areTilesDifferent(tile: TakUITile, newTile: TakUITile): boolean {
+  return (
+    tile.owner !== newTile.owner ||
+    tile.highlighted !== newTile.highlighted ||
+    tile.selectable !== newTile.selectable ||
+    tile.hoverable !== newTile.hoverable ||
+    tile.lastMove !== newTile.lastMove
+  );
+}
+
 export function onGameUpdate(ui: TakGameUI) {
-  const gameClone = isDraft(ui) ? current(ui).actualGame : structuredClone(ui.actualGame);
+  const gameClone = isDraft(ui)
+    ? structuredClone(current(ui).actualGame)
+    : structuredClone(ui.actualGame);
   const shownGame =
     ui.plyIndex !== null ? game.gameFromPlyCount(gameClone, ui.plyIndex, true) : gameClone;
 
@@ -320,23 +378,12 @@ export function onGameUpdate(ui: TakGameUI) {
     }
   }
 
-  const oldPieces = ui.pieces;
-  ui.pieces = {};
-  ui.tiles = [];
-  for (const piece of Object.keys(oldPieces) as TakPieceId[]) {
-    if (oldPieces[piece] !== undefined) {
-      ui.pieces[piece] = {
-        ...oldPieces[piece],
-        deleted: true,
-      };
-    }
-  }
-
   const isOngoing = ui.actualGame.gameState.type === 'ongoing';
   const isNotHistoric = ui.plyIndex === null;
 
+  const presentIds = new Set<TakPieceId>();
+
   for (let y = 0; y < size; y++) {
-    ui.tiles[y] = [];
     for (let x = 0; x < size; x++) {
       const stack = shownGame.board.pieces[y][x];
       const pos = { x, y };
@@ -354,7 +401,8 @@ export function onGameUpdate(ui: TakGameUI) {
             (id) => id === stack.composition[height].id,
           );
           const canBePicked = stack.composition.length - height <= size;
-          ui.pieces[stack.composition[height].id] = {
+          const id = stack.composition[height].id;
+          const newPiece: TakUIPiece = {
             buriedPieceCount,
             canBePicked,
             zPriority: priorityIndex >= 0 ? priorityIndex : null,
@@ -365,19 +413,37 @@ export function onGameUpdate(ui: TakGameUI) {
             isFloating: floatingHeightThreshold !== null && height >= floatingHeightThreshold,
             deleted: false,
           };
+          if (arePiecesDifferent(ui.pieces[id], newPiece)) {
+            ui.pieces[id] = newPiece;
+          }
+          presentIds.add(id);
         }
         hoverable &&=
           ui.actualGame.history.length >= 2 &&
           stack.composition[stack.composition.length - 1].player === ui.actualGame.currentPlayer;
       }
 
-      ui.tiles[y][x] = {
+      const newTile: TakUITile = {
         owner: stack?.composition[0].player ?? null,
         highlighted: false,
         selectable: isOngoing && isNotHistoric && selectable,
         hoverable: isOngoing && isNotHistoric && (hoverable || selectable),
         lastMove: false,
       };
+      if (areTilesDifferent(ui.tiles[y][x], newTile)) {
+        ui.tiles[y][x] = newTile;
+      }
+    }
+  }
+
+  for (const id of Object.keys(ui.pieces) as TakPieceId[]) {
+    if (ui.pieces[id] !== undefined && !presentIds.has(id)) {
+      if (ui.pieces[id].deleted) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete ui.pieces[id];
+      } else {
+        ui.pieces[id].deleted = true;
+      }
     }
   }
 

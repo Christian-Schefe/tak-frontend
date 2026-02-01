@@ -1,8 +1,10 @@
-import { Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable } from '@angular/core';
 import Aura from '@primeuix/themes/aura';
 import Material from '@primeuix/themes/material';
 import { Preset } from '@primeuix/themes/types';
 import { definePreset, usePreset } from '@primeuix/themes';
+import { SettingsService } from '../settings-service/settings-service';
+import { ThemeId } from './theme.constants';
 
 const AuraBlue = definePreset(Aura, {
   semantic: {
@@ -99,51 +101,57 @@ export const SunsetTheme = definePreset(Aura, {
 });
 
 export interface Theme {
-  id: string;
   name: string;
   primengTheme: Preset;
   isDark: boolean;
 }
 
 export const lightTheme: Theme = {
-  id: 'light',
   name: 'Light',
   primengTheme: AuraBlue,
   isDark: false,
 };
 
 export const darkTheme: Theme = {
-  id: 'dark',
   name: 'Dark',
   primengTheme: AuraBlue,
   isDark: true,
 };
 
 export const classicTheme: Theme = {
-  id: 'classic',
   name: 'Classic',
   primengTheme: ClassicTheme,
   isDark: true,
 };
 
 export const sunsetTheme: Theme = {
-  id: 'sunset',
   name: 'Sunset',
   primengTheme: SunsetTheme,
   isDark: true,
 };
 
-export const themesList = [lightTheme, darkTheme, classicTheme, sunsetTheme];
+export const themes: Record<ThemeId, Theme> = {
+  light: lightTheme,
+  dark: darkTheme,
+  classic: classicTheme,
+  sunset: sunsetTheme,
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class ThemeService {
-  applyTheme(theme: Theme) {
+  settingsService = inject(SettingsService);
+  theme = computed(() => {
+    return themes[this.settingsService.generalSettings().theme];
+  });
+
+  private readonly _applyThemeEffect = effect(() => {
+    const theme = this.theme();
     console.log('Applying theme:', theme);
 
     document.documentElement.classList.toggle('dark-mode', theme.isDark);
 
     usePreset(theme.primengTheme);
-  }
+  });
 }

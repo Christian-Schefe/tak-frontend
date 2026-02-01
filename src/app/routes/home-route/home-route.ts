@@ -5,7 +5,7 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { RouterLink } from '@angular/router';
 import { PlayerService } from '../../services/player-service/player-service';
-import { PlayerLabel } from "../../components/player-label/player-label";
+import { PlayerLabel } from '../../components/player-label/player-label';
 
 @Component({
   selector: 'app-home-route',

@@ -11,10 +11,26 @@ import { getTimeRemaining } from '../../../tak-core/game';
 })
 export class ClockFormatPipe implements PipeTransform {
   transform(milliseconds: number): string {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const days = Math.floor(milliseconds / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((milliseconds % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const minutes = Math.floor((milliseconds % (60 * 60 * 1000)) / 60000);
+    const seconds = Math.floor((milliseconds % 60000) / 1000);
+    const millis = Math.floor(milliseconds % 1000);
+    if (days > 0) {
+      const paddedHours = hours.toString().padStart(2, '0');
+      return `${days.toString()}d ${paddedHours}h`;
+    } else if (hours > 0) {
+      const paddedMinutes = minutes.toString().padStart(2, '0');
+      return `${hours.toString()}h ${paddedMinutes}m`;
+    } else if (minutes > 0 || seconds >= 10) {
+      const paddedMinutes = minutes.toString().padStart(2, '0');
+      const paddedSeconds = seconds.toString().padStart(2, '0');
+      return `${paddedMinutes}:${paddedSeconds}`;
+    } else {
+      const paddedSeconds = seconds.toString().padStart(2, '0');
+      const paddedMilliseconds = millis.toString().padStart(3, '0');
+      return `${paddedSeconds}.${paddedMilliseconds}`;
+    }
   }
 }
 
@@ -44,6 +60,8 @@ export class GameClock {
       this.updateClock.update((n) => n + 1);
     }, 100);
 
-    onCleanup(() => clearInterval(id));
+    onCleanup(() => {
+      clearInterval(id);
+    });
   });
 }

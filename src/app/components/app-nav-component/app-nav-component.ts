@@ -113,7 +113,11 @@ export class AppNavComponent {
   ];
 
   onLogout() {
-    this.authService.logout();
-    this.router.navigate(['/']);
+    void this.doLogout();
+  }
+
+  async doLogout() {
+    await this.authService.logout();
+    await this.router.navigate(['/']);
   }
 }

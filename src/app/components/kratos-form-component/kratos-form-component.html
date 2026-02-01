@@ -1,24 +1,26 @@
 <form (ngSubmit)="onSubmit()">
-  @for (item of ui().nodes; track $index) {
-    @switch (item.attributes.node_type) {
+  @for (item of uiWithIds(); track item.id) {
+    @switch (item.node.attributes.node_type) {
       @case ('input') {
         <app-kratos-input-component
-          [messages]="item.messages"
-          [attributes]="item.attributes"
-          [meta]="item.meta"
-          [value]="data()[item.attributes.name]"
-          (valueChange)="onValueChange(item.attributes, $event)"
-          [validity]="validity()[item.attributes.name]"
+          [messages]="item.node.messages"
+          [attributes]="item.node.attributes"
+          [meta]="item.node.meta"
+          [value]="data()[item.node.attributes.name]"
+          (valueChange)="onValueChange(item.node.attributes, $event)"
+          [validity]="validity()[item.node.attributes.name]"
           [(submitMethod)]="submitMethod"
         ></app-kratos-input-component>
       }
       @case ('a') {
-        <a class="mt-4" pButton [routerLink]="item.attributes.href">{{
-          item.meta.label?.text ?? ''
+        <a class="mt-4" pButton [routerLink]="item.node.attributes.href">{{
+          item.node.meta.label?.text ?? ''
         }}</a>
       }
       @case ('text') {
-        <p-message class="mt-4" size="small" variant="simple">{{ item.attributes.text }}</p-message>
+        <p-message class="mt-4" size="small" variant="simple">{{
+          item.node.attributes.text
+        }}</p-message>
       }
     }
   }

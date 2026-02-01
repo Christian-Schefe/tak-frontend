@@ -7,7 +7,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
   const guestToken = inject(GuestService).guestJwt();
-  if (!guestToken) {
+  if (guestToken === null || guestToken.length < 1) {
     return next(req);
   }
   const reqWithHeader = req.clone({

@@ -95,6 +95,7 @@ export function PTNToGame(ptn: string): {
     boardSize: parseInt(size),
     halfKomi,
     reserve,
+    clock: null,
   };
   const game = newGame(gameSettings);
   const now = new Date();

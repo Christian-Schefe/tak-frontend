@@ -1,11 +1,3 @@
-@let flowVal = flow.value();
 <p-card [header]="'Verify your account'" class="w-full mt-4">
-  @if (flowVal !== undefined) {
-    <app-kratos-form-component
-      [ui]="flowVal.ui"
-      (submitForm)="onSubmit($event)"
-    ></app-kratos-form-component>
-  } @else {
-    <p>Loading verification flow...</p>
-  }
+  <app-kratos-flow-component [flowType]="'verification'"></app-kratos-flow-component>
 </p-card>

@@ -17,12 +17,12 @@ export class MainRoute {
   router = inject(Router);
 
   onLogout() {
-    this.authService.logout();
+    void this.authService.logout();
   }
 
   onContinueAsGuest() {
     this.guestService.getGuestAccount().subscribe(() => {
-      this.router.navigate(['/app']);
+      void this.router.navigate(['/app']);
     });
   }
 }

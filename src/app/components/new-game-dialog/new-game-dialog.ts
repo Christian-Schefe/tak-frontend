@@ -6,10 +6,11 @@ import { CreateSeekPayload, SeekService } from '../../services/seek-service/seek
 import { Router } from '@angular/router';
 import { GameService } from '../../services/game-service/game-service';
 import { TakGameSettings } from '../../../tak-core';
+import { NewLocalForm } from '../new-local-form/new-local-form';
 
 @Component({
   selector: 'app-new-game-dialog',
-  imports: [DialogModule, TabsModule, NewSeekForm],
+  imports: [DialogModule, TabsModule, NewSeekForm, NewLocalForm],
   templateUrl: './new-game-dialog.html',
   styleUrl: './new-game-dialog.css',
 })
@@ -29,6 +30,6 @@ export class NewGameDialog {
   onPlayLocal(payload: TakGameSettings) {
     this.gameService.startNewLocalGame(payload);
     this.visible.set(false);
-    this.router.navigate(['/app/local']);
+    void this.router.navigate(['/app/local']);
   }
 }

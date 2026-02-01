@@ -36,7 +36,7 @@ export class SeeksDialogComponent {
     return this.seekService
       .seeks()
       .flatMap((seek) => [seek.creatorId, seek.opponentId])
-      .filter((id): id is string => !!id);
+      .filter((id): id is string => id !== null);
   });
 
   onAcceptSeek(seekId: number) {

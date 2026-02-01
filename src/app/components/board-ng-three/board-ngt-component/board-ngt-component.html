@@ -1,0 +1,12 @@
+<div class="w-full h-full relative">
+  <div class="absolute inset-0 rounded-md overflow-hidden">
+    <ngt-canvas [shadows]="true">
+      <app-board-ngt-canvas
+        *canvasContent
+        [game]="game()"
+        (action)="action.emit($event)"
+        [mode]="mode()"
+      />
+    </ngt-canvas>
+  </div>
+</div>

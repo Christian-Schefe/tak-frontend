@@ -1,32 +1,56 @@
-import { effect, inject, Injectable, signal, WritableSignal } from '@angular/core';
+import { effect, Injectable, signal, WritableSignal } from '@angular/core';
 import z from 'zod';
-import { ThemeService, themesList } from '../theme-service/theme-service';
+import { THEME_IDS as primeNgThemes } from '../theme-service/theme.constants';
+import { THEME_IDS as themeIdsNative } from '../../../2d-themes';
 
-const themeStore = z.string();
-type ThemeStore = z.infer<typeof themeStore>;
+const generalSettings = z.object({
+  theme: z.enum(primeNgThemes),
+  boardType: z.enum(['ninja', '2d', '3d']),
+});
+export type GeneralSettings = z.infer<typeof generalSettings>;
+
+const boardNativeSettingsStore = z.object({
+  theme: z.enum(themeIdsNative),
+});
+export type BoardNativeSettings = z.infer<typeof boardNativeSettingsStore>;
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
   settingsSignals = new Set<string>();
-  themeService = inject(ThemeService);
 
-  themeId = signal<ThemeStore>(themesList[0].id);
+  generalSettings = signal<GeneralSettings>({
+    theme: 'dark',
+    boardType: '3d',
+  });
+  boardNativeSettings = signal<BoardNativeSettings>({
+    theme: 'classic',
+  });
 
-  private readonly _loadSettingsEffect = this.loadSettingsEffect();
+  private readonly _loadSettingsEffect = this.loadSettingsEffects();
 
-  private loadSettingsEffect() {
-    const syncThemeSetting = this.linkSettingsSignal('theme', this.themeId, themeStore);
-    return effect(() => {
-      const themeId = this.themeId();
-      const theme = themesList.find((t) => t.id === themeId) ?? themesList[0];
-
-      console.log(`Applying theme: ${theme.name}`);
-      this.themeService.applyTheme(theme);
-
-      syncThemeSetting(themeId);
-    });
+  private loadSettingsEffects() {
+    const syncThemeSetting = this.linkSettingsSignal(
+      'generalSettings',
+      this.generalSettings,
+      generalSettings,
+    );
+    const syncBoardNativeSettings = this.linkSettingsSignal(
+      'boardNativeSettings',
+      this.boardNativeSettings,
+      boardNativeSettingsStore,
+    );
+    return [
+      effect(() => {
+        const generalSettings = this.generalSettings();
+        syncThemeSetting(generalSettings);
+      }),
+      effect(() => {
+        const settings = this.boardNativeSettings();
+        syncBoardNativeSettings(settings);
+      }),
+    ];
   }
 
   linkSettingsSignal<T>(
@@ -39,8 +63,8 @@ export class SettingsService {
     } else {
       try {
         const storedValue = localStorage.getItem(`settings.${key}`);
-        if (storedValue) {
-          const parsedStoredValue = JSON.parse(storedValue);
+        if (storedValue !== null) {
+          const parsedStoredValue: unknown = JSON.parse(storedValue);
           const result = parser.safeParse(parsedStoredValue);
           if (result.success) {
             signal.set(result.data);

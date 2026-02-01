@@ -42,15 +42,20 @@ export class PlayerProfileRoute {
   });
   playerProfile = this.profileService.getProfile(() => this.id());
 
+  canEditProfile = computed(() => {
+    const identity = this.identityService.identity();
+    return identity !== null && identity.playerId === this.id() && !identity.isGuest;
+  });
+
   sanitizer = inject(DomSanitizer);
 
   flagSvg = computed<SafeHtml | null>(() => {
     const country = this.playerProfile.value()?.country;
-    if (!country) {
+    if (country === null || country === undefined) {
       return null;
     }
     const flagSVG = flagsMap.get(country.toUpperCase());
-    if (!flagSVG) {
+    if (flagSVG === undefined) {
       return null;
     }
     return this.sanitizer.bypassSecurityTrustHtml(flagSVG);
@@ -73,17 +78,17 @@ export class PlayerProfileRoute {
     const drawPercent = 100 - winPercent - lossPercent;
     return [
       {
-        label: `${stats.gamesWon} Win${stats.gamesWon !== 1 ? 's' : ''}`,
+        label: `${stats.gamesWon.toString()} Win${stats.gamesWon !== 1 ? 's' : ''}`,
         value: winPercent,
         color: 'var(--p-green-500)',
       },
       {
-        label: `${stats.gamesDrawn} Draw${stats.gamesDrawn !== 1 ? 's' : ''}`,
+        label: `${stats.gamesDrawn.toString()} Draw${stats.gamesDrawn !== 1 ? 's' : ''}`,
         value: drawPercent,
         color: 'var(--p-neutral-400)',
       },
       {
-        label: `${stats.gamesLost} Loss${stats.gamesLost !== 1 ? 'es' : ''}`,
+        label: `${stats.gamesLost.toString()} Loss${stats.gamesLost !== 1 ? 'es' : ''}`,
         value: lossPercent,
         color: 'var(--p-red-500)',
       },

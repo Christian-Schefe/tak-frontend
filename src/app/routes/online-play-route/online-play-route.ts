@@ -3,13 +3,27 @@ import {
   GameComponent,
   GameMode,
   GamePlayer,
+  TakActionEvent,
 } from '../../components/game-component/game-component';
-import { gameEndedMessage, GameService } from '../../services/game-service/game-service';
+import {
+  gameEndedMessage,
+  GameRequestType,
+  GameService,
+} from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
-import { TakGameSettings, TakGameState, TakAction, TakPlayer } from '../../../tak-core';
-import { doMove, TakGameUI, newGameUI, setPlyIndex, setGameOverState } from '../../../tak-core/ui';
+import { TakGameSettings, TakGameState, TakAction, TakPlayer, TakPos } from '../../../tak-core';
+import {
+  doMove,
+  TakGameUI,
+  newGameUI,
+  setPlyIndex,
+  setGameOverState,
+  tryPlaceOrAddToPartialMove,
+  updatePartialMove,
+  undoMove,
+} from '../../../tak-core/ui';
 import { newGame, setTimeRemaining } from '../../../tak-core/game';
 import { moveFromString, moveToString } from '../../../tak-core/move';
 import { gameStateFromStr } from '../../../tak-core/ptn';
@@ -51,7 +65,7 @@ export class OnlinePlayRoute implements OnDestroy {
     const numId = this.numId();
     const identity = this.identityService.identity();
     const game = this.ongoingGameStatus.value();
-    if (!identity || !numId || !game) {
+    if (!identity || numId === undefined || !game) {
       return null;
     }
     const settings: TakGameSettings = {
@@ -62,27 +76,20 @@ export class OnlinePlayRoute implements OnDestroy {
         capstones: game.gameSettings.capstones,
       },
       clock: {
-        contingentMs: game.gameSettings.contingentMs,
-        incrementMs: game.gameSettings.incrementMs,
+        ...game.gameSettings.timeSettings,
         externallyDriven: true,
-        extra: game.gameSettings.extra
-          ? {
-              move: game.gameSettings.extra.onMove,
-              amountMs: game.gameSettings.extra.extraMs,
-            }
-          : undefined,
       },
     };
     const mode: GameMode =
       identity.playerId === game.playerIds.white
         ? {
             type: 'online',
-            localColor: 'white',
+            localPlayer: 'white',
           }
         : identity.playerId === game.playerIds.black
           ? {
               type: 'online',
-              localColor: 'black',
+              localPlayer: 'black',
             }
           : {
               type: 'spectator',
@@ -118,7 +125,7 @@ export class OnlinePlayRoute implements OnDestroy {
     if (game.actualGame.gameState.type === 'ongoing' && currentGame.gameState.type !== 'ongoing') {
       game.actualGame.gameState = currentGame.gameState;
     }
-    console.log(`Replayed ${currentGame.actions.length} actions from server.`);
+    console.log(`Replayed ${currentGame.actions.length.toString()} actions from server.`);
     return game;
   });
 
@@ -185,6 +192,24 @@ export class OnlinePlayRoute implements OnDestroy {
       this.onRemoteAction(moveFromString(action), plyIndex);
     },
   );
+  private readonly _gameUndoEffect = this.wsService.subscribeEffect(
+    'gameActionUndone',
+    z.object({ gameId: z.number() }),
+    ({ gameId }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.game.update((game) => {
+        if (!game) {
+          return game;
+        }
+        return produce(game, (game) => {
+          undoMove(game);
+        });
+      });
+    },
+  );
 
   private readonly _gameTimeUpdateEffect = this.wsService.subscribeEffect(
     'gameTimeUpdate',
@@ -229,27 +254,87 @@ export class OnlinePlayRoute implements OnDestroy {
     },
   );
 
-  onLocalAction(action: TakAction) {
-    this.game.update((game) => {
-      if (!game) {
-        return null;
+  private readonly _addRequestEffect = this.wsService.subscribeEffect(
+    'gameRequestAdded',
+    z.object({
+      gameId: z.number(),
+      requestId: z.number(),
+      requestType: z.object({ type: z.union([z.literal('draw'), z.literal('undo')]) }),
+      fromPlayerId: z.string(),
+    }),
+    ({ gameId, requestId, requestType, fromPlayerId }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
       }
-      return produce(game, (game) => {
-        doMove(game, action);
+      this.requests.update((ids) => {
+        return [...ids, { id: requestId, requestType, fromPlayerId }];
       });
+    },
+  );
+
+  private readonly _retractRequestEffect = this.wsService.subscribeEffect(
+    'gameRequestRemoved',
+    z.object({
+      gameId: z.number(),
+      requestId: z.number(),
+    }),
+    ({ gameId, requestId }) => {
+      const currentGame = this.currentGame();
+      if (!currentGame || currentGame.gameId !== gameId) {
+        return;
+      }
+      this.requests.update((requests) => {
+        return requests.filter((request) => request.id !== requestId);
+      });
+    },
+  );
+
+  requests = linkedSignal<GameRequestType[]>(() => {
+    const gameStatus = this.ongoingGameStatus.value();
+    if (!gameStatus || gameStatus.status.type !== 'ongoing') {
+      return [];
+    }
+    return gameStatus.status.requests;
+  });
+
+  onLocalAction(action: TakActionEvent) {
+    const game = this.game();
+    if (!game) {
+      return;
+    }
+    let move: TakAction | null = null;
+    let pos: TakPos | null = null;
+    if (action.type === 'full') {
+      move = action.action;
+    } else {
+      move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
+      pos = action.pos;
+    }
+
+    const newGame = produce(game, (game) => {
+      if (move !== null) {
+        doMove(game, move);
+      } else if (pos !== null) {
+        updatePartialMove(game, pos);
+      }
     });
+    this.game.set(newGame);
     const currentGame = this.currentGame();
     if (!currentGame) {
       return;
     }
-    this.wsService
-      .sendMessage('gameAction', {
-        gameId: currentGame.gameId,
-        action: moveToString(action),
-      })
-      .subscribe(() => {
-        console.log('Sent action to server:', action);
-      });
+
+    if (move !== null) {
+      this.wsService
+        .sendMessage('gameAction', {
+          gameId: currentGame.gameId,
+          action: moveToString(move),
+        })
+        .subscribe(() => {
+          console.log('Sent action to server:', action);
+        });
+    }
   }
 
   onRemoteAction(action: TakAction, plyIndex: number) {
@@ -266,7 +351,7 @@ export class OnlinePlayRoute implements OnDestroy {
         // This is our own action echoed back; ignore it.
         console.log('Ignoring echoed back action.');
       } else {
-        console.error(`Ply index mismatch: got ${plyIndex}`);
+        console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
         this.ongoingGameStatus.refetch();
       }
       return game;
@@ -294,11 +379,45 @@ export class OnlinePlayRoute implements OnDestroy {
     });
   }
 
-  onRequestDraw(request: boolean) {
-    console.log('Request draw:', request);
+  onRequestDraw() {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.offerDraw(game.gameId).subscribe(() => {
+      console.log('Offered draw successfully.');
+    });
   }
 
-  onRequestUndo(request: boolean) {
-    console.log('Request undo:', request);
+  onRequestUndo() {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.requestUndo(game.gameId).subscribe(() => {
+      console.log('Requested undo successfully.');
+    });
+  }
+
+  onRetractRequest(requestId: number) {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService.retractRequest(game.gameId, requestId).subscribe(() => {
+      console.log('Retracted request successfully.');
+    });
+  }
+
+  onRequestDecision(requestId: number, decision: 'accept' | 'reject') {
+    const game = this.currentGame();
+    if (!game) {
+      return;
+    }
+    this.gameService
+      .respondToRequest(game.gameId, requestId, decision === 'accept')
+      .subscribe(() => {
+        console.log(`Sent request decision (${decision}) successfully.`);
+      });
   }
 }

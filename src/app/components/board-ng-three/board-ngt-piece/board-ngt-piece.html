@@ -1,0 +1,11 @@
+<ngt-mesh
+  [position]="currentPos()"
+  [quaternion]="currentQuat()"
+  (click)="onClick($event)"
+  [castShadow]="true"
+  [receiveShadow]="true"
+  [geometry]="geometry()"
+  [scale]="0.7"
+>
+  <ngt-mesh-standard-material [map]="texture()" />
+</ngt-mesh>

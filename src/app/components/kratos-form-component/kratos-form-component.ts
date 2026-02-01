@@ -14,6 +14,13 @@ import { Message } from 'primeng/message';
 })
 export class KratosFormComponent {
   ui = input.required<UiContainer>();
+  uiWithIds = computed(() => {
+    return this.ui().nodes.map((node) => ({
+      node,
+      id: `kratos-node-${crypto.randomUUID()}`,
+    }));
+  });
+
   submitForm = output<Record<string, unknown>>();
   validity = linkedSignal<Record<string, boolean>>(() => this.computeInitialValidity());
   data = linkedSignal<Record<string, unknown>>(() => this.computeInitialData());
@@ -22,7 +29,7 @@ export class KratosFormComponent {
   canSubmit = computed(() => {
     const validity = this.validity();
     for (const key in validity) {
-      if (validity[key] === false) {
+      if (!validity[key]) {
         return false;
       }
     }
@@ -84,6 +91,7 @@ export class KratosFormComponent {
     this.data.update((currentData) => {
       const newData = { ...currentData, [attrs.name]: value };
       if (value === '' || value === null || value === undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete newData[attrs.name];
       }
       return newData;
@@ -100,10 +108,10 @@ function isValid(attrs: UiNodeInputAttributes, val: unknown) {
   if (val === undefined || val === null || val === '') {
     val = undefined;
   }
-  if (attrs.required && val === undefined) {
+  if (attrs.required === true && val === undefined) {
     valid = false;
   }
-  if (attrs.pattern) {
+  if (attrs.pattern !== undefined && attrs.pattern.length > 0) {
     const regex = new RegExp(attrs.pattern, 'u');
     if (typeof val !== 'string' || !regex.test(val)) {
       valid = false;

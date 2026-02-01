@@ -31,15 +31,25 @@ export function newGame(settings: TakGameSettings): TakGame {
       black: { ...settings.reserve },
     },
     gameState: { type: 'ongoing' },
-    clock: settings.clock && {
-      hasStarted: false,
-      lastUpdate: null,
-      remainingMs: {
-        white: settings.clock.contingentMs,
-        black: settings.clock.contingentMs,
-      },
-      hasGainedExtra: { white: false, black: false },
-    },
+    clock: settings.clock
+      ? {
+          clock: {
+            isTicking: false,
+            lastUpdate: new Date(),
+            remainingMs: {
+              white: settings.clock.contingentMs,
+              black: settings.clock.contingentMs,
+            },
+          },
+          updatePolicy:
+            settings.clock.type === 'realtime'
+              ? {
+                  type: 'realtime',
+                  hasGainedExtra: { white: false, black: false },
+                }
+              : { type: 'async' },
+        }
+      : null,
   };
 }
 
@@ -75,17 +85,8 @@ function isReserveEmpty(game: TakGame) {
   );
 }
 
-export function isClockActive(game: TakGame, player: TakPlayer): boolean {
-  return (
-    game.gameState.type === 'ongoing' &&
-    game.currentPlayer === player &&
-    game.clock?.hasStarted === true &&
-    game.clock.lastUpdate !== null
-  );
-}
-
 export function gameFromPlyCount(game: TakGame, plyCount: number, removeClock?: boolean): TakGame {
-  const resultGame = newGame({ ...game.settings, clock: undefined });
+  const resultGame = newGame({ ...game.settings, clock: null });
   const history = game.history.slice(0, plyCount);
   for (const move of history) {
     doMove(resultGame, move, new Date());
@@ -99,34 +100,34 @@ export function gameFromPlyCount(game: TakGame, plyCount: number, removeClock?: 
 
 export function getTimeRemaining(game: TakGame, player: TakPlayer, now: Date): number | null {
   if (game.clock) {
-    return Math.max(
-      0,
-      game.clock.remainingMs[player] -
-        (game.gameState.type === 'ongoing' &&
-        game.currentPlayer === player &&
-        game.clock.hasStarted &&
-        game.clock.lastUpdate
-          ? now.getTime() - game.clock.lastUpdate.getTime()
-          : 0),
-    );
+    const elapsed =
+      game.currentPlayer === player && game.clock.clock.isTicking
+        ? now.getTime() - game.clock.clock.lastUpdate.getTime()
+        : 0;
+    return Math.max(0, game.clock.clock.remainingMs[player] - elapsed);
   }
   return null;
 }
 
 export function setTimeRemaining(game: TakGame, remaining: Record<TakPlayer, number>, now: Date) {
   if (game.clock) {
-    game.clock.remainingMs.white = remaining.white;
-    game.clock.remainingMs.black = remaining.black;
-    game.clock.lastUpdate = now;
+    game.clock.clock.remainingMs.white = remaining.white;
+    game.clock.clock.remainingMs.black = remaining.black;
+    game.clock.clock.lastUpdate = now;
     checkTimeout(game, now);
   }
 }
 
-export function applyTimeToClock(game: TakGame, now: Date) {
-  const remaining = getTimeRemaining(game, game.currentPlayer, now);
-  if (game.clock && remaining !== null) {
-    game.clock.remainingMs[game.currentPlayer] = remaining;
-    game.clock.lastUpdate = now;
+export function applyTimeToClock(game: TakGame, player: TakPlayer, now: Date) {
+  if (game.clock) {
+    const elapsed = game.clock.clock.isTicking
+      ? now.getTime() - game.clock.clock.lastUpdate.getTime()
+      : 0;
+    game.clock.clock.remainingMs[player] = Math.max(
+      0,
+      game.clock.clock.remainingMs[player] - elapsed,
+    );
+    game.clock.clock.lastUpdate = now;
   }
 }
 
@@ -138,10 +139,8 @@ export function isTimeout(game: TakGame, now: Date): boolean {
   return timeRemaining !== null && timeRemaining <= 0;
 }
 
-export function checkTimeout(game: TakGame, now: Date): number | null {
-  if (game.gameState.type !== 'ongoing') return null;
-
-  applyTimeToClock(game, now);
+export function checkTimeout(game: TakGame, now: Date) {
+  if (game.gameState.type !== 'ongoing') return;
 
   const player = game.currentPlayer;
   const timeRemaining = getTimeRemaining(game, player, now);
@@ -151,8 +150,8 @@ export function checkTimeout(game: TakGame, now: Date): number | null {
       player: playerOpposite(player),
       reason: 'timeout',
     };
+    stopClock(game, player, now);
   }
-  return timeRemaining ?? null;
 }
 
 export function canUndoMove(game: TakGame, now: Date): string | null {
@@ -170,11 +169,8 @@ export function canUndoMove(game: TakGame, now: Date): string | null {
 }
 
 export function undoMove(game: TakGame, now: Date) {
-  const timeRemaining =
-    game.settings.clock?.externallyDriven !== true ? checkTimeout(game, now) : null;
-
-  if (game.settings.clock?.externallyDriven === true) {
-    applyTimeToClock(game, now);
+  if (game.settings.clock?.externallyDriven !== true) {
+    checkTimeout(game, now);
   }
 
   const err = canUndoMove(game, now);
@@ -192,17 +188,14 @@ export function undoMove(game: TakGame, now: Date) {
   game.gameState = undoneGame.gameState;
   game.history = undoneGame.history;
 
-  startOrUpdateClock(game, timeRemaining, player, now, false);
+  startOrUpdateClock(game, player, now);
 
   return undoneMove;
 }
 
 export function doMove(game: TakGame, move: TakAction, now: Date) {
-  const timeRemaining =
-    game.settings.clock?.externallyDriven !== true ? checkTimeout(game, now) : null;
-
-  if (game.settings.clock?.externallyDriven === true) {
-    applyTimeToClock(game, now);
+  if (game.settings.clock?.externallyDriven !== true) {
+    checkTimeout(game, now);
   }
 
   const err = canDoMove(game, move, now);
@@ -227,8 +220,6 @@ export function doMove(game: TakGame, move: TakAction, now: Date) {
   } else {
     record = movePiece(game.board, move.from, move.dir, move.drops, game.currentPlayer);
   }
-
-  startOrUpdateClock(game, timeRemaining, player, now, true);
 
   game.history.push(record);
   game.currentPlayer = playerOpposite(player);
@@ -262,32 +253,59 @@ export function doMove(game: TakGame, move: TakAction, now: Date) {
       };
     }
   }
+
+  if (game.gameState.type !== 'ongoing') {
+    stopClock(game, player, now);
+  } else {
+    startOrUpdateClock(game, player, now);
+  }
 }
 
-function startOrUpdateClock(
-  game: TakGame,
-  timeRemaining: number | null,
-  player: TakPlayer,
-  now: Date,
-  allowGainExtra: boolean,
-) {
+export function setGameOver(game: TakGame, newState: TakGameState, now: Date) {
+  if (game.gameState.type !== 'ongoing' || newState.type === 'ongoing') {
+    throw new Error('Can only set game over from ongoing to a non-ongoing state');
+  }
+  stopClock(game, game.currentPlayer, now);
+  game.gameState = newState;
+}
+
+function endTurnClockUpdate(game: TakGame, player: TakPlayer) {
   if (game.clock && game.settings.clock) {
-    if (timeRemaining !== null) {
-      const move = Math.floor(game.history.length / 2) + 1;
+    if (game.clock.updatePolicy.type === 'realtime' && game.settings.clock.type === 'realtime') {
+      const move = Math.floor((game.history.length + 1) / 2);
       const shouldGainExtra =
-        allowGainExtra &&
-        game.settings.clock.extra !== undefined &&
-        move === game.settings.clock.extra.move &&
-        !game.clock.hasGainedExtra[player];
+        game.settings.clock.extra !== null &&
+        move === game.settings.clock.extra.onMove &&
+        !game.clock.updatePolicy.hasGainedExtra[player];
 
       if (shouldGainExtra) {
-        game.clock.hasGainedExtra[player] = true;
+        game.clock.updatePolicy.hasGainedExtra[player] = true;
       }
-      const extraGain = shouldGainExtra ? (game.settings.clock.extra?.amountMs ?? 0) : 0;
-      game.clock.remainingMs[player] = timeRemaining + game.settings.clock.incrementMs + extraGain;
+      const extraGain = shouldGainExtra ? (game.settings.clock.extra?.extraMs ?? 0) : 0;
+      game.clock.clock.remainingMs[player] += game.settings.clock.incrementMs + extraGain;
+    } else if (game.clock.updatePolicy.type === 'async' && game.settings.clock.type === 'async') {
+      game.clock.clock.remainingMs = {
+        white: game.settings.clock.contingentMs,
+        black: game.settings.clock.contingentMs,
+      };
+    } else {
+      throw new Error('Mismatched clock types between game and settings');
     }
-    game.clock.lastUpdate = now;
-    game.clock.hasStarted = true;
+  }
+}
+
+function startOrUpdateClock(game: TakGame, player: TakPlayer, now: Date) {
+  applyTimeToClock(game, player, now);
+  endTurnClockUpdate(game, player);
+  if (game.clock && game.settings.clock) {
+    game.clock.clock.isTicking = true;
+  }
+}
+
+function stopClock(game: TakGame, player: TakPlayer, now: Date) {
+  applyTimeToClock(game, player, now);
+  if (game.clock) {
+    game.clock.clock.isTicking = false;
   }
 }
 

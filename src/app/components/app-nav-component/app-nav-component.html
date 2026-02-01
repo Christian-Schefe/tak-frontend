@@ -1,6 +1,6 @@
 @let player = playerInfo();
 
-<p-menubar [model]="items">
+<p-menubar [model]="items" class="h-full">
   <ng-template #item let-item>
     @let val = typedItem(item);
     @if (val.command) {

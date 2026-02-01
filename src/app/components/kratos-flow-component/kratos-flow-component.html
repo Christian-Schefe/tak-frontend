@@ -1,0 +1,10 @@
+@let flowVal = flow.value();
+
+@if (flowVal !== undefined) {
+  <app-kratos-form-component
+    [ui]="flowVal.ui"
+    (submitForm)="onSubmit($event)"
+  ></app-kratos-form-component>
+} @else {
+  <p-progress-spinner ariaLabel="loading" />
+}

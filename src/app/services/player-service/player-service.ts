@@ -94,7 +94,7 @@ export class PlayerService {
   getPlayerInfoRef(playerId: () => string | undefined): HttpResourceRef<PlayerInfo | undefined> {
     return httpResource<PlayerInfo>(() => {
       const pid = playerId();
-      if (!pid) {
+      if (pid === undefined) {
         return undefined;
       }
       return `/api2/players/${pid}`;
@@ -106,7 +106,7 @@ export class PlayerService {
   ): HttpResourceRef<PlayerInfo | undefined> {
     return httpResource<PlayerInfo>(() => {
       const aid = accountId();
-      if (!aid) {
+      if (aid === undefined) {
         return undefined;
       }
       return `/api2/accounts/${aid}`;
@@ -122,7 +122,7 @@ export class PlayerService {
   getPlayerStatsRef(playerId: () => string | undefined): HttpResourceRef<PlayerStats | undefined> {
     return httpResource<PlayerStats>(() => {
       const pid = playerId();
-      if (!pid) {
+      if (pid === undefined) {
         return undefined;
       }
       return `/api2/players/${pid}/stats`;
