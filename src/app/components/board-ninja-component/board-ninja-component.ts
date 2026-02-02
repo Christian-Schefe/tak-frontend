@@ -16,6 +16,7 @@ import { GameMode, TakActionEvent } from '../game-component/game-component';
 import { TakGameUI } from '../../../tak-core/ui';
 import { moveFromString } from '../../../tak-core/move';
 import { gameToPTN } from '../../../tak-core/ptn';
+import { SettingsService } from '../../services/settings-service/settings-service';
 
 const params =
   '&moveNumber=false&unplayedPieces=true&disableStoneCycling=true&showBoardPrefsBtn=false&disableNavigation=true&disablePTN=true&disableText=true&flatCounts=false&turnIndicator=false&showHeader=false&showEval=false&showRoads=false&stackCounts=false&notifyGame=false';
@@ -36,6 +37,8 @@ export class BoardNinjaComponent {
   action = output<TakActionEvent>();
   mode = input.required<GameMode>();
 
+  settingsService = inject(SettingsService);
+
   sanitizer = inject(DomSanitizer);
   ninjaUrl = computed<SafeResourceUrl>(() => {
     const mode = this.mode();
@@ -54,18 +57,19 @@ export class BoardNinjaComponent {
 
   private readonly _sendUiSettingsEffect = effect(() => {
     if (!this.hasLoaded()) return;
+    const settings = this.settingsService.boardNinjaSettings();
     console.log('Sending UI settings to Board Ninja iframe.');
     this.sendMessageToIframe({
       action: 'SET_UI',
       value: {
-        theme: 'discord',
-        axisLabels: true,
-        axisLabelsSmall: false,
-        highlightSquares: true,
-        animateBoard: true,
-        board3D: false,
-        orthographic: false,
-        perspective: false,
+        theme: settings.colorTheme,
+        axisLabels: settings.axisLabels !== 'none',
+        axisLabelsSmall: settings.axisLabels === 'small',
+        highlightSquares: settings.highlightSquares,
+        animateBoard: settings.animateBoard,
+        board3D: settings.board3d,
+        orthographic: settings.orthographic,
+        perspective: settings.perspective,
       },
     });
   });

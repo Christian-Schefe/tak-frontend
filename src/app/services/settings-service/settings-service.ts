@@ -2,6 +2,7 @@ import { effect, Injectable, signal, WritableSignal } from '@angular/core';
 import z from 'zod';
 import { THEME_IDS as primeNgThemes } from '../theme-service/theme.constants';
 import { THEME_IDS as themeIdsNative } from '../../../2d-themes';
+import { NINJA_2D_THEMES } from '../../components/board-ninja-component/board-ninja.constants';
 
 const generalSettings = z.object({
   theme: z.enum(primeNgThemes),
@@ -9,10 +10,21 @@ const generalSettings = z.object({
 });
 export type GeneralSettings = z.infer<typeof generalSettings>;
 
-const boardNativeSettingsStore = z.object({
+const boardNativeSettings = z.object({
   theme: z.enum(themeIdsNative),
 });
-export type BoardNativeSettings = z.infer<typeof boardNativeSettingsStore>;
+export type BoardNativeSettings = z.infer<typeof boardNativeSettings>;
+
+const boardNinjaSettings = z.object({
+  colorTheme: z.enum(NINJA_2D_THEMES),
+  axisLabels: z.enum(['normal', 'small', 'none']),
+  highlightSquares: z.boolean(),
+  animateBoard: z.boolean(),
+  board3d: z.boolean(),
+  orthographic: z.boolean(),
+  perspective: z.number(),
+});
+export type BoardNinjaSettings = z.infer<typeof boardNinjaSettings>;
 
 @Injectable({
   providedIn: 'root',
@@ -27,6 +39,15 @@ export class SettingsService {
   boardNativeSettings = signal<BoardNativeSettings>({
     theme: 'classic',
   });
+  boardNinjaSettings = signal<BoardNinjaSettings>({
+    colorTheme: 'classic',
+    axisLabels: 'normal',
+    highlightSquares: true,
+    animateBoard: true,
+    board3d: false,
+    orthographic: false,
+    perspective: 5,
+  });
 
   private readonly _loadSettingsEffect = this.loadSettingsEffects();
 
@@ -39,7 +60,12 @@ export class SettingsService {
     const syncBoardNativeSettings = this.linkSettingsSignal(
       'boardNativeSettings',
       this.boardNativeSettings,
-      boardNativeSettingsStore,
+      boardNativeSettings,
+    );
+    const syncBoardNinjaSettings = this.linkSettingsSignal(
+      'boardNinjaSettings',
+      this.boardNinjaSettings,
+      boardNinjaSettings,
     );
     return [
       effect(() => {
@@ -49,6 +75,10 @@ export class SettingsService {
       effect(() => {
         const settings = this.boardNativeSettings();
         syncBoardNativeSettings(settings);
+      }),
+      effect(() => {
+        const settings = this.boardNinjaSettings();
+        syncBoardNinjaSettings(settings);
       }),
     ];
   }

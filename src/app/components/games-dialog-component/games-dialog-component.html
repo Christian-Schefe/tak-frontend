@@ -11,6 +11,7 @@
   <p-table [value]="this.gameService.games()" [rowTrackBy]="trackBy">
     <ng-template #header>
       <tr>
+        <th></th>
         <th>White Player</th>
         <th>Black Player</th>
         <th>Board Size</th>
@@ -22,6 +23,17 @@
       @let whitePlayerInfo = playerInfosMap[game.playerIds.white];
       @let blackPlayerInfo = playerInfosMap[game.playerIds.black];
       <tr>
+        <td>
+          <button
+            pButton
+            pRipple
+            (click)="onViewGame(game.id)"
+            class="aspect-square"
+            severity="secondary"
+          >
+            <ng-icon name="lucideEye"></ng-icon>
+          </button>
+        </td>
         <td>
           @if (whitePlayerInfo.hasValue()) {
             <app-player-label [playerInfo]="whitePlayerInfo.value()"></app-player-label>

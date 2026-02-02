@@ -3,6 +3,7 @@
     <p-tablist>
       <p-tab value="0">General</p-tab>
       <p-tab value="1">Native Board</p-tab>
+      <p-tab value="2">Ninja Board</p-tab>
     </p-tablist>
     <p-tabpanels>
       <p-tabpanel value="0">
@@ -10,7 +11,7 @@
           <p-iftalabel>
             <p-select
               inputId="settings-theme"
-              [options]="themes()"
+              [options]="generalSettings.themes"
               [ngModel]="settingsService.generalSettings().theme"
               (ngModelChange)="updateGeneralSettings({ theme: $event })"
               fluid
@@ -20,7 +21,7 @@
           <p-iftalabel>
             <p-select
               inputId="settings-board-type"
-              [options]="boardTypes()"
+              [options]="generalSettings.boardTypes"
               [ngModel]="settingsService.generalSettings().boardType"
               (ngModelChange)="updateGeneralSettings({ boardType: $event })"
               fluid
@@ -30,16 +31,84 @@
         </div>
       </p-tabpanel>
       <p-tabpanel value="1">
-        <p-iftalabel>
-          <p-select
-            inputId="board-native-settings-theme"
-            [options]="boardNativeThemes()"
-            [ngModel]="settingsService.boardNativeSettings().theme"
-            (ngModelChange)="updateBoardNativeSettings({ theme: $event })"
-            fluid
-          ></p-select>
-          <label for="board-native-settings-theme">Color Theme</label>
-        </p-iftalabel>
+        <div class="w-full flex flex-col gap-2">
+          <p-iftalabel>
+            <p-select
+              inputId="board-native-settings-theme"
+              [options]="boardNativeSettings.themes"
+              [ngModel]="settingsService.boardNativeSettings().theme"
+              (ngModelChange)="updateBoardNativeSettings({ theme: $event })"
+              fluid
+            ></p-select>
+            <label for="board-native-settings-theme">Color Theme</label>
+          </p-iftalabel>
+        </div>
+      </p-tabpanel>
+      <p-tabpanel value="2">
+        <div class="w-full flex flex-col gap-2">
+          <p-iftalabel>
+            <p-select
+              inputId="board-ninja-settings-theme"
+              [options]="boardNinjaSettings.themes"
+              [ngModel]="settingsService.boardNinjaSettings().colorTheme"
+              (ngModelChange)="updateBoardNinjaSettings({ colorTheme: $event })"
+              fluid
+            ></p-select>
+            <label for="board-ninja-settings-theme">Color Theme</label>
+          </p-iftalabel>
+          <p-iftalabel>
+            <p-select
+              inputId="board-ninja-settings-axis-labels"
+              [options]="boardNinjaSettings.axisLabelOptions"
+              [ngModel]="settingsService.boardNinjaSettings().axisLabels"
+              (ngModelChange)="updateBoardNinjaSettings({ axisLabels: $event })"
+              fluid
+            ></p-select>
+            <label for="board-ninja-settings-axis-labels">Axis Labels</label>
+          </p-iftalabel>
+          <div class="w-full flex gap-1 items-center">
+            <p class="w-1/2 pl-3 py-2">Animations</p>
+            <p-togglebutton
+              [ngModel]="settingsService.boardNinjaSettings().animateBoard"
+              (ngModelChange)="updateBoardNinjaSettings({ animateBoard: $event })"
+              [onLabel]="'On'"
+              [offLabel]="'Off'"
+              class="w-1/2"
+            ></p-togglebutton>
+          </div>
+          <div class="w-full flex gap-1 items-center">
+            <p class="w-1/2 pl-3 py-2">Highlight Squares</p>
+            <p-togglebutton
+              [ngModel]="settingsService.boardNinjaSettings().highlightSquares"
+              (ngModelChange)="updateBoardNinjaSettings({ highlightSquares: $event })"
+              [onLabel]="'On'"
+              [offLabel]="'Off'"
+              class="w-1/2"
+            ></p-togglebutton>
+          </div>
+          <div class="w-full flex gap-1 items-center">
+            <p class="w-1/2 pl-3 py-2">3D Board</p>
+            <p-togglebutton
+              [ngModel]="settingsService.boardNinjaSettings().board3d"
+              (ngModelChange)="updateBoardNinjaSettings({ board3d: $event })"
+              [onLabel]="'On'"
+              [offLabel]="'Off'"
+              class="w-1/2"
+            ></p-togglebutton>
+          </div>
+          <div class="w-full flex gap-1 items-center">
+            <p class="w-1/2 pl-3 py-2">Perspective</p>
+            <p-slider
+              class="w-0 grow"
+              [ngModel]="perspective()"
+              (ngModelChange)="setPerspective($event)"
+              [step]="1"
+              [max]="10"
+              [disabled]="!settingsService.boardNinjaSettings().board3d"
+            ></p-slider>
+            <p class="w-10 text-left pl-4">{{ perspective() }}</p>
+          </div>
+        </div>
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
