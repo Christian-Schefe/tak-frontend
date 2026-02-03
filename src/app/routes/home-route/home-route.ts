@@ -4,7 +4,6 @@ import { GameService } from '../../services/game-service/game-service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { RouterLink } from '@angular/router';
-import { PlayerService } from '../../services/player-service/player-service';
 import { PlayerLabel } from '../../components/player-label/player-label';
 
 @Component({
@@ -15,12 +14,4 @@ import { PlayerLabel } from '../../components/player-label/player-label';
 })
 export class HomeRoute {
   gameService = inject(GameService);
-  playerService = inject(PlayerService);
-  ongoingGames = this.gameService.thisPlayerGames;
-
-  playerInfos = this.playerService.getComputedPlayerInfos(() => {
-    return this.gameService
-      .thisPlayerGames()
-      .flatMap((game) => [game.playerIds.white, game.playerIds.black]);
-  });
 }

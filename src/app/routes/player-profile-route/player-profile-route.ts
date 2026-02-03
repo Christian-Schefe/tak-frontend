@@ -4,32 +4,53 @@ import { PlayerService } from '../../services/player-service/player-service';
 import { CardModule } from 'primeng/card';
 import { RoundPipe } from '../../util/round-pipe/round-pipe';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideEdit, lucideSwords, lucideTrophy } from '@ng-icons/lucide';
+import { lucideEdit, lucideEye, lucideSwords, lucideTrophy } from '@ng-icons/lucide';
 import { MeterGroupModule, MeterItem } from 'primeng/metergroup';
 import * as flags from 'country-flag-icons/string/3x2';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AccountProfile, ProfileService } from '../../services/profile-service/profile-service';
 import { ButtonModule } from 'primeng/button';
 import { EditPlayerProfileDialog } from '../../components/edit-player-profile-dialog/edit-player-profile-dialog';
+import { GameHistoryService } from '../../services/game-history-service/game-history-service';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { Router } from '@angular/router';
+import { RippleModule } from 'primeng/ripple';
+import { PlayerLabel } from '../../components/player-label/player-label';
+import { DatePipe } from '@angular/common';
 
 const flagsMap = new Map<string, string>(Object.entries(flags));
 
 @Component({
   selector: 'app-player-profile-route',
-  imports: [CardModule, RoundPipe, NgIcon, MeterGroupModule, ButtonModule, EditPlayerProfileDialog],
+  imports: [
+    CardModule,
+    RoundPipe,
+    NgIcon,
+    MeterGroupModule,
+    ButtonModule,
+    EditPlayerProfileDialog,
+    ProgressSpinnerModule,
+    RippleModule,
+    PlayerLabel,
+    DatePipe,
+  ],
   templateUrl: './player-profile-route.html',
   styleUrl: './player-profile-route.css',
-  viewProviders: [provideIcons({ lucideTrophy, lucideSwords, lucideEdit })],
+  viewProviders: [provideIcons({ lucideTrophy, lucideSwords, lucideEdit, lucideEye })],
 })
 export class PlayerProfileRoute {
   identityService = inject(IdentityService);
   playerService = inject(PlayerService);
   profileService = inject(ProfileService);
+  gameHistoryService = inject(GameHistoryService);
+  router = inject(Router);
   id = input.required<string>();
-  playerInfoRef = this.playerService.getPlayerInfoRef(() => this.id());
+
+  playerInfoRef = this.playerService.getComputedPlayerInfo(() => this.id());
   playerInfo = computed(() => {
-    if (this.playerInfoRef.hasValue()) {
-      return this.playerInfoRef.value();
+    const ref = this.playerInfoRef();
+    if (ref && ref.hasValue()) {
+      return ref.value();
     }
     return null;
   });
@@ -41,6 +62,10 @@ export class PlayerProfileRoute {
     return null;
   });
   playerProfile = this.profileService.getProfile(() => this.id());
+  playerGameHistory = this.gameHistoryService.playerGameHistory(() => {
+    const id = this.id();
+    return { playerId: id, page: 1, pageSize: 20 };
+  });
 
   canEditProfile = computed(() => {
     const identity = this.identityService.identity();
@@ -103,5 +128,9 @@ export class PlayerProfileRoute {
     this.profileService.updateProfile(this.id(), profile).subscribe(() => {
       console.log('Profile updated successfully');
     });
+  }
+
+  onViewGame(gameId: number) {
+    void this.router.navigate(['/app/online', gameId.toString()]);
   }
 }

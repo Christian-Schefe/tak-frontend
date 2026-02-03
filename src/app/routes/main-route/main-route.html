@@ -1,6 +1,6 @@
-@let authState = authService.authState();
+@let identity = identityService.identity();
 <div class="actions">
-  @if (authState.type !== 'logged_in') {
+  @if (identity === null) {
     <a pButton pRipple draggable="false" fluid routerLink="/authenticate">Sign In</a>
     <p-button fluid (click)="onContinueAsGuest()">Continue as Guest</p-button>
   } @else {

@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { effect, inject, Injectable, linkedSignal } from '@angular/core';
 import { WsService } from '../ws-service/ws-service';
 import z from 'zod';
-import { GameSettings, gameSettings } from '../game-service/game-service';
 import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
+import { GameSettings, gameSettings } from '../game-history-service/game-history-service';
 
 export type SeekInfo = z.infer<typeof seekInfo>;
 

@@ -41,13 +41,39 @@ export class PlayerService {
   private playerInfoCache = new Map<string, HttpResourceRef<PlayerInfo | undefined>>();
   private playerInfoByAccountIdCache = new Map<string, HttpResourceRef<PlayerInfo | undefined>>();
 
+  getComputedPlayerInfo(
+    playerIdFn: () => string | undefined,
+  ): Signal<HttpResourceRef<PlayerInfo | undefined> | undefined> {
+    return computed(() => {
+      const playerId = playerIdFn();
+      if (playerId === undefined || playerId === '') {
+        return undefined;
+      }
+      const cached = this.playerInfoCache.get(playerId);
+      if (cached) {
+        return cached;
+      }
+      const resource = untracked(() =>
+        runInInjectionContext(this.injector, () => {
+          const pid = playerId;
+          return this.getPlayerInfoRef(() => pid);
+        }),
+      );
+      this.playerInfoCache.set(playerId, resource);
+      return resource;
+    });
+  }
+
   getComputedPlayerInfos(
-    playerIds: () => string[],
+    playerIds: () => (string | undefined)[],
   ): Signal<Record<string, HttpResourceRef<PlayerInfo | undefined>>> {
     return computed(() => {
       const map: Record<string, HttpResourceRef<PlayerInfo | undefined>> = {};
       const players = playerIds();
       for (const playerId of players) {
+        if (playerId === undefined || playerId === '') {
+          continue;
+        }
         const cached = this.playerInfoCache.get(playerId);
         if (cached) {
           map[playerId] = cached;
@@ -91,7 +117,9 @@ export class PlayerService {
     });
   }
 
-  getPlayerInfoRef(playerId: () => string | undefined): HttpResourceRef<PlayerInfo | undefined> {
+  private getPlayerInfoRef(
+    playerId: () => string | undefined,
+  ): HttpResourceRef<PlayerInfo | undefined> {
     return httpResource<PlayerInfo>(() => {
       const pid = playerId();
       if (pid === undefined) {

@@ -19,7 +19,6 @@ import { SeeksDialogComponent } from '../seeks-dialog-component/seeks-dialog-com
 import { GamesDialogComponent } from '../games-dialog-component/games-dialog-component';
 import { PlayerLabel } from '../player-label/player-label';
 import { NewGameDialog } from '../new-game-dialog/new-game-dialog';
-import { AuthService } from '../../services/auth-service/auth-service';
 
 @Component({
   selector: 'app-app-nav-component',
@@ -50,19 +49,11 @@ import { AuthService } from '../../services/auth-service/auth-service';
 export class AppNavComponent {
   identityService = inject(IdentityService);
   playerService = inject(PlayerService);
-  authService = inject(AuthService);
   router = inject(Router);
 
-  private playerInfoRef = this.playerService.getPlayerInfoRef(() => {
+  playerId = computed(() => {
     const identity = this.identityService.identity();
     return identity?.playerId;
-  });
-
-  playerInfo = computed(() => {
-    if (this.playerInfoRef.hasValue()) {
-      return this.playerInfoRef.value();
-    }
-    return null;
   });
 
   seeksDialogVisible = signal(false);
@@ -117,7 +108,7 @@ export class AppNavComponent {
   }
 
   async doLogout() {
-    await this.authService.logout();
+    await this.identityService.logout();
     await this.router.navigate(['/']);
   }
 }

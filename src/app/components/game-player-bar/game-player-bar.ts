@@ -17,7 +17,7 @@ export class GamePlayerBar {
   playerColor = input.required<TakPlayer>();
   game = input.required<TakGameUI>();
 
-  playerInfo = this.playerService.getPlayerInfoRef(() => {
+  playerInfoRef = this.playerService.getComputedPlayerInfo(() => {
     const player = this.gamePlayer();
     if (player.type === 'player') {
       return player.playerId;
@@ -25,15 +25,20 @@ export class GamePlayerBar {
     return undefined;
   });
 
+  playerInfo = computed(() => {
+    const ref = this.playerInfoRef();
+    if (ref && ref.hasValue()) {
+      return ref.value();
+    }
+    return null;
+  });
+
   displayName = computed(() => {
     const player = this.gamePlayer();
     if (player.type === 'local') {
       return player.name;
     } else {
-      if (this.playerInfo.hasValue()) {
-        return this.playerInfo.value().displayName;
-      }
-      return null;
+      return this.playerInfo()?.displayName ?? null;
     }
   });
 
@@ -42,11 +47,8 @@ export class GamePlayerBar {
     if (player.type === 'local') {
       return null;
     } else {
-      if (this.playerInfo.hasValue()) {
-        const rating = this.playerInfo.value().rating?.rating;
-        return rating !== undefined ? Math.round(rating) : null;
-      }
-      return null;
+      const rating = this.playerInfo()?.rating?.rating;
+      return rating !== undefined ? Math.round(rating) : null;
     }
   });
 }

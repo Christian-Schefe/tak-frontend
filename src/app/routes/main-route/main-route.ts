@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { GuestService } from '../../services/guest-service/guest-service';
 import { AuthService } from '../../services/auth-service/auth-service';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
+import { IdentityService } from '../../services/identity-service/identity-service';
 
 @Component({
   selector: 'app-main-route',
@@ -13,7 +13,7 @@ import { RippleModule } from 'primeng/ripple';
 })
 export class MainRoute {
   authService = inject(AuthService);
-  guestService = inject(GuestService);
+  identityService = inject(IdentityService);
   router = inject(Router);
 
   onLogout() {
@@ -21,7 +21,7 @@ export class MainRoute {
   }
 
   onContinueAsGuest() {
-    this.guestService.getGuestAccount().subscribe(() => {
+    this.identityService.proceedAsGuest().subscribe(() => {
       void this.router.navigate(['/app']);
     });
   }

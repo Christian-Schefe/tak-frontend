@@ -6,30 +6,7 @@ import { IdentityService } from '../identity-service/identity-service';
 import { Router } from '@angular/router';
 import { TakGameSettings } from '../../../tak-core';
 import { HttpClient } from '@angular/common/http';
-
-export const gameSettings = z.object({
-  boardSize: z.number(),
-  halfKomi: z.number(),
-  pieces: z.number(),
-  capstones: z.number(),
-  timeSettings: z.union([
-    z.object({
-      type: z.literal('realtime'),
-      contingentMs: z.number(),
-      incrementMs: z.number(),
-      extra: z
-        .object({
-          onMove: z.number(),
-          extraMs: z.number(),
-        })
-        .nullable(),
-    }),
-    z.object({
-      type: z.literal('async'),
-      contingentMs: z.number(),
-    }),
-  ]),
-});
+import { GameInfo, gameInfo, gameSettings } from '../game-history-service/game-history-service';
 
 export const gameRequest = z.object({
   id: z.number(),
@@ -74,18 +51,6 @@ export const gameStatus = z.object({
 });
 
 export type GameStatus = z.infer<typeof gameStatus>;
-export type GameSettings = z.infer<typeof gameSettings>;
-export type GameInfo = z.infer<typeof gameInfo>;
-
-const gameInfo = z.object({
-  id: z.number(),
-  playerIds: z.object({
-    white: z.string(),
-    black: z.string(),
-  }),
-  isRated: z.boolean(),
-  gameSettings,
-});
 
 @Injectable({
   providedIn: 'root',

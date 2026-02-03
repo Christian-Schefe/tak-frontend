@@ -1,5 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { GameSettings } from '../../services/game-service/game-service';
+import { GameSettings } from '../../services/game-history-service/game-history-service';
 
 @Pipe({
   name: 'timeControl',

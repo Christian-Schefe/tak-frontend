@@ -1,7 +1,7 @@
-import { Component, input } from '@angular/core';
-import { PlayerInfo } from '../../services/player-service/player-service';
+import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RoundPipe } from '../../util/round-pipe/round-pipe';
+import { PlayerService } from '../../services/player-service/player-service';
 
 @Component({
   selector: 'app-player-label',
@@ -10,5 +10,15 @@ import { RoundPipe } from '../../util/round-pipe/round-pipe';
   styleUrl: './player-label.css',
 })
 export class PlayerLabel {
-  playerInfo = input.required<PlayerInfo | null>();
+  playerId = input.required<string | undefined>();
+  playerService = inject(PlayerService);
+
+  playerInfoRef = this.playerService.getComputedPlayerInfo(() => this.playerId());
+  playerInfo = computed(() => {
+    const ref = this.playerInfoRef();
+    if (ref && ref.hasValue()) {
+      return ref.value();
+    }
+    return null;
+  });
 }

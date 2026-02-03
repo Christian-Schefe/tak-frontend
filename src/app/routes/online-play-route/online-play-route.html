@@ -16,5 +16,11 @@
     (requestDecision)="onRequestDecision($event.requestId, $event.decision)"
   ></app-game-component>
 } @else {
-  <p>No ongoing game.</p>
+  <div class="flex flex-col items-center w-full">
+    @if (ongoingGameStatus.resource.isLoading()) {
+      <p-progress-spinner></p-progress-spinner>
+    } @else {
+      <p>No ongoing game.</p>
+    }
+  </div>
 }

@@ -5,13 +5,13 @@ import z from 'zod';
 export interface SmartHttpResource<T> {
   resource: HttpResourceRef<T | undefined>;
   refetch: () => void;
-  value: Signal<T | null>;
-  lastValue: Signal<T | null>;
+  value: Signal<T | undefined>;
+  lastValue: Signal<T | undefined>;
 }
 
 export interface ZodHttpResource<T> {
   resource: HttpResourceRef<T | undefined>;
-  value: Signal<T | null>;
+  value: Signal<T | undefined>;
 }
 
 export function smartHttpResource<T>(
@@ -26,7 +26,7 @@ export function smartHttpResource<T>(
     return urlFn();
   });
 
-  const value = computed<T | null>(() => {
+  const value = computed<T | undefined>(() => {
     if (resource.hasValue()) {
       const parsed = schema.safeParse(resource.value());
       if (parsed.success) {
@@ -35,16 +35,16 @@ export function smartHttpResource<T>(
         console.error('Error parsing HTTP resource:', parsed.error);
       }
     }
-    return null;
+    return undefined;
   });
 
-  const lastValue = linkedSignal<T | null, T | null>({
+  const lastValue = linkedSignal<T | undefined, T | undefined>({
     source: () => value(),
     computation: (source, prev) => {
-      if (source !== null) {
+      if (source !== undefined) {
         return source;
       }
-      return prev?.value ?? null;
+      return prev?.value ?? undefined;
     },
   });
 
@@ -66,7 +66,7 @@ export function zodHttpResource<T>(
 ): ZodHttpResource<T> {
   const resource = httpResource<T>(() => urlFn());
 
-  const value = computed<T | null>(() => {
+  const value = computed<T | undefined>(() => {
     if (resource.hasValue()) {
       const parsed = schema.safeParse(resource.value());
       if (parsed.success) {
@@ -75,7 +75,7 @@ export function zodHttpResource<T>(
         console.error('Error parsing HTTP resource:', parsed.error);
       }
     }
-    return null;
+    return undefined;
   });
 
   return {

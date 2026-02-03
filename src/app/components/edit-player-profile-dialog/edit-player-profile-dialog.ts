@@ -29,7 +29,7 @@ export class EditPlayerProfileDialog {
   }));
   updateProfile = output<AccountProfile>();
 
-  currentProfile = input.required<AccountProfile | null>();
+  currentProfile = input.required<AccountProfile | undefined>();
 
   selectedCountry = linkedSignal<string | null>(() => {
     this.visible(); // This causes reset when dialog is opened

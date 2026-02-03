@@ -4,13 +4,13 @@ import { ButtonModule } from 'primeng/button';
 import { IftaLabelModule } from 'primeng/iftalabel';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { GameSettings } from '../../services/game-service/game-service';
 import { CreateSeekPayload } from '../../services/seek-service/seek-service';
 import { RippleModule } from 'primeng/ripple';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, debounceTime, of, switchMap } from 'rxjs';
 import { PlayerService } from '../../services/player-service/player-service';
+import { GameSettings } from '../../services/game-history-service/game-history-service';
 
 interface SeekPreset {
   name: string;

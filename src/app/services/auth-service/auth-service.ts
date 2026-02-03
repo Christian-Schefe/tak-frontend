@@ -1,4 +1,4 @@
-import { computed, Injectable, resource } from '@angular/core';
+import { computed, Injectable, resource, signal } from '@angular/core';
 import {
   Session,
   UpdateLoginFlowBody,
@@ -15,6 +15,7 @@ type AuthState =
   | {
       type: 'logged_out';
     }
+  | { type: 'guest' }
   | {
       type: 'logged_in';
       session: Session;
@@ -35,7 +36,11 @@ export class AuthService {
     },
   });
 
+  isGuest = signal<boolean>(false);
+
   authState = computed<AuthState>(() => {
+    const isGuest = this.isGuest();
+    console.log('Computing auth state', isGuest);
     if (!this.sessionResource.hasValue()) {
       return { type: 'loading' };
     }
@@ -43,7 +48,7 @@ export class AuthService {
     if (session !== null && session.active !== false) {
       return { type: 'logged_in', session: session };
     } else {
-      return { type: 'logged_out' };
+      return isGuest ? { type: 'guest' } : { type: 'logged_out' };
     }
   });
 
@@ -58,11 +63,6 @@ export class AuthService {
     } catch {
       return null;
     }
-  }
-
-  async checkLoggedIn() {
-    const session = await this.getSession();
-    return session !== null;
   }
 
   async getLoginFlow(flowId: string) {
@@ -109,9 +109,12 @@ export class AuthService {
   }
 
   async logout() {
-    const flow = await kratos.createBrowserLogoutFlow();
-    await kratos.updateLogoutFlow({ token: flow.data.logout_token });
-    this.sessionResource.reload();
+    if (this.authState().type === 'logged_in') {
+      const flow = await kratos.createBrowserLogoutFlow();
+      await kratos.updateLogoutFlow({ token: flow.data.logout_token });
+    }
+    this.isGuest.set(false);
+    console.log('logout', this.sessionResource.reload());
   }
 
   async startSettingsFlow() {

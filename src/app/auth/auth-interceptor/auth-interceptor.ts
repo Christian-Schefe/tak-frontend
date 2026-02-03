@@ -1,18 +1,18 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { GuestService } from '../../services/guest-service/guest-service';
+import { IdentityService } from '../../services/identity-service/identity-service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith('/api2')) {
     return next(req);
   }
-  const guestToken = inject(GuestService).guestJwt();
-  if (guestToken === null || guestToken.length < 1) {
+  const token = inject(IdentityService).apiToken();
+  if (token === null || token.length < 1) {
     return next(req);
   }
   const reqWithHeader = req.clone({
     setHeaders: {
-      Authorization: `Bearer ${guestToken}`,
+      Authorization: `Bearer ${token}`,
     },
   });
   return next(reqWithHeader);

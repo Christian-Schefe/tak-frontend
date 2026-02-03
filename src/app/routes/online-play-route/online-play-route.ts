@@ -28,6 +28,7 @@ import { newGame, setTimeRemaining } from '../../../tak-core/game';
 import { moveFromString, moveToString } from '../../../tak-core/move';
 import { gameStateFromStr } from '../../../tak-core/ptn';
 import { produce } from 'immer';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 interface CurrentGame {
   gameId: number;
@@ -40,7 +41,7 @@ interface CurrentGame {
 
 @Component({
   selector: 'app-online-play-route',
-  imports: [GameComponent],
+  imports: [GameComponent, ProgressSpinnerModule],
   templateUrl: './online-play-route.html',
   styleUrl: './online-play-route.css',
 })

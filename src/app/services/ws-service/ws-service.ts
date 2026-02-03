@@ -75,7 +75,7 @@ export class WsService {
 
     if (connected && !authenticated && identity) {
       console.log('Authenticating WebSocket with identity:', identity);
-      this.sendAuthenticateMessage(identity.wsJwt);
+      this.sendAuthenticateMessage(identity.jwt);
     }
   });
 

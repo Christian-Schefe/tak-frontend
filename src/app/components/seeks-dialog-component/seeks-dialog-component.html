@@ -8,7 +8,6 @@
   [breakpoints]="{ '1280px': '60vw', '900px': '75vw', '575px': '90vw' }"
   [style]="{ width: '50vw' }"
 >
-  @let playerInfosMap = playerInfos();
   <p-table [value]="this.seekService.seeks()" [rowTrackBy]="trackBy">
     <ng-template #header>
       <tr>
@@ -22,7 +21,6 @@
     </ng-template>
     <ng-template #body let-item>
       @let seek = asSeek(item);
-      @let playerInfo = playerInfosMap[seek.creatorId];
       @let isOwnSeek = identity && identity.playerId === seek.creatorId;
       <tr>
         <td>
@@ -37,9 +35,7 @@
           </button>
         </td>
         <td>
-          @if (playerInfo.hasValue()) {
-            <app-player-label [playerInfo]="playerInfo.value()"></app-player-label>
-          }
+          <app-player-label [playerId]="seek.creatorId"></app-player-label>
         </td>
         <td>{{ seek.gameSettings.boardSize }}</td>
         <td>{{ seek.gameSettings.halfKomi / 2 }}</td>
