@@ -26,7 +26,7 @@ export class BoardNativeComponent {
   game = input.required<TakGameUI>();
   action = output<TakActionEvent>();
   mode = input.required<GameMode>();
-  settingsService = inject(SettingsService);
+  private settingsService = inject(SettingsService);
 
   boardSettings = computed<BoardSettings>(() => {
     const settings = this.settingsService.boardNativeSettings();

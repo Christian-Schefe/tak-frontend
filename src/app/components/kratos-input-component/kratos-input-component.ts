@@ -7,7 +7,6 @@ import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
-import { FloatLabelModule } from 'primeng/floatlabel';
 import { RippleModule } from 'primeng/ripple';
 
 @Component({
@@ -20,7 +19,6 @@ import { RippleModule } from 'primeng/ripple';
     CheckboxModule,
     MessageModule,
     PasswordModule,
-    FloatLabelModule,
     RippleModule,
   ],
   templateUrl: './kratos-input-component.html',

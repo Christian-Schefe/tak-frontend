@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PublicLayout } from './public-layout';
+import { GameActionsPanel } from './game-actions-panel';
 
-describe('PublicLayout', () => {
-  let component: PublicLayout;
-  let fixture: ComponentFixture<PublicLayout>;
+describe('GameActionsPanel', () => {
+  let component: GameActionsPanel;
+  let fixture: ComponentFixture<GameActionsPanel>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PublicLayout]
+      imports: [GameActionsPanel]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(PublicLayout);
+    fixture = TestBed.createComponent(GameActionsPanel);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

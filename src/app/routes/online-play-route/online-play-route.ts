@@ -46,9 +46,9 @@ interface CurrentGame {
   styleUrl: './online-play-route.css',
 })
 export class OnlinePlayRoute implements OnDestroy {
-  gameService = inject(GameService);
-  identityService = inject(IdentityService);
-  wsService = inject(WsService);
+  private gameService = inject(GameService);
+  private identityService = inject(IdentityService);
+  private wsService = inject(WsService);
   id = input.required<string>();
   numId = computed(() => {
     const numId = Number(this.id());

@@ -8,7 +8,7 @@
           <span> vs </span>
           <app-player-label [playerId]="item.playerIds.black"></app-player-label>
         </p>
-        <a pButton [routerLink]="['/app/online/', item.id]">Rejoin</a>
+        <a pButton pRipple [routerLink]="['/online/', item.id]">Rejoin</a>
       </div>
     </p-card>
   }

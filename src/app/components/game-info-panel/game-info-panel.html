@@ -1,0 +1,50 @@
+<p-scrollpanel [style]="{ width: '100%', height: '150px', flexGrow: '1' }">
+  <div class="flex flex-col p-2">
+    @for (row of historyItems(); track $index) {
+      <div [class]="`p-2 flex w-full ${$index % 2 === 0 ? 'bg-emphasis' : ''} rounded-md`">
+        @for (item of row; track $index) {
+          @switch (item.type) {
+            @case ('moveNumber') {
+              <div class="font-mono text-muted-color min-w-12">
+                {{ item.text }}
+              </div>
+            }
+            @case ('whiteMove') {
+              <button
+                [class]="
+                  `font-mono font-bold min-w-20 text-left hover:underline ${item.active ? '' : 'text-muted-color'}`
+                "
+                (click)="setHistoryPlyIndex.emit(item.plyIndex)"
+              >
+                {{ item.text }}
+              </button>
+            }
+            @case ('blackMove') {
+              <button
+                [class]="
+                  `font-mono font-bold min-w-20 text-left ml-4 hover:underline ${item.active ? '' : 'text-muted-color'}`
+                "
+                (click)="setHistoryPlyIndex.emit(item.plyIndex)"
+              >
+                {{ item.text }}
+              </button>
+            }
+            @case ('gameResult') {
+              <div class="font-mono font-bold">
+                {{ item.text }}
+              </div>
+            }
+          }
+        }
+      </div>
+    }
+  </div>
+</p-scrollpanel>
+<div class="flex flex-col p-2 gap-2">
+  @for (item of requests(); track $index) {
+    <app-game-request
+      [request]="item"
+      (decision)="requestDecision.emit({ requestId: item.id, decision: $event })"
+    ></app-game-request>
+  }
+</div>

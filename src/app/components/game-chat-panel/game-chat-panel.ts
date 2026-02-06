@@ -17,7 +17,7 @@ import { PlayerService } from '../../services/player-service/player-service';
   viewProviders: [provideIcons({ lucideSend })],
 })
 export class GameChatPanel {
-  playerService = inject(PlayerService);
+  private playerService = inject(PlayerService);
 
   chatSources = computed(() => {
     const map = this.chatService.chatSources();

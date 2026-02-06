@@ -69,8 +69,8 @@ const emoteMap = new Map<string, Emote>(emotes.map((e) => [e.code, e]));
   styleUrl: './chat-conversation.css',
 })
 export class ChatConversation {
-  chatService = inject(ChatService);
-  playerService = inject(PlayerService);
+  private chatService = inject(ChatService);
+  private playerService = inject(PlayerService);
   source = input.required<ChatMessageConversation>();
 
   playerInfos = this.playerService.getComputedPlayerInfosByAccountId(() => {

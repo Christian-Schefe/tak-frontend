@@ -1,6 +1,5 @@
 import { Component, inject, model } from '@angular/core';
 import { GameService } from '../../services/game-service/game-service';
-import { PlayerService } from '../../services/player-service/player-service';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { PlayerLabel } from '../player-label/player-label';
@@ -20,9 +19,8 @@ import { GameInfo } from '../../services/game-history-service/game-history-servi
 })
 export class GamesDialogComponent {
   gameService = inject(GameService);
-  playerService = inject(PlayerService);
   visible = model.required<boolean>();
-  router = inject(Router);
+  private router = inject(Router);
 
   trackBy(game: { id: string }) {
     return game.id;
@@ -33,7 +31,7 @@ export class GamesDialogComponent {
   }
 
   onViewGame(gameId: number) {
-    void this.router.navigate(['/app/online', gameId.toString()]);
+    void this.router.navigate(['/online', gameId.toString()]);
     this.visible.set(false);
   }
 }

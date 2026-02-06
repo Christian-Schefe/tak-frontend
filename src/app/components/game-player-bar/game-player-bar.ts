@@ -12,7 +12,7 @@ import { TakPlayer } from '../../../tak-core';
   imports: [GameClock],
 })
 export class GamePlayerBar {
-  playerService = inject(PlayerService);
+  private playerService = inject(PlayerService);
   gamePlayer = input.required<GamePlayer>();
   playerColor = input.required<TakPlayer>();
   game = input.required<TakGameUI>();

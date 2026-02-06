@@ -1,7 +1,8 @@
 @let takGame = game();
 @let pOrder = playerOrder();
-<div class="board-container w-full overflow-y-scroll h-full flex flex-col xl:grid">
-  <div></div>
+<div
+  class="board-container w-full max-xl:overflow-y-scroll h-full flex flex-col xl:grid max-w-400 mx-auto xl:pl-4"
+>
   <div class="max-xl:order-1 p-2 xl:p-4">
     <app-game-player-bar
       [gamePlayer]="players()[pOrder.p2]"
@@ -12,20 +13,6 @@
   </div>
   <div></div>
 
-  <div class="h-full w-full max-xl:order-4 xl:w-100 p-4 pb-0 xl:py-0">
-    <app-game-side-panel
-      [game]="takGame"
-      [drawOffer]="myDrawOffer()"
-      [undoRequest]="myUndoRequest()"
-      [requests]="opponentRequests()"
-      (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
-      (requestDraw)="requestDraw.emit($event)"
-      (requestUndo)="requestUndo.emit($event)"
-      (retractRequest)="retractRequest.emit($event)"
-      (requestDecision)="requestDecision.emit($event)"
-      (resign)="resign.emit()"
-    ></app-game-side-panel>
-  </div>
   <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3 max-xl:order-2">
     @switch (settingsService.generalSettings().boardType) {
       @case ('2d') {
@@ -42,11 +29,21 @@
       }
     }
   </div>
-  <div class="h-full w-full max-xl:order-5 xl:w-100 p-4 xl:py-0">
-    <app-game-chat-panel></app-game-chat-panel>
+  <div class="h-full w-full max-xl:order-4 xl:w-120 p-4 pb-0 xl:py-0">
+    <app-game-side-panel
+      [game]="takGame"
+      [drawOffer]="myDrawOffer()"
+      [undoRequest]="myUndoRequest()"
+      [requests]="opponentRequests()"
+      (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
+      (requestDraw)="requestDraw.emit($event)"
+      (requestUndo)="requestUndo.emit($event)"
+      (retractRequest)="retractRequest.emit($event)"
+      (requestDecision)="requestDecision.emit($event)"
+      (resign)="resign.emit()"
+    ></app-game-side-panel>
   </div>
 
-  <div></div>
   <div class="max-xl:order-3 p-2 xl:p-4">
     <app-game-player-bar
       [gamePlayer]="players()[pOrder.p1]"
@@ -57,51 +54,3 @@
   </div>
   <div></div>
 </div>
-
-@let gameState = gameStateTrigger();
-@if (gameState.type !== 'ongoing') {
-  <p-button (click)="showGameOverInfo.set(true)" class="absolute top-3 left-1/2 -translate-x-1/2"
-    >Show Game Over Info</p-button
-  >
-}
-<p-dialog
-  [(visible)]="showGameOverInfo"
-  header="Game Over"
-  [modal]="true"
-  [dismissableMask]="true"
-  [draggable]="false"
-  [breakpoints]="{ '1280px': '60vw', '900px': '75vw', '575px': '90vw' }"
-  [style]="{ width: '30vw' }"
->
-  @switch (gameState.type) {
-    @case ('aborted') {
-      <p>The game was aborted.</p>
-    }
-    @case ('win') {
-      <p>
-        {{ gameState.player === 'white' ? 'White' : 'Black' }} wins by
-        @switch (gameState.reason) {
-          @case ('road') {
-            completing a road!
-          }
-          @case ('flats') {
-            flat count! ({{ gameState.counts?.white }} to {{ gameState.counts?.black }} +
-            {{ takGame.actualGame.settings.halfKomi / 2 }})
-          }
-          @case ('timeout') {
-            timeout!
-          }
-          @case ('resignation') {
-            resignation!
-          }
-          @case ('timeout or resignation') {
-            timeout or resignation!
-          }
-        }
-      </p>
-    }
-    @case ('draw') {
-      <p>The game is a draw!</p>
-    }
-  }
-</p-dialog>

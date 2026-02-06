@@ -1,3 +1,8 @@
 <p-card [header]="'Update your account'" class="w-full mt-4">
   <app-kratos-flow-component [flowType]="'settings'"></app-kratos-flow-component>
 </p-card>
+<p-card [header]="'Danger zone'" class="w-full mt-4">
+  <div class="mt-4 flex flex-col gap-2">
+    <p-button fluid severity="danger" (click)="onLogout()">Logout</p-button>
+  </div>
+</p-card>

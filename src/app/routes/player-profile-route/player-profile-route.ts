@@ -39,11 +39,11 @@ const flagsMap = new Map<string, string>(Object.entries(flags));
   viewProviders: [provideIcons({ lucideTrophy, lucideSwords, lucideEdit, lucideEye })],
 })
 export class PlayerProfileRoute {
-  identityService = inject(IdentityService);
-  playerService = inject(PlayerService);
-  profileService = inject(ProfileService);
-  gameHistoryService = inject(GameHistoryService);
-  router = inject(Router);
+  private identityService = inject(IdentityService);
+  private playerService = inject(PlayerService);
+  private profileService = inject(ProfileService);
+  private gameHistoryService = inject(GameHistoryService);
+  private router = inject(Router);
   id = input.required<string>();
 
   playerInfoRef = this.playerService.getComputedPlayerInfo(() => this.id());
@@ -98,9 +98,10 @@ export class PlayerProfileRoute {
       return [];
     }
     const sum = stats.gamesWon + stats.gamesDrawn + stats.gamesLost;
-    const winPercent = Math.round((stats.gamesWon * 100) / sum);
-    const lossPercent = Math.round((stats.gamesLost * 100) / sum);
-    const drawPercent = 100 - winPercent - lossPercent;
+    const safeSum = sum === 0 ? 1 : sum;
+    const winPercent = Math.round((stats.gamesWon * 100) / safeSum);
+    const lossPercent = Math.round((stats.gamesLost * 100) / safeSum);
+    const drawPercent = sum === 0 ? 0 : 100 - winPercent - lossPercent;
     return [
       {
         label: `${stats.gamesWon.toString()} Win${stats.gamesWon !== 1 ? 's' : ''}`,
@@ -131,6 +132,6 @@ export class PlayerProfileRoute {
   }
 
   onViewGame(gameId: number) {
-    void this.router.navigate(['/app/online', gameId.toString()]);
+    void this.router.navigate(['/online', gameId.toString()]);
   }
 }

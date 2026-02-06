@@ -1,5 +1,5 @@
 @let player = playerInfo();
-<a [routerLink]="['/app/player/', player?.id]" class="whitespace-nowrap">
+<a [routerLink]="['/player/', player?.id]" class="whitespace-nowrap">
   {{ player?.displayName }}
   @if (player && player.rating) {
     <span class="text-muted-color text-sm">{{ ' ' }}({{ player.rating.rating | round }})</span>

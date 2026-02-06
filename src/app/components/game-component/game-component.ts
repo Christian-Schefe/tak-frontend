@@ -1,12 +1,9 @@
 import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 import { BoardNinjaComponent } from '../board-ninja-component/board-ninja-component';
-import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { GamePlayerBar } from '../game-player-bar/game-player-bar';
 import { TakAction, TakGameState, TakPieceVariant, TakPlayer, TakPos } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
 import { GameSidePanel } from '../game-side-panel/game-side-panel';
-import { GameChatPanel } from '../game-chat-panel/game-chat-panel';
 import { BoardNativeComponent } from '../board-native/board-native-component/board-native-component';
 import { GameRequestType } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
@@ -45,11 +42,9 @@ export type TakActionEvent =
   selector: 'app-game-component',
   imports: [
     BoardNinjaComponent,
-    ButtonModule,
-    DialogModule,
+
     GamePlayerBar,
     GameSidePanel,
-    GameChatPanel,
     BoardNativeComponent,
     BoardNgtComponent,
   ],
@@ -70,7 +65,7 @@ export class GameComponent {
   settingsService = inject(SettingsService);
   requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
 
-  identityService = inject(IdentityService);
+  private identityService = inject(IdentityService);
 
   playerOrder = computed<{ p1: TakPlayer; p2: TakPlayer }>(() => {
     const mode = this.mode();

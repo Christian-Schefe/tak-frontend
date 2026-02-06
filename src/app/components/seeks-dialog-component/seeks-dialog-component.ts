@@ -5,14 +5,22 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { PlayerLabel } from '../player-label/player-label';
 import { TimeControlPipe } from '../../util/time-control-pipe/time-control-pipe';
-import { Ripple } from 'primeng/ripple';
+import { RippleModule } from 'primeng/ripple';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideSwords, lucideTrash } from '@ng-icons/lucide';
 import { IdentityService } from '../../services/identity-service/identity-service';
 
 @Component({
   selector: 'app-seeks-dialog-component',
-  imports: [TableModule, DialogModule, ButtonModule, PlayerLabel, TimeControlPipe, Ripple, NgIcon],
+  imports: [
+    TableModule,
+    DialogModule,
+    ButtonModule,
+    PlayerLabel,
+    TimeControlPipe,
+    RippleModule,
+    NgIcon,
+  ],
   templateUrl: './seeks-dialog-component.html',
   styleUrl: './seeks-dialog-component.css',
   viewProviders: [provideIcons({ lucideSwords, lucideTrash })],

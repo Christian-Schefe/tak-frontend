@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NavComponent } from './nav-component';
+import { GameInfoPanel } from './game-info-panel';
 
-describe('NavComponent', () => {
-  let component: NavComponent;
-  let fixture: ComponentFixture<NavComponent>;
+describe('GameInfoPanel', () => {
+  let component: GameInfoPanel;
+  let fixture: ComponentFixture<GameInfoPanel>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NavComponent]
+      imports: [GameInfoPanel]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(NavComponent);
+    fixture = TestBed.createComponent(GameInfoPanel);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

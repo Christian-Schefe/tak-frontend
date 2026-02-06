@@ -146,7 +146,7 @@ export class GameService {
       identity !== null &&
       (game.playerIds.white === identity.playerId || game.playerIds.black === identity.playerId);
     if (thisPlayerGame) {
-      void this.router.navigate(['/app/online/', game.id]);
+      void this.router.navigate(['/online/', game.id]);
     }
   }
 

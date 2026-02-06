@@ -6,7 +6,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith('/api2')) {
     return next(req);
   }
-  const token = inject(IdentityService).apiToken();
+  const token = inject(IdentityService).getApiToken();
   if (token === null || token.length < 1) {
     return next(req);
   }

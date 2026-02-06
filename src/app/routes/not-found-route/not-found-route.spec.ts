@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MainRoute } from './main-route';
+import { NotFoundRoute } from './not-found-route';
 
-describe('MainRoute', () => {
-  let component: MainRoute;
-  let fixture: ComponentFixture<MainRoute>;
+describe('NotFoundRoute', () => {
+  let component: NotFoundRoute;
+  let fixture: ComponentFixture<NotFoundRoute>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MainRoute]
+      imports: [NotFoundRoute]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(MainRoute);
+    fixture = TestBed.createComponent(NotFoundRoute);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

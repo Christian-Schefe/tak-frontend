@@ -16,9 +16,9 @@ import { NewLocalForm } from '../new-local-form/new-local-form';
 })
 export class NewGameDialog {
   visible = model.required<boolean>();
-  seekService = inject(SeekService);
-  router = inject(Router);
-  gameService = inject(GameService);
+  private seekService = inject(SeekService);
+  private router = inject(Router);
+  private gameService = inject(GameService);
 
   onCreateSeek(payload: CreateSeekPayload) {
     this.seekService.createSeek(payload).subscribe(() => {
@@ -30,6 +30,6 @@ export class NewGameDialog {
   onPlayLocal(payload: TakGameSettings) {
     this.gameService.startNewLocalGame(payload);
     this.visible.set(false);
-    void this.router.navigate(['/app/local']);
+    void this.router.navigate(['/local']);
   }
 }

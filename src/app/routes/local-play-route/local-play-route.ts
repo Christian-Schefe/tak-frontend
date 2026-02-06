@@ -29,7 +29,7 @@ import { produce } from 'immer';
   styleUrl: './local-play-route.css',
 })
 export class LocalPlayRoute {
-  gameService = inject(GameService);
+  private gameService = inject(GameService);
   game = linkedSignal<TakGameUI>(() => {
     return newGameUI(newGame(this.gameService.localGameSettings()));
   });

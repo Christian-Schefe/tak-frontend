@@ -51,7 +51,7 @@ export class AuthRoute {
   private readonly _navigateIfLoggedInEffect = effect(() => {
     const authState = this.authService.authState();
     if (authState.type === 'logged_in') {
-      void this.router.navigate(['/app']);
+      void this.router.navigate(['/']);
     }
   });
 

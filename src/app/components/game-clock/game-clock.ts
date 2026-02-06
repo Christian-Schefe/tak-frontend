@@ -1,6 +1,5 @@
 import { Component, computed, effect, input, signal } from '@angular/core';
 import { Pipe, PipeTransform } from '@angular/core';
-import { TagModule } from 'primeng/tag';
 import { TakGameUI } from '../../../tak-core/ui';
 import { TakPlayer } from '../../../tak-core';
 import { getTimeRemaining } from '../../../tak-core/game';
@@ -36,7 +35,7 @@ export class ClockFormatPipe implements PipeTransform {
 
 @Component({
   selector: 'app-game-clock',
-  imports: [ClockFormatPipe, TagModule],
+  imports: [ClockFormatPipe],
   templateUrl: './game-clock.html',
   styleUrl: './game-clock.css',
 })

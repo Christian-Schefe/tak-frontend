@@ -1,0 +1,78 @@
+@let gs = gameState();
+<p-confirmpopup />
+<div class="flex gap-2 p-2">
+  @if (gs.type === 'ongoing') {
+    <p-button
+      [disabled]="!canUndo()"
+      (click)="onClickUndo($event)"
+      [severity]="hasUndoRequest() ? 'primary' : 'secondary'"
+      text
+    >
+      <ng-icon name="lucideUndo" size="20px"></ng-icon>
+      <p>Undo</p>
+    </p-button>
+    <p-button
+      (click)="onClickDraw($event)"
+      [severity]="hasDrawOffer() ? 'primary' : 'secondary'"
+      text
+    >
+      <ng-icon name="lucideHandshake" size="20px"></ng-icon>
+      <p>Draw</p>
+    </p-button>
+    <p-button (click)="onClickResign($event)" severity="danger" text>
+      <ng-icon name="lucideFlag" size="20px"></ng-icon>
+      <p>Resign</p>
+    </p-button>
+  } @else {
+    <p-button
+      (click)="showGameOverInfo.set(true)"
+      [severity]="hasDrawOffer() ? 'primary' : 'secondary'"
+      text
+    >
+      <ng-icon name="lucideInfo" size="20px"></ng-icon>
+      <p>Show Game Over</p>
+    </p-button>
+  }
+</div>
+
+<p-dialog
+  [(visible)]="showGameOverInfo"
+  header="Game Over"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [breakpoints]="{ '1280px': '60vw', '900px': '75vw', '575px': '90vw' }"
+  [style]="{ width: '30vw' }"
+>
+  @switch (gs.type) {
+    @case ('aborted') {
+      <p>The game was aborted.</p>
+    }
+    @case ('win') {
+      <p>
+        {{ gs.player === 'white' ? 'White' : 'Black' }} wins by
+        @switch (gs.reason) {
+          @case ('road') {
+            completing a road!
+          }
+          @case ('flats') {
+            flat count! ({{ gs.counts?.white }} to {{ gs.counts?.black }} +
+            {{ game().actualGame.settings.halfKomi / 2 }})
+          }
+          @case ('timeout') {
+            timeout!
+          }
+          @case ('resignation') {
+            resignation!
+          }
+          @case ('timeout or resignation') {
+            timeout or resignation!
+          }
+        }
+      </p>
+    }
+    @case ('draw') {
+      <p>The game is a draw!</p>
+    }
+  }
+</p-dialog>

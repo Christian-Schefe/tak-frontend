@@ -1,16 +1,14 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth/auth-guard/auth-guard';
-import { PublicLayout } from './layout/public-layout/public-layout';
 import { AppLayout } from './layout/app-layout/app-layout';
 
 export const routes: Routes = [
   {
     path: '',
-    component: PublicLayout,
+    component: AppLayout,
     children: [
       {
         path: '',
-        loadComponent: () => import('./routes/main-route/main-route').then((m) => m.MainRoute),
+        loadComponent: () => import('./routes/home-route/home-route').then((m) => m.HomeRoute),
       },
       {
         path: 'verify',
@@ -30,18 +28,6 @@ export const routes: Routes = [
       {
         path: 'authenticate',
         loadComponent: () => import('./routes/auth-route/auth-route').then((m) => m.AuthRoute),
-      },
-    ],
-  },
-  {
-    path: 'app',
-    canActivate: [authGuard],
-    canActivateChild: [authGuard],
-    component: AppLayout,
-    children: [
-      {
-        path: '',
-        loadComponent: () => import('./routes/home-route/home-route').then((m) => m.HomeRoute),
       },
       {
         path: 'account',
@@ -71,6 +57,11 @@ export const routes: Routes = [
           import('./routes/player-profile-route/player-profile-route').then(
             (m) => m.PlayerProfileRoute,
           ),
+      },
+      {
+        path: '**',
+        loadComponent: () =>
+          import('./routes/not-found-route/not-found-route').then((m) => m.NotFoundRoute),
       },
     ],
   },
