@@ -1,0 +1,7 @@
+<p-card class="w-full" header="Seeks">
+  <app-seeks-table-component
+    [seeks]="seeks()"
+    (acceptSeek)="onAcceptSeek($event)"
+    (cancelSeek)="onCancelSeek($event)"
+  ></app-seeks-table-component>
+</p-card>

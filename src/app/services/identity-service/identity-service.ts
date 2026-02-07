@@ -3,11 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth-service/auth-service';
 import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 import z from 'zod';
+import { Router } from '@angular/router';
 
 export const accountInfo = z.object({
   accountId: z.string(),
   playerId: z.string(),
   isGuest: z.boolean(),
+  newGuest: z.boolean(),
   jwt: z.string(),
 });
 
@@ -21,6 +23,7 @@ const JWT_STORAGE_KEY = 'api_jwt';
 export class IdentityService {
   httpClient = inject(HttpClient);
   authService = inject(AuthService);
+  router = inject(Router);
 
   private account = smartHttpResource<AccountInfo>(accountInfo, () => {
     const authState = this.authService.authState();
@@ -28,6 +31,14 @@ export class IdentityService {
     return authState.type !== 'loading' ? '/api2/whoami' : undefined;
   });
   identity = computed(() => this.account.value() ?? null);
+
+  _navigateToLoginEffect = effect(() => {
+    const identity = this.identity();
+    if (identity !== null && identity.newGuest) {
+      console.log('New guest login detected, navigating to login page');
+      void this.router.navigate(['/authenticate']);
+    }
+  });
 
   getApiToken() {
     const identity = this.identity();

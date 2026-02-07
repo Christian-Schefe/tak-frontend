@@ -1,0 +1,32 @@
+<p-card class="w-full">
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">Your Games</p-tab>
+      <p-tab value="1">Ongoing Games</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="0">
+        @for (game of thisPlayerGames(); track game.id) {
+          {{ game.id }}
+        } @empty {
+          <p>You're not currently playing any games.</p>
+          <a
+            pButton
+            pRipple
+            draggable="false"
+            [routerLink]="'/new'"
+            class="flex px-2 items-center py-2 gap-2 cursor-pointer"
+          >
+            Start new game
+          </a>
+        }
+      </p-tabpanel>
+      <p-tabpanel value="1">
+        <app-games-table-component
+          [games]="games()"
+          (viewGame)="onViewGame($event)"
+        ></app-games-table-component>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</p-card>

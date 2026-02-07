@@ -1,0 +1,35 @@
+<p-table [value]="games()" [rowTrackBy]="trackBy">
+  <ng-template #header>
+    <tr>
+      <th></th>
+      <th>White Player</th>
+      <th>Black Player</th>
+      <th>Board Size</th>
+      <th>Komi</th>
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    @let game = asGame(item);
+    <tr>
+      <td>
+        <button
+          pButton
+          pRipple
+          (click)="viewGame.emit(game.id)"
+          class="aspect-square"
+          severity="secondary"
+        >
+          <ng-icon name="lucideEye"></ng-icon>
+        </button>
+      </td>
+      <td>
+        <app-player-label [playerId]="game.playerIds.white"></app-player-label>
+      </td>
+      <td>
+        <app-player-label [playerId]="game.playerIds.black"></app-player-label>
+      </td>
+      <td>{{ game.gameSettings.boardSize }}</td>
+      <td>{{ game.gameSettings.halfKomi / 2 }}</td>
+    </tr>
+  </ng-template>
+</p-table>

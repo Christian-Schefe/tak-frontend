@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GamesDialogComponent } from './games-dialog-component';
+import { NewGameRoute } from './new-game-route';
 
-describe('GamesDialogComponent', () => {
-  let component: GamesDialogComponent;
-  let fixture: ComponentFixture<GamesDialogComponent>;
+describe('NewGameRoute', () => {
+  let component: NewGameRoute;
+  let fixture: ComponentFixture<NewGameRoute>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GamesDialogComponent]
+      imports: [NewGameRoute]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(GamesDialogComponent);
+    fixture = TestBed.createComponent(NewGameRoute);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

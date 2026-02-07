@@ -29,30 +29,17 @@
 <ng-template #navContent>
   <div class="w-full h-0 grow flex flex-col items-stretch p-2 gap-1">
     @for (item of items(); track $index) {
-      @if (item.type === 'button') {
+      <a draggable="false" [routerLink]="item.routerLink" class="cursor-pointer">
         <p-button
           variant="text"
           severity="contrast"
           class="flex items-center gap-2 cursor-pointer"
           fluid
-          (click)="item.command()"
         >
           <ng-icon [name]="item.icon" size="20px" />
           <span class="grow text-left">{{ item.label }}</span>
         </p-button>
-      } @else {
-        <a draggable="false" [routerLink]="item.routerLink" class="cursor-pointer">
-          <p-button
-            variant="text"
-            severity="contrast"
-            class="flex items-center gap-2 cursor-pointer"
-            fluid
-          >
-            <ng-icon [name]="item.icon" size="20px" />
-            <span class="grow text-left">{{ item.label }}</span>
-          </p-button>
-        </a>
-      }
+      </a>
     }
     <div class="grow"></div>
     @let identity = identityService.identity();
@@ -89,7 +76,3 @@
     }
   </div>
 </ng-template>
-
-<app-seeks-dialog-component [(visible)]="seeksDialogVisible" />
-<app-games-dialog-component [(visible)]="gamesDialogVisible" />
-<app-new-game-dialog [(visible)]="newGameDialogVisible" />

@@ -1,12 +1,4 @@
-<p-dialog
-  [(visible)]="visible"
-  [modal]="true"
-  [dismissableMask]="true"
-  header="New Game"
-  [draggable]="false"
-  [breakpoints]="{ '1280px': '60vw', '900px': '75vw', '575px': '90vw' }"
-  [style]="{ width: '50vw' }"
->
+<p-card header="Start a new game" class="w-full">
   <p-tabs value="0">
     <p-tablist>
       <p-tab value="0">New Seek</p-tab>
@@ -21,4 +13,4 @@
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
-</p-dialog>
+</p-card>

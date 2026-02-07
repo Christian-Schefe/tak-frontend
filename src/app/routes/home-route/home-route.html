@@ -1,15 +1,22 @@
-<div class="w-full h-full flex flex-col mx-auto max-w-xl gap-4 p-4">
-  <h1 class="font-bold text-center text-2xl">Nothing here yet</h1>
-  @for (item of gameService.thisPlayerGames(); track $index) {
-    <p-card header="Rejoin Ongoing Game">
-      <div class="flex flex-col gap-2">
-        <p>
-          <app-player-label [playerId]="item.playerIds.white"></app-player-label>
-          <span> vs </span>
-          <app-player-label [playerId]="item.playerIds.black"></app-player-label>
-        </p>
-        <a pButton pRipple [routerLink]="['/online/', item.id]">Rejoin</a>
-      </div>
-    </p-card>
-  }
-</div>
+<p-card class="w-full" header="Play a game">
+  <div class="w-full flex gap-4">
+    <a
+      pButton
+      pRipple
+      draggable="false"
+      [routerLink]="'/new'"
+      class="flex px-2 items-center py-2 gap-2 cursor-pointer"
+    >
+      <span>Start new game</span>
+    </a>
+    <a
+      pButton
+      pRipple
+      draggable="false"
+      [routerLink]="'/seeks'"
+      class="flex px-2 items-center py-2 gap-2 cursor-pointer"
+    >
+      <span>Join existing game</span>
+    </a>
+  </div>
+</p-card>

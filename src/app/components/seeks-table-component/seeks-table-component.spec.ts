@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SeeksDialogComponent } from './seeks-dialog-component';
+import { SeeksTableComponent } from './seeks-table-component';
 
-describe('SeeksDialogComponent', () => {
-  let component: SeeksDialogComponent;
-  let fixture: ComponentFixture<SeeksDialogComponent>;
+describe('SeeksTableComponent', () => {
+  let component: SeeksTableComponent;
+  let fixture: ComponentFixture<SeeksTableComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SeeksDialogComponent],
+      imports: [SeeksTableComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(SeeksDialogComponent);
+    fixture = TestBed.createComponent(SeeksTableComponent);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

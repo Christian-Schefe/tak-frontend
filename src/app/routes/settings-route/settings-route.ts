@@ -14,6 +14,7 @@ import { ToggleButtonModule } from 'primeng/togglebutton';
 import { themes as boardNativeThemeList } from '../../../2d-themes';
 import { themes } from '../../services/theme-service/theme-service';
 import { NINJA_2D_THEMES } from '../../components/board-ninja-component/board-ninja.constants';
+import { CardModule } from 'primeng/card';
 
 @Component({
   selector: 'app-settings-route',
@@ -24,6 +25,7 @@ import { NINJA_2D_THEMES } from '../../components/board-ninja-component/board-ni
     TabsModule,
     ToggleButtonModule,
     SliderModule,
+    CardModule,
   ],
   templateUrl: './settings-route.html',
   styleUrl: './settings-route.css',

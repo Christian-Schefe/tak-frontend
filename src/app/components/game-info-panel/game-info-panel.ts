@@ -1,4 +1,4 @@
-import { Component, computed, effect, input, output, viewChild } from '@angular/core';
+import { Component, computed, effect, HostListener, input, output, viewChild } from '@angular/core';
 import { TakGameUI } from '../../../tak-core/ui';
 import { moveRecordToString } from '../../../tak-core/move';
 import { ScrollPanel, ScrollPanelModule } from 'primeng/scrollpanel';
@@ -88,4 +88,25 @@ export class GameInfoPanel {
       this.input().scrollTop(Infinity);
     }, 0);
   });
+
+  @HostListener('window:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent) {
+    const target = event.target as HTMLElement;
+
+    // Don't trigger if the user is focused on an input, textarea, select or content editable element
+    if (
+      target.isContentEditable ||
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT'
+    ) {
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      this.setHistoryPlyIndex.emit(this.gamePlyIndex() - 1);
+    } else if (event.key === 'ArrowRight') {
+      this.setHistoryPlyIndex.emit(this.gamePlyIndex() + 1);
+    }
+  }
 }
