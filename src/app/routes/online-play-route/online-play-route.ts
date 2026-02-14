@@ -39,6 +39,8 @@ interface CurrentGame {
   remainingMs: Record<TakPlayer, number>;
 }
 
+const remainingMs = z.object({ white: z.number(), black: z.number() });
+
 @Component({
   selector: 'app-online-play-route',
   imports: [GameComponent, ProgressSpinnerModule],
@@ -184,19 +186,27 @@ export class OnlinePlayRoute implements OnDestroy {
 
   private readonly _gameActionEffect = this.wsService.subscribeEffect(
     'gameAction',
-    z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number() }),
-    ({ gameId, action, plyIndex }) => {
+    z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number(), remainingMs }),
+    ({ gameId, action, plyIndex, remainingMs }) => {
       const currentGame = this.currentGame();
       if (!currentGame || currentGame.gameId !== gameId) {
         return;
       }
-      this.onRemoteAction(moveFromString(action), plyIndex);
+      this.game.update((game) => {
+        if (!game) {
+          return game;
+        }
+        const changedGame = this.onRemoteAction(game, moveFromString(action), plyIndex);
+        return produce(changedGame, (game) => {
+          setTimeRemaining(game.actualGame, remainingMs, new Date());
+        });
+      });
     },
   );
   private readonly _gameUndoEffect = this.wsService.subscribeEffect(
     'gameActionUndone',
-    z.object({ gameId: z.number() }),
-    ({ gameId }) => {
+    z.object({ gameId: z.number(), remainingMs: remainingMs }),
+    ({ gameId, remainingMs }) => {
       const currentGame = this.currentGame();
       if (!currentGame || currentGame.gameId !== gameId) {
         return;
@@ -207,28 +217,6 @@ export class OnlinePlayRoute implements OnDestroy {
         }
         return produce(game, (game) => {
           undoMove(game);
-        });
-      });
-    },
-  );
-
-  private readonly _gameTimeUpdateEffect = this.wsService.subscribeEffect(
-    'gameTimeUpdate',
-    z.object({
-      gameId: z.number(),
-      remainingMs: z.object({ white: z.number(), black: z.number() }),
-    }),
-    ({ gameId, remainingMs }) => {
-      const currentGame = this.currentGame();
-      if (!currentGame || currentGame.gameId !== gameId) {
-        return;
-      }
-      console.log('Received time update from server:', remainingMs);
-      this.game.update((game) => {
-        if (!game) {
-          return game;
-        }
-        return produce(game, (game) => {
           setTimeRemaining(game.actualGame, remainingMs, new Date());
         });
       });
@@ -338,25 +326,21 @@ export class OnlinePlayRoute implements OnDestroy {
     }
   }
 
-  onRemoteAction(action: TakAction, plyIndex: number) {
+  onRemoteAction(game: TakGameUI, action: TakAction, plyIndex: number) {
     console.log('Received action from Board:', action);
-    this.game.update((game) => {
-      if (!game) {
-        return game;
-      }
-      if (game.actualGame.history.length === plyIndex) {
-        return produce(game, (game) => {
-          doMove(game, action);
-        });
-      } else if (game.actualGame.history.length === plyIndex + 1) {
-        // This is our own action echoed back; ignore it.
-        console.log('Ignoring echoed back action.');
-      } else {
-        console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
-        this.ongoingGameStatus.refetch();
-      }
-      return game;
-    });
+
+    if (game.actualGame.history.length === plyIndex) {
+      return produce(game, (game) => {
+        doMove(game, action);
+      });
+    } else if (game.actualGame.history.length === plyIndex + 1) {
+      // This is our own action echoed back; ignore it.
+      console.log('Ignoring echoed back action.');
+    } else {
+      console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
+      this.ongoingGameStatus.refetch();
+    }
+    return game;
   }
 
   onSetHistoryPlyIndex(plyIndex: number) {
