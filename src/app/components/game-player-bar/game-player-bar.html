@@ -1,13 +1,5 @@
-@let name = displayName();
-@let playerRating = rating();
 @let takGame = game();
 @let color = playerColor();
-<p>
-  <span class="text-lg">{{ name ?? '...' }} </span>
-  @if (playerRating !== null) {
-    <span class="text-muted-color text-sm align-baseline">{{
-      playerRating !== null ? ` (${playerRating})` : ''
-    }}</span>
-  }
-</p>
+
+<app-game-player-label [gamePlayer]="gamePlayer()"></app-game-player-label>
 <app-game-clock [game]="takGame" [player]="color"></app-game-clock>

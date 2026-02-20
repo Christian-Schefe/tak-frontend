@@ -35,3 +35,7 @@
     </tr>
   </ng-template>
 </p-table>
+
+@if (seeks().length === 0) {
+  <p class="text-center text-muted-color mt-4">No seeks available</p>
+}

@@ -4,12 +4,13 @@ import { PlayerService } from '../../services/player-service/player-service';
 import { GameClock } from '../game-clock/game-clock';
 import { TakGameUI } from '../../../tak-core/ui';
 import { TakPlayer } from '../../../tak-core';
+import { GamePlayerLabel } from '../game-player-label/game-player-label';
 
 @Component({
   selector: 'app-game-player-bar',
   templateUrl: './game-player-bar.html',
   styleUrl: './game-player-bar.css',
-  imports: [GameClock],
+  imports: [GameClock, GamePlayerLabel],
 })
 export class GamePlayerBar {
   private playerService = inject(PlayerService);
@@ -31,24 +32,5 @@ export class GamePlayerBar {
       return ref.value();
     }
     return null;
-  });
-
-  displayName = computed(() => {
-    const player = this.gamePlayer();
-    if (player.type === 'local') {
-      return player.name;
-    } else {
-      return this.playerInfo()?.displayName ?? null;
-    }
-  });
-
-  rating = computed(() => {
-    const player = this.gamePlayer();
-    if (player.type === 'local') {
-      return null;
-    } else {
-      const rating = this.playerInfo()?.rating?.rating;
-      return rating !== undefined ? Math.round(rating) : null;
-    }
   });
 }

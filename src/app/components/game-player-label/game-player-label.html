@@ -1,0 +1,11 @@
+@let name = displayName();
+@let playerRating = rating();
+<div class="flex items-top h-full gap-4">
+  <img [src]="imageSrc()" alt="Avatar" class="h-12 aspect-square rounded-md inline-block" />
+  <p class="whitespace-nowrap text-lg">
+    {{ name ?? '...' }}
+  </p>
+  @if (playerRating !== null) {
+    <span class="text-muted-color text-sm">{{ ' ' }}({{ playerRating | round }})</span>
+  }
+</div>

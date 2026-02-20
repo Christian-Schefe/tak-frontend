@@ -3,7 +3,7 @@
 <div
   class="board-container w-full max-xl:overflow-y-scroll h-full flex flex-col xl:grid max-w-400 mx-auto xl:pl-4"
 >
-  <div class="max-xl:order-1 p-2 xl:p-4">
+  <div class="max-xl:order-1 p-2 xl:p-0 xl:py-4">
     <app-game-player-bar
       [gamePlayer]="players()[pOrder.p2]"
       [game]="takGame"
@@ -44,7 +44,7 @@
     ></app-game-side-panel>
   </div>
 
-  <div class="max-xl:order-3 p-2 xl:p-4">
+  <div class="max-xl:order-3 p-2 xl:p-0 xl:py-4">
     <app-game-player-bar
       [gamePlayer]="players()[pOrder.p1]"
       [game]="takGame"

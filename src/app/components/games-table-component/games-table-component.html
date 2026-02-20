@@ -33,3 +33,7 @@
     </tr>
   </ng-template>
 </p-table>
+
+@if (games().length === 0) {
+  <p class="text-center text-muted-color mt-4">No games available</p>
+}

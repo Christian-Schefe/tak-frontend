@@ -196,17 +196,27 @@ export class OnlinePlayRoute implements OnDestroy {
         if (!game) {
           return game;
         }
-        const changedGame = this.onRemoteAction(game, moveFromString(action), plyIndex);
-        return produce(changedGame, (game) => {
-          setTimeRemaining(game.actualGame, remainingMs, new Date());
-        });
+        const resultingPlyIndex = game.actualGame.history.length + 1;
+        if (resultingPlyIndex === plyIndex) {
+          return produce(game, (game) => {
+            doMove(game, moveFromString(action));
+            setTimeRemaining(game.actualGame, remainingMs, new Date());
+          });
+        } else if (resultingPlyIndex - 1 === plyIndex) {
+          // This is our own action echoed back; ignore it.
+          console.log('Ignoring echoed back action.');
+        } else {
+          console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
+          this.ongoingGameStatus.refetch();
+        }
+        return game;
       });
     },
   );
   private readonly _gameUndoEffect = this.wsService.subscribeEffect(
     'gameActionUndone',
-    z.object({ gameId: z.number(), remainingMs: remainingMs }),
-    ({ gameId, remainingMs }) => {
+    z.object({ gameId: z.number(), remainingMs: remainingMs, plyIndex: z.number() }),
+    ({ gameId, remainingMs, plyIndex }) => {
       const currentGame = this.currentGame();
       if (!currentGame || currentGame.gameId !== gameId) {
         return;
@@ -215,10 +225,18 @@ export class OnlinePlayRoute implements OnDestroy {
         if (!game) {
           return game;
         }
-        return produce(game, (game) => {
-          undoMove(game);
-          setTimeRemaining(game.actualGame, remainingMs, new Date());
-        });
+        const resultingPlyIndex = game.actualGame.history.length - 1;
+        if (resultingPlyIndex === plyIndex) {
+          console.log('Applying undo from server.');
+          return produce(game, (game) => {
+            undoMove(game);
+            setTimeRemaining(game.actualGame, remainingMs, new Date());
+          });
+        } else {
+          console.error(`Ply index mismatch on undo: got ${plyIndex.toString()}`);
+          this.ongoingGameStatus.refetch();
+        }
+        return game;
       });
     },
   );
@@ -324,23 +342,6 @@ export class OnlinePlayRoute implements OnDestroy {
           console.log('Sent action to server:', action);
         });
     }
-  }
-
-  onRemoteAction(game: TakGameUI, action: TakAction, plyIndex: number) {
-    console.log('Received action from Board:', action);
-
-    if (game.actualGame.history.length === plyIndex) {
-      return produce(game, (game) => {
-        doMove(game, action);
-      });
-    } else if (game.actualGame.history.length === plyIndex + 1) {
-      // This is our own action echoed back; ignore it.
-      console.log('Ignoring echoed back action.');
-    } else {
-      console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
-      this.ongoingGameStatus.refetch();
-    }
-    return game;
   }
 
   onSetHistoryPlyIndex(plyIndex: number) {
