@@ -2,8 +2,13 @@
 @let stats = playerStats();
 @if (player) {
   <p-card>
-    <div class="flex flex-row gap-2">
-      <img [src]="'/emotes/road_toad.png'" alt="Player Avatar" class="w-32 h-32 rounded-lg" />
+    <div class="flex flex-row gap-4">
+      <button
+        class="w-32 h-32 rounded-lg p-0 overflow-hidden cursor-pointer"
+        (click)="onClickProfilePicture()"
+      >
+        <img [src]="profilePictureUrl()" alt="Player Avatar" class="w-full h-full" />
+      </button>
       <div class="flex flex-col grow">
         <div class="font-bold text-2xl flex items-center gap-2">
           <h1>{{ player.displayName }}</h1>
@@ -86,4 +91,9 @@
     [currentProfile]="playerProfile.value()"
     (updateProfile)="onUpdateProfile($event)"
   ></app-edit-player-profile-dialog>
+  <app-profile-picture-change-dialog
+    [(visible)]="profilePictureDialogVisible"
+    [avatarUrl]="profilePictureUrl()"
+    (uploadAvatar)="onUploadAvatar($event)"
+  ></app-profile-picture-change-dialog>
 }

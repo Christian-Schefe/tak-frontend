@@ -1,0 +1,18 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  [dismissableMask]="true"
+  header="Your Profile"
+  [draggable]="false"
+  [breakpoints]="{ '1280px': '60vw', '900px': '75vw', '575px': '90vw' }"
+  [style]="{ width: '50vw' }"
+>
+  <div class="flex flex-col items-center gap-4">
+    <img [src]="avatarUrl()" alt="Profile Picture" class="w-64 h-64 rounded-lg" />
+    <div class="flex w-full justify-center">
+      <p-fileupload #fu [multiple]="false" accept="image/*" maxFileSize="1000000" mode="basic" class="min-w-1/2">
+      </p-fileupload>
+      <p-button label="Upload" (click)="onUpload(fu)" class="ml-2"></p-button>
+    </div>
+  </div>
+</p-dialog>

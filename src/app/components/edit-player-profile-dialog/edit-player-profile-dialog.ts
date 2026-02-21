@@ -5,7 +5,10 @@ import { Button } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { IftaLabelModule } from 'primeng/iftalabel';
 import { FormsModule } from '@angular/forms';
-import { AccountProfile } from '../../services/profile-service/profile-service';
+import {
+  AccountProfile,
+  AccountProfileUpdate,
+} from '../../services/profile-service/profile-service';
 import { countries } from 'countries-list';
 
 const countryArray = Object.entries(countries).map(([code, country]) => ({
@@ -27,7 +30,7 @@ export class EditPlayerProfileDialog {
     value: code,
     label: name,
   }));
-  updateProfile = output<AccountProfile>();
+  updateProfile = output<AccountProfileUpdate>();
 
   currentProfile = input.required<AccountProfile | undefined>();
 
@@ -37,10 +40,10 @@ export class EditPlayerProfileDialog {
   });
 
   onSubmit() {
-    const profile: AccountProfile = {
+    const update: AccountProfileUpdate = {
       country: this.selectedCountry(),
     };
-    this.updateProfile.emit(profile);
+    this.updateProfile.emit(update);
     this.visible.set(false);
   }
 }

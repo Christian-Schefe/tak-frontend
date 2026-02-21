@@ -8,7 +8,10 @@ import { lucideEdit, lucideEye, lucideSwords, lucideTrophy } from '@ng-icons/luc
 import { MeterGroupModule, MeterItem } from 'primeng/metergroup';
 import * as flags from 'country-flag-icons/string/3x2';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { AccountProfile, ProfileService } from '../../services/profile-service/profile-service';
+import {
+  AccountProfileUpdate,
+  ProfileService,
+} from '../../services/profile-service/profile-service';
 import { ButtonModule } from 'primeng/button';
 import { EditPlayerProfileDialog } from '../../components/edit-player-profile-dialog/edit-player-profile-dialog';
 import { GameHistoryService } from '../../services/game-history-service/game-history-service';
@@ -17,6 +20,7 @@ import { Router } from '@angular/router';
 import { RippleModule } from 'primeng/ripple';
 import { PlayerLabel } from '../../components/player-label/player-label';
 import { DatePipe } from '@angular/common';
+import { ProfilePictureChangeDialog } from '../../components/profile-picture-change-dialog/profile-picture-change-dialog';
 
 const flagsMap = new Map<string, string>(Object.entries(flags));
 
@@ -33,6 +37,7 @@ const flagsMap = new Map<string, string>(Object.entries(flags));
     RippleModule,
     PlayerLabel,
     DatePipe,
+    ProfilePictureChangeDialog,
   ],
   templateUrl: './player-profile-route.html',
   styleUrl: './player-profile-route.css',
@@ -61,7 +66,7 @@ export class PlayerProfileRoute {
     }
     return null;
   });
-  playerProfile = this.profileService.getProfile(() => this.id());
+  playerProfile = this.profileService.getProfile(() => this.playerInfo()?.accountId);
   playerGameHistory = this.gameHistoryService.playerGameHistory(() => {
     const id = this.id();
     return { playerId: id, page: 1, pageSize: 20 };
@@ -70,6 +75,15 @@ export class PlayerProfileRoute {
   canEditProfile = computed(() => {
     const identity = this.identityService.identity();
     return identity !== null && identity.playerId === this.id() && !identity.isGuest;
+  });
+
+  profilePictureUrl = computed(() => {
+    const id = this.playerInfo()?.accountId;
+    const version = this.playerProfile.value()?.profilePictureVersion;
+    if (id === undefined || version === undefined) {
+      return null;
+    }
+    return this.profileService.getProfilePictureUrl(id, version);
   });
 
   sanitizer = inject(DomSanitizer);
@@ -122,16 +136,32 @@ export class PlayerProfileRoute {
   });
 
   editDialogVisible = signal(false);
+  profilePictureDialogVisible = signal(false);
 
-  onUpdateProfile(profile: AccountProfile) {
+  onUpdateProfile(profile: AccountProfileUpdate) {
     console.log('Updating profile', profile);
-    this.playerProfile.resource.set(profile);
-    this.profileService.updateProfile(this.id(), profile).subscribe(() => {
+    this.profileService.updateProfile(profile).subscribe(() => {
       console.log('Profile updated successfully');
+      this.playerProfile.refetch();
     });
   }
 
   onViewGame(gameId: number) {
     void this.router.navigate(['/online', gameId.toString()]);
+  }
+
+  onClickProfilePicture() {
+    if (this.canEditProfile()) {
+      this.profilePictureDialogVisible.set(true);
+    }
+  }
+
+  onUploadAvatar(file: File) {
+    console.log('Uploading avatar', file);
+    this.profileService.uploadProfilePicture(file).subscribe(() => {
+      console.log('Avatar uploaded successfully');
+      this.profilePictureDialogVisible.set(false);
+      this.playerProfile.refetch();
+    });
   }
 }

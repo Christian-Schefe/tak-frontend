@@ -1,11 +1,16 @@
 import { inject, Injectable } from '@angular/core';
 import z from 'zod';
-import { zodHttpResource } from '../../util/smart-http-resource/smart-http-resource';
+import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 import { HttpClient } from '@angular/common/http';
 
 export const accountProfile = z.object({
   country: z.string().nullable(),
+  profilePictureVersion: z.number(),
 });
+
+export interface AccountProfileUpdate {
+  country: string | null;
+}
 
 export type AccountProfile = z.infer<typeof accountProfile>;
 
@@ -15,11 +20,27 @@ export type AccountProfile = z.infer<typeof accountProfile>;
 export class ProfileService {
   httpClient = inject(HttpClient);
 
-  getProfile(accountId: () => string) {
-    return zodHttpResource(accountProfile, () => `/api2/profiles/${accountId()}`);
+  getProfile(accountId: () => string | undefined) {
+    return smartHttpResource(accountProfile, () => {
+      const id = accountId();
+      if (id === undefined) {
+        return undefined;
+      }
+      return `/api2/profiles/${id}`;
+    });
   }
 
-  updateProfile(accountId: string, profile: AccountProfile) {
-    return this.httpClient.post(`/api2/profiles/${accountId}`, profile);
+  updateProfile(profile: AccountProfileUpdate) {
+    return this.httpClient.post('/api2/me/profile', profile);
+  }
+
+  getProfilePictureUrl(accountId: string, version: number) {
+    return `/api2/profiles/${accountId}/picture?v=${version.toString()}`;
+  }
+
+  uploadProfilePicture(file: File) {
+    const formData = new FormData();
+    formData.append('picture', file);
+    return this.httpClient.post('/api2/me/profile/picture', formData);
   }
 }
