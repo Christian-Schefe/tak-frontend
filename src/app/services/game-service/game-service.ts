@@ -17,11 +17,6 @@ export const gameRequest = z.object({
 });
 export type GameRequestType = z.infer<typeof gameRequest>;
 
-export const gameEndedMessage = z.object({
-  gameId: z.number(),
-  result: z.string(),
-});
-
 export const gameStatus = z.object({
   id: z.number(),
   playerIds: z.object({
@@ -132,7 +127,7 @@ export class GameService {
 
   private readonly _gameUpdatedEffect = this.wsService.subscribeEffect(
     'gameEnded',
-    gameEndedMessage,
+    z.object({ gameId: z.number() }),
     ({ gameId }) => {
       this.games.update((games) => {
         return games.filter((game) => game.id !== gameId);

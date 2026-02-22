@@ -1,11 +1,17 @@
 @let name = displayName();
 @let playerRating = rating();
 <div class="flex items-top h-full gap-4">
-  <img [src]="imageSrc()" alt="Avatar" class="h-12 aspect-square rounded-md inline-block" />
-  <p class="whitespace-nowrap text-lg">
-    {{ name ?? '...' }}
-  </p>
-  @if (playerRating !== null) {
-    <span class="text-muted-color text-sm">{{ ' ' }}({{ playerRating | round }})</span>
-  }
+  <img [src]="imageSrc()" alt="Avatar" class="h-12 w-12 rounded-md inline-block" />
+  <div class="flex items-baseline gap-2">
+    <p class="whitespace-nowrap text-lg">
+      {{ name ?? '...' }}
+    </p>
+    @let svg = flagSvg();
+    @if (svg) {
+      <div [innerHTML]="svg" class="w-6 rounded-xs overflow-clip"></div>
+    }
+    @if (playerRating !== null) {
+      <span class="text-muted-color text-sm">{{ ' ' }}({{ playerRating | round }})</span>
+    }
+  </div>
 </div>

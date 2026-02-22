@@ -3,6 +3,10 @@ import { PlayerService } from '../../services/player-service/player-service';
 import { RoundPipe } from '../../util/round-pipe/round-pipe';
 import { GamePlayer } from '../game-component/game-component';
 import { ProfileService } from '../../services/profile-service/profile-service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import * as flags from 'country-flag-icons/string/3x2';
+
+const flagsMap = new Map<string, string>(Object.entries(flags));
 
 @Component({
   selector: 'app-game-player-label',
@@ -58,12 +62,26 @@ export class GamePlayerLabel {
   imageSrc = computed(() => {
     const player = this.playerInfo();
     if (!player) {
-      return null;
+      return '/fallback/default_user.webp';
     }
-    const val = this.playerProfile.lastValue();
+    const val = this.playerProfile.value();
     if (!val) {
       return null;
     }
     return this.profileService.getProfilePictureUrl(player.accountId, val.profilePictureVersion);
+  });
+
+  private sanitizer = inject(DomSanitizer);
+
+  flagSvg = computed<SafeHtml | null>(() => {
+    const country = this.playerProfile.value()?.country;
+    if (country === null || country === undefined) {
+      return null;
+    }
+    const flagSVG = flagsMap.get(country.toUpperCase());
+    if (flagSVG === undefined) {
+      return null;
+    }
+    return this.sanitizer.bypassSecurityTrustHtml(flagSVG);
   });
 }

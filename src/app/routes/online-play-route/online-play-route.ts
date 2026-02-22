@@ -5,11 +5,7 @@ import {
   GamePlayer,
   TakActionEvent,
 } from '../../components/game-component/game-component';
-import {
-  gameEndedMessage,
-  GameRequestType,
-  GameService,
-} from '../../services/game-service/game-service';
+import { GameRequestType, GameService } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
@@ -39,7 +35,40 @@ interface CurrentGame {
   remainingMs: Record<TakPlayer, number>;
 }
 
-const remainingMs = z.object({ white: z.number(), black: z.number() });
+const timeInfo = z.object({ white: z.number(), black: z.number() });
+
+const gameEventBase = z.object({ gameId: z.number(), timeInfo });
+
+const gameEvent = z.union([
+  z.object({
+    eventType: z.literal('gameAction'),
+    action: z.string(),
+    plyIndex: z.number(),
+    ...gameEventBase.shape,
+  }),
+  z.object({
+    eventType: z.literal('gameActionUndone'),
+    plyIndex: z.number(),
+    ...gameEventBase.shape,
+  }),
+  z.object({
+    eventType: z.literal('gameEnded'),
+    result: z.string(),
+    ...gameEventBase.shape,
+  }),
+  z.object({
+    eventType: z.literal('gameRequestAdded'),
+    requestId: z.number(),
+    requestType: z.object({ type: z.union([z.literal('draw'), z.literal('undo')]) }),
+    fromPlayerId: z.string(),
+    ...gameEventBase.shape,
+  }),
+  z.object({
+    eventType: z.literal('gameRequestRemoved'),
+    requestId: z.number(),
+    ...gameEventBase.shape,
+  }),
+]);
 
 @Component({
   selector: 'app-online-play-route',
@@ -184,115 +213,84 @@ export class OnlinePlayRoute implements OnDestroy {
     }
   }
 
-  private readonly _gameActionEffect = this.wsService.subscribeEffect(
-    'gameAction',
-    z.object({ gameId: z.number(), action: z.string(), plyIndex: z.number(), remainingMs }),
-    ({ gameId, action, plyIndex, remainingMs }) => {
+  private readonly _gameEventEffect = this.wsService.subscribeEffect(
+    'gameEvent',
+    gameEvent,
+    (event) => {
       const currentGame = this.currentGame();
-      if (!currentGame || currentGame.gameId !== gameId) {
+      if (!currentGame || currentGame.gameId !== event.gameId) {
         return;
       }
-      this.game.update((game) => {
-        if (!game) {
+      if (event.eventType === 'gameAction') {
+        this.game.update((game) => {
+          if (!game) {
+            return game;
+          }
+          const resultingPlyIndex = game.actualGame.history.length + 1;
+          if (resultingPlyIndex === event.plyIndex) {
+            return produce(game, (game) => {
+              doMove(game, moveFromString(event.action));
+            });
+          } else if (resultingPlyIndex - 1 === event.plyIndex) {
+            // This is our own action echoed back; ignore it.
+            console.log('Ignoring echoed back action.');
+          } else {
+            console.error(`Ply index mismatch: got ${event.plyIndex.toString()}`);
+            this.ongoingGameStatus.refetch();
+          }
           return game;
-        }
-        const resultingPlyIndex = game.actualGame.history.length + 1;
-        if (resultingPlyIndex === plyIndex) {
+        });
+      } else if (event.eventType === 'gameActionUndone') {
+        this.game.update((game) => {
+          if (!game) {
+            return game;
+          }
+          const resultingPlyIndex = game.actualGame.history.length - 1;
+          if (resultingPlyIndex === event.plyIndex) {
+            console.log('Applying undo from server.');
+            return produce(game, (game) => {
+              undoMove(game);
+            });
+          } else {
+            console.error(`Ply index mismatch on undo: got ${event.plyIndex.toString()}`);
+            this.ongoingGameStatus.refetch();
+          }
+          return game;
+        });
+      } else if (event.eventType === 'gameEnded') {
+        this.game.update((game) => {
+          const newGameState = gameStateFromStr(event.result);
+          if (!game || !newGameState) {
+            return game;
+          }
           return produce(game, (game) => {
-            doMove(game, moveFromString(action));
-            setTimeRemaining(game.actualGame, remainingMs, new Date());
+            setGameOverState(game, newGameState);
           });
-        } else if (resultingPlyIndex - 1 === plyIndex) {
-          // This is our own action echoed back; ignore it.
-          console.log('Ignoring echoed back action.');
-        } else {
-          console.error(`Ply index mismatch: got ${plyIndex.toString()}`);
-          this.ongoingGameStatus.refetch();
-        }
-        return game;
-      });
-    },
-  );
-  private readonly _gameUndoEffect = this.wsService.subscribeEffect(
-    'gameActionUndone',
-    z.object({ gameId: z.number(), remainingMs: remainingMs, plyIndex: z.number() }),
-    ({ gameId, remainingMs, plyIndex }) => {
-      const currentGame = this.currentGame();
-      if (!currentGame || currentGame.gameId !== gameId) {
-        return;
+        });
+      } else if (event.eventType === 'gameRequestAdded') {
+        this.requests.update((ids) => {
+          return [
+            ...ids,
+            {
+              id: event.requestId,
+              requestType: event.requestType,
+              fromPlayerId: event.fromPlayerId,
+            },
+          ];
+        });
+      } else {
+        this.requests.update((requests) => {
+          return requests.filter((request) => request.id !== event.requestId);
+        });
       }
-      this.game.update((game) => {
-        if (!game) {
-          return game;
-        }
-        const resultingPlyIndex = game.actualGame.history.length - 1;
-        if (resultingPlyIndex === plyIndex) {
-          console.log('Applying undo from server.');
-          return produce(game, (game) => {
-            undoMove(game);
-            setTimeRemaining(game.actualGame, remainingMs, new Date());
-          });
-        } else {
-          console.error(`Ply index mismatch on undo: got ${plyIndex.toString()}`);
-          this.ongoingGameStatus.refetch();
-        }
-        return game;
-      });
-    },
-  );
 
-  private readonly _gameEndedEffect = this.wsService.subscribeEffect(
-    'gameEnded',
-    gameEndedMessage,
-    ({ gameId, result }) => {
-      const currentGame = this.currentGame();
-      if (!currentGame || currentGame.gameId !== gameId) {
-        return;
-      }
       this.game.update((game) => {
-        const newGameState = gameStateFromStr(result);
-        if (!game || !newGameState) {
+        if (!game) {
           return game;
         }
         return produce(game, (game) => {
-          setGameOverState(game, newGameState);
+          setTimeRemaining(game.actualGame, event.timeInfo, new Date());
         });
-      });
-    },
-  );
-
-  private readonly _addRequestEffect = this.wsService.subscribeEffect(
-    'gameRequestAdded',
-    z.object({
-      gameId: z.number(),
-      requestId: z.number(),
-      requestType: z.object({ type: z.union([z.literal('draw'), z.literal('undo')]) }),
-      fromPlayerId: z.string(),
-    }),
-    ({ gameId, requestId, requestType, fromPlayerId }) => {
-      const currentGame = this.currentGame();
-      if (!currentGame || currentGame.gameId !== gameId) {
-        return;
-      }
-      this.requests.update((ids) => {
-        return [...ids, { id: requestId, requestType, fromPlayerId }];
-      });
-    },
-  );
-
-  private readonly _retractRequestEffect = this.wsService.subscribeEffect(
-    'gameRequestRemoved',
-    z.object({
-      gameId: z.number(),
-      requestId: z.number(),
-    }),
-    ({ gameId, requestId }) => {
-      const currentGame = this.currentGame();
-      if (!currentGame || currentGame.gameId !== gameId) {
-        return;
-      }
-      this.requests.update((requests) => {
-        return requests.filter((request) => request.id !== requestId);
       });
     },
   );

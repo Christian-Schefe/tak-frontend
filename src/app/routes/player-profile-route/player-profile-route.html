@@ -1,13 +1,19 @@
 @let player = playerInfo();
 @let stats = playerStats();
+@let avatarUrl = profilePictureUrl();
+
 @if (player) {
   <p-card>
     <div class="flex flex-row gap-4">
       <button
-        class="w-32 h-32 rounded-lg p-0 overflow-hidden cursor-pointer"
+        class="w-32 h-full aspect-square rounded-lg p-0 overflow-hidden cursor-pointer flex items-center justify-center"
         (click)="onClickProfilePicture()"
       >
-        <img [src]="profilePictureUrl()" alt="Player Avatar" class="w-full h-full" />
+        @if (avatarUrl !== null) {
+          <img [src]="avatarUrl" alt="Player Avatar" class="w-full h-full" />
+        } @else {
+          <p-progress-spinner ariaLabel="loading" />
+        }
       </button>
       <div class="flex flex-col grow">
         <div class="font-bold text-2xl flex items-center gap-2">
@@ -52,38 +58,40 @@
   @if (stats) {
     <p-metergroup [value]="wdlItems()" [dt]="thickMeter"></p-metergroup>
   }
-  @let gameHistory = playerGameHistory.value();
-  @if (gameHistory) {
-    <p-card>
-      <div class="flex flex-col gap-2">
-        @for (game of gameHistory.items; track $index) {
-          <div class="flex p-2 items-center gap-2">
-            <button
-              pButton
-              pRipple
-              (click)="onViewGame(game.id)"
-              class="aspect-square"
-              severity="secondary"
-            >
-              <ng-icon name="lucideEye"></ng-icon>
-            </button>
-            <p>{{ game.date | date: 'medium' }}</p>
-            <p>
-              {{ game.result ?? '0-0' }}
-              against
-              <app-player-label
-                [playerId]="
-                  game.playerIds.white === player.id ? game.playerIds.black : game.playerIds.white
-                "
-              ></app-player-label>
-            </p>
-          </div>
-        }
-      </div>
-    </p-card>
-  } @else {
-    <p-progress-spinner></p-progress-spinner>
-  }
+  <p-scrollpanel [style]="{ width: '100%', height: '250px', flexGrow: '1' }">
+    @let gameHistory = playerGameHistory.value();
+    @if (gameHistory) {
+      <p-card>
+        <div class="flex flex-col gap-2">
+          @for (game of gameHistory.items; track $index) {
+            <div class="flex p-2 items-center gap-2">
+              <button
+                pButton
+                pRipple
+                (click)="onViewGame(game.id)"
+                class="aspect-square"
+                severity="secondary"
+              >
+                <ng-icon name="lucideEye"></ng-icon>
+              </button>
+              <p>{{ game.date | date: 'medium' }}</p>
+              <p>
+                {{ game.result ?? '0-0' }}
+                against
+                <app-player-label
+                  [playerId]="
+                    game.playerIds.white === player.id ? game.playerIds.black : game.playerIds.white
+                  "
+                ></app-player-label>
+              </p>
+            </div>
+          }
+        </div>
+      </p-card>
+    } @else {
+      <p-progress-spinner></p-progress-spinner>
+    }
+  </p-scrollpanel>
 }
 @if (canEditProfile()) {
   <app-edit-player-profile-dialog
@@ -93,7 +101,7 @@
   ></app-edit-player-profile-dialog>
   <app-profile-picture-change-dialog
     [(visible)]="profilePictureDialogVisible"
-    [avatarUrl]="profilePictureUrl()"
+    [avatarUrl]="avatarUrl"
     (uploadAvatar)="onUploadAvatar($event)"
   ></app-profile-picture-change-dialog>
 }

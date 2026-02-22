@@ -21,6 +21,8 @@ import { RippleModule } from 'primeng/ripple';
 import { PlayerLabel } from '../../components/player-label/player-label';
 import { DatePipe } from '@angular/common';
 import { ProfilePictureChangeDialog } from '../../components/profile-picture-change-dialog/profile-picture-change-dialog';
+import { MessageService } from 'primeng/api';
+import { ScrollPanelModule } from 'primeng/scrollpanel';
 
 const flagsMap = new Map<string, string>(Object.entries(flags));
 
@@ -38,6 +40,7 @@ const flagsMap = new Map<string, string>(Object.entries(flags));
     PlayerLabel,
     DatePipe,
     ProfilePictureChangeDialog,
+    ScrollPanelModule,
   ],
   templateUrl: './player-profile-route.html',
   styleUrl: './player-profile-route.css',
@@ -48,6 +51,7 @@ export class PlayerProfileRoute {
   private playerService = inject(PlayerService);
   private profileService = inject(ProfileService);
   private gameHistoryService = inject(GameHistoryService);
+  private messageService = inject(MessageService);
   private router = inject(Router);
   id = input.required<string>();
 
@@ -158,10 +162,20 @@ export class PlayerProfileRoute {
 
   onUploadAvatar(file: File) {
     console.log('Uploading avatar', file);
+    this.profilePictureDialogVisible.set(false);
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Uploading avatar...',
+      detail: 'Your new profile picture is being uploaded.',
+    });
     this.profileService.uploadProfilePicture(file).subscribe(() => {
       console.log('Avatar uploaded successfully');
-      this.profilePictureDialogVisible.set(false);
       this.playerProfile.refetch();
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Avatar uploaded',
+        detail: 'Your profile picture has been updated.',
+      });
     });
   }
 }

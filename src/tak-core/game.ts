@@ -101,7 +101,9 @@ export function gameFromPlyCount(game: TakGame, plyCount: number, removeClock?: 
 export function getTimeRemaining(game: TakGame, player: TakPlayer, now: Date): number | null {
   if (game.clock) {
     const elapsed =
-      game.currentPlayer === player && game.clock.clock.isTicking
+      game.currentPlayer === player &&
+      game.clock.clock.isTicking &&
+      game.gameState.type === 'ongoing'
         ? now.getTime() - game.clock.clock.lastUpdate.getTime()
         : 0;
     return Math.max(0, game.clock.clock.remainingMs[player] - elapsed);
