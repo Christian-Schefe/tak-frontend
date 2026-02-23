@@ -17,11 +17,13 @@ import { DrawerModule } from 'primeng/drawer';
 import { NgTemplateOutlet } from '@angular/common';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { filter } from 'rxjs';
+import { ProfileService } from '../../services/profile-service/profile-service';
 
 interface MenuItem {
   label: string;
   icon: string;
   routerLink: string;
+  visible?: boolean;
 }
 
 @Component({
@@ -43,11 +45,32 @@ interface MenuItem {
 export class AppNavComponent implements AfterViewInit {
   identityService = inject(IdentityService);
   private playerService = inject(PlayerService);
+  private profileService = inject(ProfileService);
   private router = inject(Router);
 
   playerInfo = this.playerService.getComputedPlayerInfo(
     () => this.identityService.identity()?.playerId,
   );
+
+  playerProfile = this.profileService.getProfile(() => {
+    const player = this.playerInfo()?.value();
+    return player?.accountId;
+  });
+
+  avatarSrc = computed(() => {
+    const player = this.playerInfo()?.value();
+    if (!player) {
+      return '/fallback/default_user.webp';
+    }
+    const val = this.playerProfile.value();
+    if (!val) {
+      return null;
+    }
+    if (val.profilePictureVersion === null) {
+      return '/fallback/default_user.webp';
+    }
+    return this.profileService.getProfilePictureUrl(player.accountId, val.profilePictureVersion);
+  });
 
   items = computed<MenuItem[]>(() => {
     const identity = this.identityService.identity();
@@ -73,9 +96,10 @@ export class AppNavComponent implements AfterViewInit {
         routerLink: '/settings',
       },
       {
-        label: 'Profile',
+        label: 'Account',
         icon: 'lucideUser',
-        routerLink: `/player/${identity?.playerId ?? ''}`,
+        visible: identity !== null,
+        routerLink: '/account',
       },
     ];
   });

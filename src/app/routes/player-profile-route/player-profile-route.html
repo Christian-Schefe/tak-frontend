@@ -10,7 +10,7 @@
         (click)="onClickProfilePicture()"
       >
         @if (avatarUrl !== null) {
-          <img [src]="avatarUrl" alt="Player Avatar" class="w-full h-full" />
+          <img [src]="avatarUrl" alt="Player Avatar" class="w-full h-full pointer-events-none" />
         } @else {
           <p-progress-spinner ariaLabel="loading" />
         }

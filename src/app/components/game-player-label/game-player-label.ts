@@ -68,6 +68,9 @@ export class GamePlayerLabel {
     if (!val) {
       return null;
     }
+    if (val.profilePictureVersion === null) {
+      return '/fallback/default_user.webp';
+    }
     return this.profileService.getProfilePictureUrl(player.accountId, val.profilePictureVersion);
   });
 

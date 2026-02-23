@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 
 export const accountProfile = z.object({
   country: z.string().nullable(),
-  profilePictureVersion: z.number(),
+  profilePictureVersion: z.number().nullable(),
 });
 
 export interface AccountProfileUpdate {

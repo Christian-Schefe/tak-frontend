@@ -83,11 +83,14 @@ export class PlayerProfileRoute {
 
   profilePictureUrl = computed(() => {
     const id = this.playerInfo()?.accountId;
-    const version = this.playerProfile.value()?.profilePictureVersion;
-    if (id === undefined || version === undefined) {
+    const profile = this.playerProfile.value();
+    if (id === undefined || profile === undefined) {
       return null;
     }
-    return this.profileService.getProfilePictureUrl(id, version);
+    if (profile.profilePictureVersion === null) {
+      return '/fallback/default_user.webp';
+    }
+    return this.profileService.getProfilePictureUrl(id, profile.profilePictureVersion);
   });
 
   sanitizer = inject(DomSanitizer);

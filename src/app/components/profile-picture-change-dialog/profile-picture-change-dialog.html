@@ -13,7 +13,7 @@
       class="w-64 h-64 rounded-lg border border-surface-200 dark:border-surface-700 overflow-hidden flex items-center justify-center"
     >
       @if (url !== null) {
-        <img [src]="avatarUrl()" alt="Profile Picture" class="w-full h-full" />
+        <img [src]="avatarUrl()" alt="Profile Picture" class="w-full h-full pointer-events-none" />
       } @else {
         <p-progress-spinner ariaLabel="loading" />
       }
@@ -28,6 +28,6 @@
       [auto]="true"
     >
     </p-fileupload>
-    <p class="text-muted-color">Recommended size: 256x256 pixels</p>
+    <p class="text-muted-color text-center">Recommended size: 256x256 pixels<br>Maximum file size: 1MB</p>
   </div>
 </p-dialog>
