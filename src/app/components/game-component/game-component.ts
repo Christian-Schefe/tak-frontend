@@ -1,6 +1,5 @@
 import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 import { BoardNinjaComponent } from '../board-ninja-component/board-ninja-component';
-import { GamePlayerBar } from '../game-player-bar/game-player-bar';
 import { TakAction, TakGameState, TakPieceVariant, TakPlayer, TakPos } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
 import { GameSidePanel } from '../game-side-panel/game-side-panel';
@@ -40,14 +39,7 @@ export type TakActionEvent =
 
 @Component({
   selector: 'app-game-component',
-  imports: [
-    BoardNinjaComponent,
-
-    GamePlayerBar,
-    GameSidePanel,
-    BoardNativeComponent,
-    BoardNgtComponent,
-  ],
+  imports: [BoardNinjaComponent, GameSidePanel, BoardNativeComponent, BoardNgtComponent],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })

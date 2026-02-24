@@ -3,8 +3,3 @@
   height: 100%;
   display: flex;
 }
-
-.board-container {
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto 1fr auto;
-}

@@ -8,6 +8,9 @@ import { GameChatPanel } from '../game-chat-panel/game-chat-panel';
 import { GameInfoPanel } from '../game-info-panel/game-info-panel';
 import { DividerModule } from 'primeng/divider';
 import { GameActionsPanel } from '../game-actions-panel/game-actions-panel';
+import { GamePlayerBar } from '../game-player-bar/game-player-bar';
+import { TakPlayer } from '../../../tak-core';
+import { GamePlayer } from '../game-component/game-component';
 
 @Component({
   selector: 'app-game-side-panel',
@@ -19,6 +22,7 @@ import { GameActionsPanel } from '../game-actions-panel/game-actions-panel';
     GameInfoPanel,
     DividerModule,
     GameActionsPanel,
+    GamePlayerBar,
   ],
   templateUrl: './game-side-panel.html',
   styleUrl: './game-side-panel.css',
@@ -34,4 +38,7 @@ export class GameSidePanel {
   retractRequest = output<number>();
   requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
   resign = output();
+
+  topPlayer = input.required<{ color: TakPlayer; info: GamePlayer }>();
+  bottomPlayer = input.required<{ color: TakPlayer; info: GamePlayer }>();
 }

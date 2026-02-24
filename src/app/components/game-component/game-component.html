@@ -1,20 +1,13 @@
 @let takGame = game();
 @let pOrder = playerOrder();
+@let boardType = settingsService.generalSettings().boardType;
 <div
-  class="board-container w-full max-xl:overflow-y-scroll h-full flex flex-col xl:grid max-w-400 mx-auto xl:pl-4"
+  [class]="
+    `w-full max-xl:overflow-y-scroll gap-4 p-4 h-full flex flex-col xl:flex-row mx-auto xl:pl-4 ${boardType === '2d' ? 'max-w-400' : 'max-w-550'}`
+  "
 >
-  <div class="max-xl:order-1 p-2 xl:p-0 xl:py-4">
-    <app-game-player-bar
-      [gamePlayer]="players()[pOrder.p2]"
-      [game]="takGame"
-      [playerColor]="pOrder.p2"
-    >
-    </app-game-player-bar>
-  </div>
-  <div></div>
-
-  <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3 max-xl:order-2">
-    @switch (settingsService.generalSettings().boardType) {
+  <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
+    @switch (boardType) {
       @case ('2d') {
         <app-board-native-component [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
         </app-board-native-component>
@@ -29,7 +22,7 @@
       }
     }
   </div>
-  <div class="h-full w-full max-xl:order-4 xl:w-120 p-4 pb-0 xl:py-0">
+  <div class="h-full w-full xl:w-120 pb-0">
     <app-game-side-panel
       [game]="takGame"
       [drawOffer]="myDrawOffer()"
@@ -41,16 +34,8 @@
       (retractRequest)="retractRequest.emit($event)"
       (requestDecision)="requestDecision.emit($event)"
       (resign)="resign.emit()"
+      [topPlayer]="{ color: pOrder.p2, info: players()[pOrder.p2] }"
+      [bottomPlayer]="{ color: pOrder.p1, info: players()[pOrder.p1] }"
     ></app-game-side-panel>
   </div>
-
-  <div class="max-xl:order-3 p-2 xl:p-0 xl:py-4">
-    <app-game-player-bar
-      [gamePlayer]="players()[pOrder.p1]"
-      [game]="takGame"
-      [playerColor]="pOrder.p1"
-    >
-    </app-game-player-bar>
-  </div>
-  <div></div>
 </div>

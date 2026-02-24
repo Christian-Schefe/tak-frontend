@@ -10,12 +10,26 @@
     (retractRequest)="retractRequest.emit($event)"
     (resign)="resign.emit()"
   ></app-game-actions-panel>
+
   <app-game-info-panel
     [game]="game()"
     [requests]="requests()"
     (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
     (requestDecision)="requestDecision.emit($event)"
   ></app-game-info-panel>
-  <p-divider />
+  <div class="flex flex-col gap-2 p-2">
+    <app-game-player-bar
+      [gamePlayer]="topPlayer().info"
+      [game]="game()"
+      [playerColor]="topPlayer().color"
+    >
+    </app-game-player-bar>
+    <app-game-player-bar
+      [gamePlayer]="bottomPlayer().info"
+      [game]="game()"
+      [playerColor]="bottomPlayer().color"
+    >
+    </app-game-player-bar>
+  </div>
   <app-game-chat-panel></app-game-chat-panel>
 </div>
