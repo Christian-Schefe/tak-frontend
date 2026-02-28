@@ -1,13 +1,11 @@
 import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
-import { BoardNinjaComponent } from '../board-ninja-component/board-ninja-component';
 import { TakAction, TakGameState, TakPieceVariant, TakPlayer, TakPos } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
 import { GameSidePanel } from '../game-side-panel/game-side-panel';
-import { BoardNativeComponent } from '../board-native/board-native-component/board-native-component';
 import { GameRequestType } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { SettingsService } from '../../services/settings-service/settings-service';
-import { BoardNgtComponent } from '../board-ng-three/board-ngt-component/board-ngt-component';
+import { GameBoard } from '../game-board/game-board';
 
 export type GameMode =
   | { type: 'local' }
@@ -39,17 +37,17 @@ export type TakActionEvent =
 
 @Component({
   selector: 'app-game-component',
-  imports: [BoardNinjaComponent, GameSidePanel, BoardNativeComponent, BoardNgtComponent],
+  imports: [GameSidePanel, GameBoard],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })
 export class GameComponent {
   game = input.required<TakGameUI>();
-  action = output<TakActionEvent>();
   mode = input.required<GameMode>();
   players = input.required<Record<TakPlayer, GamePlayer>>();
-  setHistoryPlyIndex = output<number>();
   requests = input.required<GameRequestType[]>();
+  action = output<TakActionEvent>();
+  setHistoryPlyIndex = output<number>();
   requestDraw = output();
   requestUndo = output();
   retractRequest = output<number>();

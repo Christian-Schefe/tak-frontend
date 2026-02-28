@@ -1,0 +1,12 @@
+@let takGame = game();
+@if (takGame !== null) {
+  <app-game-component
+    [game]="takGame"
+    [mode]="{ type: 'local' }"
+    [players]="players()"
+    [requests]="[]"
+    (action)="onAction($event)"
+  ></app-game-component>
+} @else {
+  <p-progress-spinner></p-progress-spinner>
+}

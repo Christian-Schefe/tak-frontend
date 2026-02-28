@@ -59,6 +59,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'puzzle/:id',
+        loadComponent: () =>
+          import('./routes/puzzle-route/puzzle-route').then((m) => m.PuzzleRoute),
+      },
+      {
         path: 'games',
         loadComponent: () => import('./routes/games-route/games-route').then((m) => m.GamesRoute),
       },

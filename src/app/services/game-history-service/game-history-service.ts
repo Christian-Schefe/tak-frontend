@@ -2,11 +2,15 @@ import { Injectable } from '@angular/core';
 import z from 'zod';
 import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 
-export const gameSettings = z.object({
+export const gameBaseSettings = z.object({
   boardSize: z.number(),
   halfKomi: z.number(),
   pieces: z.number(),
   capstones: z.number(),
+});
+
+export const gameSettings = z.object({
+  ...gameBaseSettings.shape,
   timeSettings: z.union([
     z.object({
       type: z.literal('realtime'),

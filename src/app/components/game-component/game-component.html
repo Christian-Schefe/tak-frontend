@@ -7,20 +7,8 @@
   "
 >
   <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
-    @switch (boardType) {
-      @case ('2d') {
-        <app-board-native-component [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
-        </app-board-native-component>
-      }
-      @case ('3d') {
-        <app-board-ngt-component [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
-        </app-board-ngt-component>
-      }
-      @case ('ninja') {
-        <app-board-ninja-component [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
-        </app-board-ninja-component>
-      }
-    }
+    <app-game-board [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
+    </app-game-board>
   </div>
   <div class="h-full w-full xl:w-120 pb-0">
     <app-game-side-panel
@@ -28,14 +16,14 @@
       [drawOffer]="myDrawOffer()"
       [undoRequest]="myUndoRequest()"
       [requests]="opponentRequests()"
+      [topPlayer]="{ color: pOrder.p2, info: players()[pOrder.p2] }"
+      [bottomPlayer]="{ color: pOrder.p1, info: players()[pOrder.p1] }"
       (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
       (requestDraw)="requestDraw.emit($event)"
       (requestUndo)="requestUndo.emit($event)"
       (retractRequest)="retractRequest.emit($event)"
       (requestDecision)="requestDecision.emit($event)"
       (resign)="resign.emit()"
-      [topPlayer]="{ color: pOrder.p2, info: players()[pOrder.p2] }"
-      [bottomPlayer]="{ color: pOrder.p1, info: players()[pOrder.p1] }"
     ></app-game-side-panel>
   </div>
 </div>

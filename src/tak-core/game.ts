@@ -6,6 +6,7 @@ import {
   type TakAction,
   type TakActionRecord,
   type TakPlayer,
+  TakBoard,
 } from '.';
 import {
   canMovePiece,
@@ -21,6 +22,13 @@ import {
 
 export function newGame(settings: TakGameSettings): TakGame {
   const board = newBoard(settings.boardSize);
+  return newGameFromBoard(settings, board);
+}
+
+export function newGameFromBoard(settings: TakGameSettings, board: TakBoard): TakGame {
+  if (board.size !== settings.boardSize) {
+    throw new Error('Board size does not match game settings');
+  }
   return {
     board,
     settings,

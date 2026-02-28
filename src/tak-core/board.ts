@@ -29,8 +29,7 @@ export function newBoard(size: number): TakBoard {
 }
 
 export function canPlacePiece(board: TakBoard, pos: TakPos): string | null {
-  if (!isValidCoord(board.size, pos))
-    return `Invalid place position: ${coordToString(pos)}`;
+  if (!isValidCoord(board.size, pos)) return `Invalid place position: ${coordToString(pos)}`;
 
   const stack = board.pieces[pos.y][pos.x];
   return !stack ? null : 'Position is already occupied';
@@ -83,28 +82,22 @@ export function canMovePiece(
   drops: number[],
   player: TakPlayer,
 ): string | null {
-  if (!isValidCoord(board.size, from))
-    return `Invalid move start position: ${coordToString(from)}`;
+  if (!isValidCoord(board.size, from)) return `Invalid move start position: ${coordToString(from)}`;
   const to = offsetCoord(from, dir, drops.length);
-  if (!isValidCoord(board.size, to))
-    return `Invalid move end position: ${coordToString(to)}`;
+  if (!isValidCoord(board.size, to)) return `Invalid move end position: ${coordToString(to)}`;
   const take = drops.reduce((acc, drop) => acc + drop, 0);
   if (drops.length === 0 || take === 0) return 'Invalid move';
 
   const stack = board.pieces[from.y][from.x];
-  if (!stack || stack.composition.length < take)
-    return 'Not enough pieces to move';
-  if (stack.composition[stack.composition.length - 1].player !== player)
-    return 'Not your piece';
+  if (!stack || stack.composition.length < take) return 'Not enough pieces to move';
+  if (stack.composition[stack.composition.length - 1].player !== player) return 'Not your piece';
   const variant = stack.variant;
 
   for (let i = 0; i < drops.length; i++) {
     const pos = offsetCoord(from, dir, i + 1);
     const stack = board.pieces[pos.y][pos.x];
-    const canSmash =
-      variant === 'capstone' && i === drops.length - 1 && drops[i] === 1;
-    if (stack && stack.variant === 'capstone')
-      return 'Cannot move onto capstone';
+    const canSmash = variant === 'capstone' && i === drops.length - 1 && drops[i] === 1;
+    if (stack && stack.variant === 'capstone') return 'Cannot move onto capstone';
     if (stack && stack.variant === 'standing' && !canSmash)
       return 'Cannot move onto standing piece';
   }
@@ -125,8 +118,7 @@ export function movePiece(
   const take = drops.reduce((acc, drop) => acc + drop, 0);
 
   const stack = board.pieces[from.y][from.x];
-  if (!stack)
-    throw new Error('No stack found at move origin. This should never happen');
+  if (!stack) throw new Error('No stack found at move origin. This should never happen');
 
   const takenPieces = stack.composition.splice(-take);
   const affectedPieces = takenPieces.map((p) => p.id);
@@ -327,5 +319,66 @@ export function toPositionString(board: TakBoard) {
 
     return result.join(',');
   }
-  return board.pieces.map(rowToPositionString).reverse().join('\n');
+  return board.pieces.map(rowToPositionString).reverse().join('/');
+}
+
+export function fromPositionString(position: string): TakBoard {
+  const rows = position.split('/');
+  const size = rows.length;
+  const board = newBoard(size);
+
+  const idCounters: Record<TakPlayer, { pieces: number; capstones: number }> = {
+    white: { pieces: 0, capstones: 0 },
+    black: { pieces: 0, capstones: 0 },
+  };
+  for (let y = 0; y < size; y++) {
+    const row = rows[size - 1 - y];
+    const cells = row.split(',');
+    let x = 0;
+    for (const cell of cells) {
+      if (cell.startsWith('x')) {
+        if (cell.length > 1) {
+          const count = parseInt(cell.slice(1), 10);
+          if (isNaN(count) || count <= 0) {
+            throw new Error(`Invalid empty cell count: ${cell}`);
+          }
+          x += count;
+        } else {
+          x += 1;
+        }
+        continue;
+      }
+      const match = cell.match(/^([12]+)([SC]?)$/);
+      if (!match) {
+        throw new Error(`Invalid cell string: ${cell}`);
+      }
+      const variantStr = match[2];
+      const variant = variantStr === 'C' ? 'capstone' : variantStr === 'S' ? 'standing' : 'flat';
+      const piecesStr = match[1];
+      const composition: TakTrackedPiece[] = [];
+      for (const char of piecesStr) {
+        const player = char === '1' ? 'white' : 'black';
+        composition.push({
+          player,
+          id: `${player === 'white' ? 'W' : 'B'}/${variant === 'capstone' ? 'C' : 'P'}/${(variant ===
+          'capstone'
+            ? idCounters[player].capstones
+            : idCounters[player].pieces
+          ).toString()}`,
+        });
+        if (variant === 'capstone') {
+          idCounters[player].capstones++;
+        } else {
+          idCounters[player].pieces++;
+        }
+      }
+      board.pieces[y][x] = {
+        variant,
+        composition,
+      };
+      x++;
+    }
+  }
+  board._idCounter = idCounters;
+  return board;
 }
