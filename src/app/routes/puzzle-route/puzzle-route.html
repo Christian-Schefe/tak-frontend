@@ -1,8 +1,8 @@
-@let takGame = game();
+@let takGame = game()?.game ?? null;
 @if (takGame !== null) {
   <app-game-component
     [game]="takGame"
-    [mode]="{ type: 'local' }"
+    [mode]="this.solved() ? { type: 'spectator' } : { type: 'local' }"
     [players]="players()"
     [requests]="[]"
     (action)="onAction($event)"

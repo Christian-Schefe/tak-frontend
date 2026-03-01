@@ -322,8 +322,21 @@ export function toPositionString(board: TakBoard) {
   return board.pieces.map(rowToPositionString).reverse().join('/');
 }
 
-export function fromPositionString(position: string): TakBoard {
-  const rows = position.split('/');
+export function fromPositionString(position: string): { board: TakBoard; plyIndex: number } {
+  const parts = position.split(' ');
+  if (parts.length !== 3) {
+    throw new Error(`Invalid position string: ${position}`);
+  }
+  const [positionStr, turnIndicator, moveCountStr] = parts;
+  if (turnIndicator !== '1' && turnIndicator !== '2') {
+    throw new Error(`Invalid turn indicator: ${turnIndicator}`);
+  }
+  const moveCount = parseInt(moveCountStr, 10);
+  if (isNaN(moveCount) || moveCount <= 0) {
+    throw new Error(`Invalid move count: ${moveCountStr}`);
+  }
+  const plyIndex = (moveCount - 1) * 2 + (turnIndicator === '1' ? 0 : 1);
+  const rows = positionStr.split('/');
   const size = rows.length;
   const board = newBoard(size);
 
@@ -380,5 +393,5 @@ export function fromPositionString(position: string): TakBoard {
     }
   }
   board._idCounter = idCounters;
-  return board;
+  return { board, plyIndex };
 }

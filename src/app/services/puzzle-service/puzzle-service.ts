@@ -6,7 +6,7 @@ import { HttpClient } from '@angular/common/http';
 
 const puzzleSchema = z.object({
   id: z.number(),
-  position: z.string(),
+  actions: z.array(z.string()),
   gameSettings: gameBaseSettings,
 });
 
@@ -25,6 +25,10 @@ type SolveResponse =
 })
 export class PuzzleService {
   private httpClient = inject(HttpClient);
+
+  getRandomPuzzleId() {
+    return this.httpClient.get<{ id: number }>('/api2/puzzles');
+  }
 
   getPuzzle(puzzleId: () => string | undefined) {
     return smartHttpResource(puzzleSchema, () => {

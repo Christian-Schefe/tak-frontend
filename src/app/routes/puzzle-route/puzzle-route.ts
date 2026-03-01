@@ -11,11 +11,10 @@ import {
   tryPlaceOrAddToPartialMove,
   updatePartialMove,
 } from '../../../tak-core/ui';
-import { newGameFromBoard } from '../../../tak-core/game';
+import { newGame } from '../../../tak-core/game';
 import { TakAction, TakPlayer, TakPos } from '../../../tak-core';
 import { PuzzleService } from '../../services/puzzle-service/puzzle-service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { fromPositionString } from '../../../tak-core/board';
 import { produce } from 'immer';
 import { moveFromString, moveToString } from '../../../tak-core/move';
 
@@ -39,33 +38,43 @@ export class PuzzleRoute {
 
   puzzleInfo = this.puzzleService.getPuzzle(() => this.id());
 
-  game = linkedSignal<TakGameUI | null>(() => {
+  solved = linkedSignal(() => {
+    this.puzzleInfo.value();
+    return false;
+  });
+
+  game = linkedSignal<{ game: TakGameUI; solution: TakAction[] } | null>(() => {
     const puzzle = this.puzzleInfo.value();
     if (puzzle === undefined) {
       return null;
     }
-    const board = fromPositionString(puzzle.position);
-    return newGameUI(
-      newGameFromBoard(
-        {
-          boardSize: puzzle.gameSettings.boardSize,
-          halfKomi: puzzle.gameSettings.halfKomi,
-          reserve: {
-            pieces: puzzle.gameSettings.pieces,
-            capstones: puzzle.gameSettings.capstones,
-          },
-          clock: null,
+    const game = newGameUI(
+      newGame({
+        boardSize: puzzle.gameSettings.boardSize,
+        halfKomi: puzzle.gameSettings.halfKomi,
+        reserve: {
+          pieces: puzzle.gameSettings.pieces,
+          capstones: puzzle.gameSettings.capstones,
         },
-        board,
-      ),
+        clock: null,
+      }),
     );
+    return {
+      game: produce(game, (game) => {
+        for (const action of puzzle.actions) {
+          doMove(game, moveFromString(action));
+        }
+      }),
+      solution: [],
+    };
   });
 
   onAction(action: TakActionEvent) {
-    const game = this.game();
-    if (!game) {
+    const gameData = this.game();
+    if (!gameData) {
       return;
     }
+    const { game, solution } = gameData;
     let move: TakAction | null = null;
     let pos: TakPos | null = null;
     if (action.type === 'full') {
@@ -75,31 +84,41 @@ export class PuzzleRoute {
       pos = action.pos;
     }
 
-    const newGame = produce(game, (game) => {
-      if (move !== null) {
-        doMove(game, move);
-      } else if (pos !== null) {
-        updatePartialMove(game, pos);
+    const newSolution = move !== null ? [...solution, move] : solution;
+
+    this.game.update((game) => {
+      if (!game) {
+        return game;
       }
+
+      return produce(game, (game) => {
+        if (move !== null) {
+          doMove(game.game, move);
+          game.solution.push(move);
+        } else if (pos !== null) {
+          updatePartialMove(game.game, pos);
+        }
+      });
     });
-    this.game.set(newGame);
 
     if (move !== null) {
-      const moveHistory = newGame.actualGame.history.map((entry) => moveToString(entry));
-      this.puzzleService.trySolvePuzzle(this.id(), moveHistory).subscribe((res) => {
+      const solution = newSolution.map((entry) => moveToString(entry));
+      this.puzzleService.trySolvePuzzle(this.id(), solution).subscribe((res) => {
         console.log('Tried solving puzzle:', action, res);
         if (res.type === 'correct') {
-          alert('Correct!');
+          this.solved.set(true);
         } else if (res.type === 'incorrect') {
-          alert('Incorrect, try again!');
+          console.log('Incorrect, try again!');
+          this.puzzleInfo.refetch();
         } else {
           const action = moveFromString(res.action);
           this.game.update((game) => {
             if (!game) {
               return game;
             }
+            console.log(game.game.actualGame.history.map((entry) => moveToString(entry)));
             return produce(game, (game) => {
-              doMove(game, action);
+              doMove(game.game, action);
             });
           });
         }

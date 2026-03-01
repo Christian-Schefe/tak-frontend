@@ -317,14 +317,19 @@ export class OnlinePlayRoute implements OnDestroy {
       pos = action.pos;
     }
 
-    const newGame = produce(game, (game) => {
-      if (move !== null) {
-        doMove(game, move);
-      } else if (pos !== null) {
-        updatePartialMove(game, pos);
+    this.game.update((game) => {
+      if (!game) {
+        return game;
       }
+      return produce(game, (game) => {
+        if (move !== null) {
+          doMove(game, move);
+        } else if (pos !== null) {
+          updatePartialMove(game, pos);
+        }
+      });
     });
-    this.game.set(newGame);
+
     const currentGame = this.currentGame();
     if (!currentGame) {
       return;
