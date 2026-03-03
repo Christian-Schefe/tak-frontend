@@ -7,6 +7,7 @@
     "analytics": false
   },
   "newProjectRoot": "projects",
+
   "projects": {
     "tak-frontend": {
       "projectType": "application",
@@ -24,11 +25,17 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*.wasm",
+                "input": "src/tak-wasm-engine/pkg",
+                "output": "/wasm"
               }
             ],
             "styles": ["src/styles.css"],
             "statsJson": true,
-            "optimization": true
+            "optimization": true,
+            "webWorkerTsConfig": "tsconfig.worker.json"
           },
           "configurations": {
             "production": {
@@ -76,7 +83,10 @@
           }
         },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "webWorkerTsConfig": "tsconfig.worker.json"
+          }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",

@@ -82,6 +82,11 @@ export const routes: Routes = [
           import('./routes/new-game-route/new-game-route').then((m) => m.NewGameRoute),
       },
       {
+        path: 'analysis',
+        loadComponent: () =>
+          import('./routes/analysis-route/analysis-route').then((m) => m.AnalysisRoute),
+      },
+      {
         path: '**',
         loadComponent: () =>
           import('./routes/not-found-route/not-found-route').then((m) => m.NotFoundRoute),
