@@ -6,6 +6,7 @@ import { GameRequestType } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { SettingsService } from '../../services/settings-service/settings-service';
 import { GameBoard } from '../game-board/game-board';
+import { GameAnalysisBar } from '../game-analysis-bar/game-analysis-bar';
 
 export type GameMode =
   | { type: 'local' }
@@ -37,7 +38,7 @@ export type TakActionEvent =
 
 @Component({
   selector: 'app-game-component',
-  imports: [GameSidePanel, GameBoard],
+  imports: [GameSidePanel, GameBoard, GameAnalysisBar],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })
@@ -46,6 +47,9 @@ export class GameComponent {
   mode = input.required<GameMode>();
   players = input.required<Record<TakPlayer, GamePlayer>>();
   requests = input.required<GameRequestType[]>();
+
+  evaluation = input<number | undefined>(undefined);
+
   action = output<TakActionEvent>();
   setHistoryPlyIndex = output<number>();
   requestDraw = output();

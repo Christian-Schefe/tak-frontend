@@ -1,34 +1,30 @@
 /// <reference lib="webworker" />
 
-import z from 'zod';
-import init, { Engine, initialize } from '../../tak-wasm-engine/pkg';
+import init, { initialize, search_position } from '../../tak-wasm-engine/pkg';
+import { workerInput } from '../services/engine-service/engine-service';
 
-let engine: Engine | null = null;
+let isInit = false;
 
 async function assertInit() {
-  if (!engine) {
+  if (!isInit) {
     await init({
       module_or_path: '/wasm/tak_wasm_engine_bg.wasm',
     });
     initialize();
-    engine = new Engine();
+    isInit = true;
   }
-  return engine;
+  return isInit;
 }
 
-const messageSchema = z.object({
-  message: z.string(),
-});
-
 addEventListener('message', ({ data }) => {
-  void assertInit().then((engine) => {
-    const parsed = messageSchema.safeParse(data);
+  void assertInit().then(() => {
+    const parsed = workerInput.safeParse(data);
     if (!parsed.success) {
       postMessage({ error: `Invalid data format: ${parsed.error.message}` });
       return;
     }
     const message = parsed.data;
 
-    engine.send_tei(message.message);
+    search_position(JSON.stringify(message.game.settings), message.game.tps);
   });
 });

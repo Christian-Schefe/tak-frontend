@@ -18,6 +18,7 @@ import {
   movePiece,
   newBoard,
   placePiece,
+  toPositionString,
 } from './board';
 
 export function newGame(settings: TakGameSettings): TakGame {
@@ -325,4 +326,11 @@ export function gameResultToString(gameResult: TakGameState) {
     case 'aborted':
       return '0-0';
   }
+}
+
+export function gameToTPS(game: TakGame): string {
+  const boardStr = toPositionString(game.board);
+  const playerStr = game.history.length % 2 === 0 ? '1' : '2';
+  const moveStr = (Math.floor(game.history.length / 2) + 1).toString();
+  return `${boardStr} ${playerStr} ${moveStr}`;
 }

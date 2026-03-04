@@ -1,0 +1,12 @@
+:host {
+  display: flex;
+  height: 100%;
+}
+
+.evalbar {
+  transition: height 1s ease;
+}
+
+.evallabel {
+  transition: opacity 0.2s ease;
+}

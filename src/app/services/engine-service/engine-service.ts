@@ -1,13 +1,26 @@
 import { Injectable } from '@angular/core';
 import z from 'zod';
+import { gameBaseSettings } from '../game-history-service/game-history-service';
+import { TakGame } from '../../../tak-core';
+import { gameToTPS } from '../../../tak-core/game';
 
 const workerResponse = z.union([
   z.object({
-    type: z.literal('tei'),
-    message: z.string(),
+    type: z.literal('evaluation'),
+    score: z.number(),
   }),
   z.object({
     type: z.literal('loaded'),
+  }),
+]);
+
+export const workerInput = z.union([
+  z.object({
+    type: z.literal('evaluate'),
+    game: z.object({
+      settings: gameBaseSettings,
+      tps: z.string(),
+    }),
   }),
 ]);
 
@@ -76,15 +89,27 @@ export class EngineService {
         console.error('Invalid response from worker:', data, parsed.error);
         throw new Error('Invalid response from worker');
       }
+
       if (parsed.data.type !== 'loaded') {
         callback(parsed.data);
       }
     };
-    worker.postMessage({ message: 'tei' });
   }
 
-  async sendMessage(id: string, message: string) {
+  async evaluatePosition(id: string, game: TakGame) {
     const worker = await this.getWorker(id);
-    worker.postMessage({ message });
+    const input: z.infer<typeof workerInput> = {
+      type: 'evaluate',
+      game: {
+        settings: {
+          boardSize: game.settings.boardSize,
+          halfKomi: game.settings.halfKomi,
+          pieces: game.settings.reserve.pieces,
+          capstones: game.settings.reserve.capstones,
+        },
+        tps: gameToTPS(game),
+      },
+    };
+    worker.postMessage(input);
   }
 }

@@ -1,11 +1,17 @@
 @let takGame = game();
 @let pOrder = playerOrder();
 @let boardType = settingsService.generalSettings().boardType;
+@let eval = evaluation();
 <div
   [class]="
     `w-full max-xl:overflow-y-scroll gap-4 p-4 h-full flex flex-col xl:flex-row mx-auto xl:pl-4 ${boardType === '2d' ? 'max-w-400' : 'max-w-550'}`
   "
 >
+  @if (eval !== undefined) {
+    <div class="h-full flex items-center gap-4">
+      <app-game-analysis-bar [evaluation]="eval"></app-game-analysis-bar>
+    </div>
+  }
   <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
     <app-game-board [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
     </app-game-board>
