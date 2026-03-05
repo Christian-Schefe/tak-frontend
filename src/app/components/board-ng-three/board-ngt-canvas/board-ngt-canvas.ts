@@ -2,6 +2,7 @@ import {
   Component,
   computed,
   CUSTOM_ELEMENTS_SCHEMA,
+  inject,
   input,
   linkedSignal,
   output,
@@ -25,12 +26,14 @@ import {
   PlaneGeometry,
   Texture,
   BufferGeometry,
+  RingGeometry,
 } from 'three';
 import { GameMode, TakActionEvent } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
 import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
 import { gltfResource, textureResource } from 'angular-three-soba/loaders';
+import { Board3dPresetService } from '../../../services/board-3d-preset-service/board-3d-preset-service';
 
 @Component({
   selector: 'app-board-ngt-canvas',
@@ -62,12 +65,15 @@ export class BoardNgtCanvas {
   tileRotation = [-Math.PI / 2, 0, 0];
   tableRotation = [0, Math.PI / 2, 0];
 
+  private presetService = inject(Board3dPresetService);
+
   constructor() {
     extend({
       Mesh,
       BoxGeometry,
       CylinderGeometry,
       PlaneGeometry,
+      RingGeometry,
       MeshBasicMaterial,
       SpotLight,
       PointLight,
@@ -75,15 +81,62 @@ export class BoardNgtCanvas {
     });
   }
 
-  textures = textureResource(() => ({
-    board_3x3: '/board-3d/textures/board/board_3x3.png',
-    board_4x4: '/board-3d/textures/board/board_4x4.png',
-    board_5x5: '/board-3d/textures/board/board_5x5.png',
-    board_6x6: '/board-3d/textures/board/board_6x6.png',
-    board_7x7: '/board-3d/textures/board/board_7x7.png',
-    board_8x8: '/board-3d/textures/board/board_8x8.png',
-    table: '/board-3d/textures/wooden_table.png',
-  }));
+  boardPresetName = signal<string>('basic');
+  boardPreset = this.presetService.getComputedBoardPreset(() => this.boardPresetName());
+
+  tablePresetName = signal<string>('basic');
+  tablePreset = this.presetService.getComputedTablePreset(() => this.tablePresetName());
+
+  textures = textureResource(() => {
+    const boardPresetName = this.boardPresetName();
+    const boardPreset = this.boardPreset()?.lastValue();
+    const tablePresetName = this.tablePresetName();
+    const tablePreset = this.tablePreset()?.lastValue();
+    return {
+      board_3x3: this.presetService.getPresetPath(
+        'board',
+        boardPresetName,
+        boardPreset?.texture['3x3'].fileName,
+        'texture',
+      ),
+      board_4x4: this.presetService.getPresetPath(
+        'board',
+        boardPresetName,
+        boardPreset?.texture['4x4'].fileName,
+        'texture',
+      ),
+      board_5x5: this.presetService.getPresetPath(
+        'board',
+        boardPresetName,
+        boardPreset?.texture['5x5'].fileName,
+        'texture',
+      ),
+      board_6x6: this.presetService.getPresetPath(
+        'board',
+        boardPresetName,
+        boardPreset?.texture['6x6'].fileName,
+        'texture',
+      ),
+      board_7x7: this.presetService.getPresetPath(
+        'board',
+        boardPresetName,
+        boardPreset?.texture['7x7'].fileName,
+        'texture',
+      ),
+      board_8x8: this.presetService.getPresetPath(
+        'board',
+        boardPresetName,
+        boardPreset?.texture['8x8'].fileName,
+        'texture',
+      ),
+      table: this.presetService.getPresetPath(
+        'table',
+        tablePresetName,
+        tablePreset?.texture.fileName,
+        'texture',
+      ),
+    };
+  });
 
   boardTexture = computed(() => {
     const settings = this.gameSettings();
@@ -93,9 +146,18 @@ export class BoardNgtCanvas {
     return textures ? textures[textureKey] : undefined;
   });
   meshes = gltfResource(
-    () => ({
-      table: '/board-3d/models/table.glb',
-    }),
+    () => {
+      const tablePresetName = this.tablePresetName();
+      const tablePreset = this.tablePreset()?.lastValue();
+      return {
+        table: this.presetService.getPresetPath(
+          'table',
+          tablePresetName,
+          tablePreset?.model.fileName,
+          'model',
+        ),
+      };
+    },
     {
       onLoad: (gltf) => {
         gltf.table.scene.traverse((child) => {
@@ -167,8 +229,48 @@ export class BoardNgtCanvas {
   onTileClick(pos: TakPos) {
     if (!this.areTilesInteractive()) return;
     const variant = this.currentVariant();
-    this.action.emit({ type: 'partial', pos, variant });
+    this.action.emit({ type: 'partial', pos, variant: variant ?? 'flat' });
     this.currentVariant.set(null);
+  }
+
+  lastMovePositions = computed(() => {
+    const game = this.game();
+    const positions = [];
+    for (let y = 0; y < game.tiles.length; y++) {
+      for (let x = 0; x < game.tiles[y].length; x++) {
+        const tile = game.tiles[y][x];
+        if (tile.lastMove) {
+          positions.push({ x, y });
+        }
+      }
+    }
+    return new Set(positions);
+  });
+
+  hoveredTile = signal<TakPos | null>(null);
+
+  showHoverHighlight = computed(() => {
+    const hoveredTile = this.hoveredTile();
+    if (!hoveredTile) return false;
+    const tile = this.game().tiles[hoveredTile.y][hoveredTile.x];
+    return tile.hoverable;
+  });
+
+  onTileHover(pos: TakPos, hover: boolean) {
+    if (!this.areTilesInteractive()) {
+      this.hoveredTile.set(null);
+      return;
+    }
+    console.log('Tile hover:', pos, 'hover:', hover);
+    this.hoveredTile.update((prev) => {
+      if (prev && prev.x === pos.x && prev.y === pos.y) {
+        return hover ? pos : null;
+      } else if (hover) {
+        return pos;
+      } else {
+        return prev;
+      }
+    });
   }
 
   setCurrentVariant(isCapstone: boolean) {

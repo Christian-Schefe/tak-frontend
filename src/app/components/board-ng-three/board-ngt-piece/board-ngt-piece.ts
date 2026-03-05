@@ -1,10 +1,19 @@
-import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, input, output, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  CUSTOM_ELEMENTS_SCHEMA,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { TakGameUI, TakUIPiece } from '../../../../tak-core/ui';
 import { playerOpposite, TakGameSettings, TakPieceId, TakPieceVariant } from '../../../../tak-core';
 import { beforeRender, NgtThreeEvent } from 'angular-three';
 import { GameMode } from '../../game-component/game-component';
 import { BufferGeometry, Euler, MathUtils, Mesh, Quaternion, Vector3 } from 'three';
 import { gltfResource, textureResource } from 'angular-three-soba/loaders';
+import { Board3dPresetService } from '../../../services/board-3d-preset-service/board-3d-preset-service';
 
 @Component({
   selector: 'app-board-ngt-piece',
@@ -22,11 +31,29 @@ export class BoardNgtPiece {
   currentVariant = input.required<TakPieceVariant | null>();
   clickPiece = output<boolean>();
 
+  piecePresetName = signal<string>('basic');
+  capstonePresetName = signal<string>('basic');
+
+  private presetService = inject(Board3dPresetService);
+  piecePreset = this.presetService.getComputedPiecePreset(() => this.piecePresetName());
+  capstonePreset = this.presetService.getComputedCapstonePreset(() => this.capstonePresetName());
+
   meshes = gltfResource(
-    () => ({
-      piece: '/board-3d/models/piece.glb',
-      capstone: '/board-3d/models/capstone.glb',
-    }),
+    () => {
+      const piecePresetName = this.piecePresetName();
+      const capstonePresetName = this.capstonePresetName();
+      const pieceModelFile = this.piecePreset()?.lastValue()?.model.fileName;
+      const capstoneModelFile = this.capstonePreset()?.lastValue()?.model.fileName;
+      return {
+        piece: this.presetService.getPresetPath('piece', piecePresetName, pieceModelFile, 'model'),
+        capstone: this.presetService.getPresetPath(
+          'capstone',
+          capstonePresetName,
+          capstoneModelFile,
+          'model',
+        ),
+      };
+    },
     {
       onLoad: (gltf) => {
         gltf.piece.scene.traverse((child) => {
@@ -42,6 +69,7 @@ export class BoardNgtPiece {
       },
     },
   );
+
   pieceGeometry = signal<BufferGeometry | undefined>(undefined);
   capstoneGeometry = signal<BufferGeometry | undefined>(undefined);
   geometry = computed(() => {
@@ -53,12 +81,42 @@ export class BoardNgtPiece {
     }
   });
 
-  textures = textureResource(() => ({
-    whitePiece: '/board-3d/textures/piece_white.png',
-    whiteCapstone: '/board-3d/textures/capstone_white.png',
-    blackPiece: '/board-3d/textures/piece_black.png',
-    blackCapstone: '/board-3d/textures/capstone_black.png',
-  }));
+  textures = textureResource(() => {
+    const piecePresetName = this.piecePresetName();
+    const capstonePresetName = this.capstonePresetName();
+    const piecePreset = this.piecePreset()?.lastValue();
+    const capstonePreset = this.capstonePreset()?.lastValue();
+    const whitePieceFile = piecePreset?.texture.white.fileName;
+    const blackPieceFile = piecePreset?.texture.black.fileName;
+    const whiteCapstoneFile = capstonePreset?.texture.white.fileName;
+    const blackCapstoneFile = capstonePreset?.texture.black.fileName;
+    return {
+      whitePiece: this.presetService.getPresetPath(
+        'piece',
+        piecePresetName,
+        whitePieceFile,
+        'texture',
+      ),
+      blackPiece: this.presetService.getPresetPath(
+        'piece',
+        piecePresetName,
+        blackPieceFile,
+        'texture',
+      ),
+      whiteCapstone: this.presetService.getPresetPath(
+        'capstone',
+        capstonePresetName,
+        whiteCapstoneFile,
+        'texture',
+      ),
+      blackCapstone: this.presetService.getPresetPath(
+        'capstone',
+        capstonePresetName,
+        blackCapstoneFile,
+        'texture',
+      ),
+    };
+  });
 
   texture = computed(() => {
     const data = this.layoutData();
@@ -127,8 +185,28 @@ export class BoardNgtPiece {
     return defaultPiece;
   });
 
-  pieceSize = 0.7;
-  pieceHeight = this.pieceSize * 0.25;
+  pieceScale = signal(0.7);
+  pieceHeight = computed(() => {
+    const preset = this.piecePreset()?.lastValue();
+    const scale = this.pieceScale();
+    return (preset?.model.height ?? 0) * scale;
+  });
+  positionOffset = computed(() => {
+    const piecePreset = this.piecePreset()?.lastValue();
+    const capstonePreset = this.capstonePreset()?.lastValue();
+    const scale = this.pieceScale();
+    return {
+      flat: piecePreset?.model.flatOffset
+        ? new Vector3(...piecePreset.model.flatOffset).multiplyScalar(scale)
+        : new Vector3(0, 0, 0),
+      standing: piecePreset?.model.standingOffset
+        ? new Vector3(...piecePreset.model.standingOffset).multiplyScalar(scale)
+        : new Vector3(0, 0, 0),
+      capstone: capstonePreset?.model.offset
+        ? new Vector3(...capstonePreset.model.offset).multiplyScalar(scale)
+        : new Vector3(0, 0, 0),
+    };
+  });
 
   currentPos = signal(new Vector3());
   currentQuat = signal(new Quaternion());
@@ -159,13 +237,15 @@ export class BoardNgtPiece {
   targetPos = computed(() => {
     const data = this.layoutData();
     const settings = this.settings();
-    let height = (data.height + (data.isFloating ? 2 : 0)) * this.pieceHeight;
+    const pieceHeight = this.pieceHeight();
+    const offset = this.positionOffset();
+    let height = (data.height + (data.isFloating ? 2 : 0)) * pieceHeight;
     if (data.deleted) height -= 0.1;
     return new Vector3(
       data.pos.x + 0.5 - settings.boardSize / 2,
-      height + (data.variant === 'flat' ? this.pieceHeight / 2 : this.pieceSize / 2),
+      height,
       -(data.pos.y + 0.5 - settings.boardSize / 2),
-    );
+    ).add(offset[data.variant]);
   });
   targetRotation = computed(() => {
     const data = this.layoutData();

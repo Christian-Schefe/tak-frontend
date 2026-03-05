@@ -37,6 +37,33 @@
   <ngt-mesh-standard-material [color]="'#555555'" />
 </ngt-mesh>
 <ngt-group>
+  @let hovered = hoveredTile();
+  @if (hovered && showHoverHighlight()) {
+    <ngt-mesh
+      [position]="[
+        hovered.x - settings.boardSize / 2 + 0.5,
+        0.01,
+        -(hovered.y - settings.boardSize / 2 + 0.5),
+      ]"
+      [rotation]="tileRotation"
+    >
+      <ngt-ring-geometry *args="[0.5, 0.525]" />
+      <ngt-mesh-standard-material [color]="'#4444FF'" />
+    </ngt-mesh>
+  }
+  @for (pos of lastMovePositions(); track $index) {
+    <ngt-mesh
+      [position]="[
+        pos.x - settings.boardSize / 2 + 0.5,
+        0.005,
+        -(pos.y - settings.boardSize / 2 + 0.5),
+      ]"
+      [rotation]="tileRotation"
+    >
+      <ngt-ring-geometry *args="[0.475, 0.5]" />
+      <ngt-mesh-standard-material [color]="'#AAAAFF'" />
+    </ngt-mesh>
+  }
   @for (item of tilePositions(); track $index) {
     <ngt-mesh
       [position]="[
@@ -45,10 +72,12 @@
         -(item.pos.y - settings.boardSize / 2 + 0.5),
       ]"
       [rotation]="tileRotation"
+      (pointerover)="onTileHover(item.pos, true)"
+      (pointerout)="onTileHover(item.pos, false)"
       (click)="onTileClick(item.pos)"
       [visible]="false"
     >
-      <ngt-plane-geometry [args]="[1, 1]" />
+      <ngt-plane-geometry *args="[1, 1]" />
       <ngt-mesh-standard-material />
     </ngt-mesh>
   }

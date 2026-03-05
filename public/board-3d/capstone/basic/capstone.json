@@ -1,0 +1,14 @@
+{
+  "model": {
+    "fileName": "capstone.glb",
+    "offset": [0, 0.5, 0]
+  },
+  "texture": {
+    "white": {
+      "fileName": "capstone_white.png"
+    },
+    "black": {
+      "fileName": "capstone_black.png"
+    }
+  }
+}

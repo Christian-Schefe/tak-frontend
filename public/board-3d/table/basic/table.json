@@ -1,0 +1,9 @@
+{
+  "model": {
+    "fileName": "table.glb",
+    "offset": [0, 0, 0]
+  },
+  "texture": {
+    "fileName": "wooden_table.png"
+  }
+}

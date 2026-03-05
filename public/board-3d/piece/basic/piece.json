@@ -1,0 +1,16 @@
+{
+  "model": {
+    "fileName": "piece.glb",
+    "flatOffset": [0, 0.125, 0],
+    "standingOffset": [0, 0.5, 0],
+    "height": 0.25
+  },
+  "texture": {
+    "white": {
+      "fileName": "piece_white.png"
+    },
+    "black": {
+      "fileName": "piece_black.png"
+    }
+  }
+}
