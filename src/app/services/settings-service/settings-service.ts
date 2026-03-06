@@ -3,6 +3,7 @@ import z from 'zod';
 import { THEME_IDS as primeNgThemes } from '../theme-service/theme.constants';
 import { THEME_IDS as themeIdsNative } from '../../../2d-themes';
 import { NINJA_2D_THEMES } from '../../components/board-ninja-component/board-ninja.constants';
+import { PIECE_PRESETS } from '../board-3d-preset-service/board-3d-preset-service';
 
 const generalSettings = z.object({
   theme: z.enum(primeNgThemes),
@@ -26,6 +27,12 @@ const boardNinjaSettings = z.object({
 });
 export type BoardNinjaSettings = z.infer<typeof boardNinjaSettings>;
 
+const board3dSettings = z.object({
+  piecePreset: z.enum(PIECE_PRESETS),
+  pieceScale: z.number(),
+});
+export type Board3dSettings = z.infer<typeof board3dSettings>;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -48,6 +55,10 @@ export class SettingsService {
     orthographic: false,
     perspective: 5,
   });
+  board3dSettings = signal<Board3dSettings>({
+    piecePreset: 'basic',
+    pieceScale: 0.7,
+  });
 
   private readonly _loadSettingsEffect = this.loadSettingsEffects();
 
@@ -67,6 +78,11 @@ export class SettingsService {
       this.boardNinjaSettings,
       boardNinjaSettings,
     );
+    const syncBoard3dSettings = this.linkSettingsSignal(
+      'board3dSettings',
+      this.board3dSettings,
+      board3dSettings,
+    );
     return [
       effect(() => {
         const generalSettings = this.generalSettings();
@@ -79,6 +95,10 @@ export class SettingsService {
       effect(() => {
         const settings = this.boardNinjaSettings();
         syncBoardNinjaSettings(settings);
+      }),
+      effect(() => {
+        const settings = this.board3dSettings();
+        syncBoard3dSettings(settings);
       }),
     ];
   }

@@ -32,8 +32,9 @@ import { GameMode, TakActionEvent } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
 import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
-import { gltfResource, textureResource } from 'angular-three-soba/loaders';
+import { fontResource, gltfResource, textureResource } from 'angular-three-soba/loaders';
 import { Board3dPresetService } from '../../../services/board-3d-preset-service/board-3d-preset-service';
+import { TextGeometry } from 'three-stdlib';
 
 @Component({
   selector: 'app-board-ngt-canvas',
@@ -75,6 +76,7 @@ export class BoardNgtCanvas {
       PlaneGeometry,
       RingGeometry,
       MeshBasicMaterial,
+      TextGeometry,
       SpotLight,
       PointLight,
       AmbientLight,
@@ -176,6 +178,19 @@ export class BoardNgtCanvas {
 
   private tiles = computed(() => this.game().tiles);
 
+  font = fontResource(() => '/board-3d/helvetiker_regular.typeface.json');
+
+  textPositions = computed(() => {
+    const settings = this.gameSettings();
+    const positions: { x: number; y: number; label: string }[] = [];
+    for (let i = 0; i < settings.boardSize; i++) {
+      const char = String.fromCharCode('A'.charCodeAt(0) + i);
+      positions.push({ x: i - 0.05, y: -0.7, label: char });
+      positions.push({ x: -0.7, y: i - 0.05, label: (i + 1).toString() });
+    }
+    return positions;
+  });
+
   tilePositions = computed(() => {
     const tiles = this.tiles();
     const gameSettings = this.gameSettings();
@@ -261,7 +276,6 @@ export class BoardNgtCanvas {
       this.hoveredTile.set(null);
       return;
     }
-    console.log('Tile hover:', pos, 'hover:', hover);
     this.hoveredTile.update((prev) => {
       if (prev && prev.x === pos.x && prev.y === pos.y) {
         return hover ? pos : null;

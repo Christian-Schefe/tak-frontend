@@ -13,36 +13,24 @@ import {
 } from '../../util/smart-http-resource/smart-http-resource';
 import z from 'zod';
 
-const piecePreset = z.object({
-  model: z.object({
-    fileName: z.string(),
-    height: z.number(),
-    flatOffset: z.array(z.number()).length(3).optional(),
-    standingOffset: z.array(z.number()).length(3).optional(),
-  }),
-  texture: z.object({
-    white: z.object({
-      fileName: z.string(),
-    }),
-    black: z.object({
-      fileName: z.string(),
-    }),
-  }),
+export const PIECE_PRESETS = ['basic', 'bevel'];
+
+const model = z.object({
+  fileName: z.string(),
+  scale: z.number().default(1),
+  offset: z.array(z.number()).length(3).optional(),
+  standingOffset: z.array(z.number()).length(3).optional(),
+  stackedOffset: z.array(z.number()).length(3).optional(),
+  stackedStandingOffset: z.array(z.number()).length(3).optional(),
 });
 
-const capstonePreset = z.object({
-  model: z.object({
-    fileName: z.string(),
-    offset: z.array(z.number()).length(3).optional(),
-  }),
-  texture: z.object({
-    white: z.object({
-      fileName: z.string(),
-    }),
-    black: z.object({
-      fileName: z.string(),
-    }),
-  }),
+const piecePreset = z.object({
+  whitePieceModel: model,
+  blackPieceModel: model,
+  whiteCapstoneModel: model,
+  blackCapstoneModel: model,
+
+  pieceHeight: z.number(),
 });
 
 const boardPreset = z.object({
@@ -78,11 +66,10 @@ const tablePreset = z.object({
 });
 
 export type PiecePreset = z.infer<typeof piecePreset>;
-export type CapstonePreset = z.infer<typeof capstonePreset>;
 export type BoardPreset = z.infer<typeof boardPreset>;
 export type TablePreset = z.infer<typeof tablePreset>;
 
-type Board3dPresetType = 'piece' | 'capstone' | 'board' | 'table';
+type Board3dPresetType = 'piece' | 'board' | 'table';
 
 const notFoundTexture = '/fallback/not_found.png';
 const notFoundModel = '/fallback/not_found.glb';
@@ -94,7 +81,6 @@ export class Board3dPresetService {
   private injector = inject(Injector);
 
   private piecePresetCache = new Map<string, SmartHttpResource<PiecePreset>>();
-  private capstonePresetCache = new Map<string, SmartHttpResource<CapstonePreset>>();
   private boardPresetCache = new Map<string, SmartHttpResource<BoardPreset>>();
   private tablePresetCache = new Map<string, SmartHttpResource<TablePreset>>();
 
@@ -144,16 +130,6 @@ export class Board3dPresetService {
       pathFn,
       (path) => this.getPreset(piecePreset, path, 'piece'),
       this.piecePresetCache,
-    );
-  }
-
-  getComputedCapstonePreset(
-    pathFn: () => string | undefined,
-  ): Signal<SmartHttpResource<CapstonePreset> | undefined> {
-    return this.getComputedResource(
-      pathFn,
-      (path) => this.getPreset(capstonePreset, path, 'capstone'),
-      this.capstonePresetCache,
     );
   }
 

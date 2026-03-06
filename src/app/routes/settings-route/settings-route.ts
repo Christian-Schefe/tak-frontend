@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import {
+  Board3dSettings,
   BoardNativeSettings,
   BoardNinjaSettings,
   GeneralSettings,
@@ -15,6 +16,7 @@ import { themes as boardNativeThemeList } from '../../../2d-themes';
 import { themes } from '../../services/theme-service/theme-service';
 import { NINJA_2D_THEMES } from '../../components/board-ninja-component/board-ninja.constants';
 import { CardModule } from 'primeng/card';
+import { PIECE_PRESETS } from '../../services/board-3d-preset-service/board-3d-preset-service';
 
 @Component({
   selector: 'app-settings-route',
@@ -64,6 +66,13 @@ export class SettingsRoute {
     ],
   };
 
+  board3dSettings = {
+    piecePresets: PIECE_PRESETS.map((preset) => ({
+      label: preset.charAt(0).toUpperCase() + preset.slice(1),
+      value: preset,
+    })),
+  };
+
   perspective = computed(() => {
     const settings = this.settingsService.boardNinjaSettings();
     return settings.orthographic ? 0 : settings.perspective;
@@ -90,6 +99,12 @@ export class SettingsRoute {
 
   updateBoardNinjaSettings(patch: Partial<BoardNinjaSettings>) {
     this.settingsService.boardNinjaSettings.update((settings) => {
+      return { ...settings, ...patch };
+    });
+  }
+
+  updateBoard3dSettings(patch: Partial<Board3dSettings>) {
+    this.settingsService.board3dSettings.update((settings) => {
       return { ...settings, ...patch };
     });
   }

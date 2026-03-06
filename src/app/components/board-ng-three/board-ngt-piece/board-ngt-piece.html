@@ -1,11 +1,10 @@
-<ngt-mesh
+<ngt-group
   [position]="currentPos()"
   [quaternion]="currentQuat()"
   (click)="onClick($event)"
   [castShadow]="true"
   [receiveShadow]="true"
-  [geometry]="geometry()"
-  [scale]="pieceScale()"
+  [scale]="visualScale()"
 >
-  <ngt-mesh-standard-material [map]="texture()" />
-</ngt-mesh>
+  <ngt-primitive *args="[gltf()]" />
+</ngt-group>

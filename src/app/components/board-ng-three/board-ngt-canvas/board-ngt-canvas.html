@@ -81,13 +81,26 @@
       <ngt-mesh-standard-material />
     </ngt-mesh>
   }
+  @for (item of textPositions(); track $index) {
+    <ngt-mesh
+      [position]="[
+        item.x - settings.boardSize / 2 + 0.5,
+        0.01,
+        -(item.y - settings.boardSize / 2 + 0.5),
+      ]"
+      [rotation]="tileRotation"
+    >
+      <ngt-text-geometry *args="[item.label, { font: font.value(), size: 0.15, height: 0.01 }]" />
+      <ngt-mesh-standard-material [color]="'#FFBB22'" />
+    </ngt-mesh>
+  }
   <ngt-mesh
     [position]="[0, 0.001, 0]"
     [rotation]="tileRotation"
     [receiveShadow]="true"
     [scale]="settings.boardSize"
   >
-    <ngt-plane-geometry [args]="[1, 1]" />
+    <ngt-plane-geometry *args="[1, 1]" />
     <ngt-mesh-standard-material [map]="boardTexture()" />
   </ngt-mesh>
   @for (piece of pieceData(); track $index) {

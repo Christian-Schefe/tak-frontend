@@ -4,6 +4,7 @@
       <p-tab value="0">General</p-tab>
       <p-tab value="1">Native Board</p-tab>
       <p-tab value="2">Ninja Board</p-tab>
+      <p-tab value="3">3d Board</p-tab>
     </p-tablist>
     <p-tabpanels>
       <p-tabpanel value="0">
@@ -107,6 +108,32 @@
               [disabled]="!settingsService.boardNinjaSettings().board3d"
             ></p-slider>
             <p class="w-10 text-left pl-4">{{ perspective() }}</p>
+          </div>
+        </div>
+      </p-tabpanel>
+      <p-tabpanel value="3">
+        <div class="w-full flex flex-col gap-2">
+          <p-iftalabel>
+            <p-select
+              inputId="board-3d-settings-piece-preset"
+              [options]="board3dSettings.piecePresets"
+              [ngModel]="settingsService.board3dSettings().piecePreset"
+              (ngModelChange)="updateBoard3dSettings({ piecePreset: $event })"
+              fluid
+            ></p-select>
+            <label for="board-3d-settings-piece-preset">Piece Preset</label>
+          </p-iftalabel>
+          <div class="w-full flex gap-1 items-center">
+            <p class="w-1/2 pl-3 py-2">Piece Scale</p>
+            <p-slider
+              class="w-0 grow"
+              [ngModel]="settingsService.board3dSettings().pieceScale"
+              (ngModelChange)="updateBoard3dSettings({ pieceScale: $event })"
+              [step]="0.05"
+              [min]="0.5"
+              [max]="1"
+            ></p-slider>
+            <p class="w-10 text-left pl-4">{{ settingsService.board3dSettings().pieceScale }}</p>
           </div>
         </div>
       </p-tabpanel>
