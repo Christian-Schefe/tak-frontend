@@ -22,6 +22,7 @@ const model = z.object({
   standingOffset: z.array(z.number()).length(3).optional(),
   stackedOffset: z.array(z.number()).length(3).optional(),
   stackedStandingOffset: z.array(z.number()).length(3).optional(),
+  standingRotation: z.array(z.number()).length(3).optional(),
 });
 
 const piecePreset = z.object({

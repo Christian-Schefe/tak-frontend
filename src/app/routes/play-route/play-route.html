@@ -1,0 +1,42 @@
+<p-card class="w-full">
+  <p-tabs value="0">
+    <p-tablist>
+      <p-tab value="0">Seeks</p-tab>
+      <p-tab value="1">Your Games</p-tab>
+      <p-tab value="2">New Seek</p-tab>
+      <p-tab value="3">Play Local</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="0">
+        <app-seeks-table-component
+          [seeks]="seeks()"
+          (acceptSeek)="onAcceptSeek($event)"
+          (cancelSeek)="onCancelSeek($event)"
+        >
+        </app-seeks-table-component>
+      </p-tabpanel>
+      <p-tabpanel value="1">
+        @for (game of thisPlayerGames(); track game.id) {
+          {{ game.id }}
+        } @empty {
+          <p>You're not currently playing any games.</p>
+          <a
+            pButton
+            pRipple
+            draggable="false"
+            [routerLink]="'/new'"
+            class="flex px-2 items-center py-2 gap-2 cursor-pointer"
+          >
+            Start new game
+          </a>
+        }
+      </p-tabpanel>
+      <p-tabpanel value="2">
+        <app-new-seek-form (createSeek)="onCreateSeek($event)"></app-new-seek-form>
+      </p-tabpanel>
+      <p-tabpanel value="3">
+        <app-new-local-form (playLocal)="onPlayLocal($event)"></app-new-local-form>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</p-card>

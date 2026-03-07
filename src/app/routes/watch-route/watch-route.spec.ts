@@ -1,18 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { NewGameRoute } from './new-game-route';
+import { WatchRoute } from './watch-route';
 
-describe('NewGameRoute', () => {
-  let component: NewGameRoute;
-  let fixture: ComponentFixture<NewGameRoute>;
+describe('WatchRoute', () => {
+  let component: WatchRoute;
+  let fixture: ComponentFixture<WatchRoute>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NewGameRoute]
-    })
-    .compileComponents();
+      imports: [WatchRoute],
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(NewGameRoute);
+    fixture = TestBed.createComponent(WatchRoute);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

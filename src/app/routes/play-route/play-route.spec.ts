@@ -1,18 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SeeksRoute } from './seeks-route';
+import { PlayRoute } from './play-route';
 
-describe('SeeksRoute', () => {
-  let component: SeeksRoute;
-  let fixture: ComponentFixture<SeeksRoute>;
+describe('PlayRoute', () => {
+  let component: PlayRoute;
+  let fixture: ComponentFixture<PlayRoute>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SeeksRoute]
-    })
-    .compileComponents();
+      imports: [PlayRoute],
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(SeeksRoute);
+    fixture = TestBed.createComponent(PlayRoute);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

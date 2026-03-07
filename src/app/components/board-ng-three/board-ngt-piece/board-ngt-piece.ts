@@ -245,14 +245,18 @@ export class BoardNgtPiece {
       -(data.pos.y + 0.5 - settings.boardSize / 2),
     ).add(offset);
   });
+
   targetRotation = computed(() => {
     const data = this.layoutData();
-    if (data.variant === 'flat') {
-      return new Quaternion().setFromEuler(new Euler(0, 0, 0));
-    } else if (data.variant === 'standing') {
-      return new Quaternion().setFromEuler(
-        new Euler(0, (Math.PI / 4) * (data.player === 'white' ? 1 : -1), Math.PI / 2),
-      );
+    const model = this.presetModel();
+    if (data.variant === 'standing') {
+      const standingRotation = model?.standingRotation ?? [
+        0,
+        45 * (data.player === 'white' ? 1 : -1),
+        90,
+      ];
+      const radiansRotation = standingRotation.map((angle) => MathUtils.degToRad(angle));
+      return new Quaternion().setFromEuler(new Euler(...radiansRotation));
     } else {
       return new Quaternion().setFromEuler(new Euler(0, 0, 0));
     }

@@ -24,7 +24,7 @@
   },
   "board": {
     "spacing": "1px",
-    "rounded": "100px",
+    "rounded": "100%",
     "tiling": "rings"
   },
   "pieces": {

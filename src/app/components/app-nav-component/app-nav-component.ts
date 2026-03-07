@@ -4,11 +4,11 @@ import { IdentityService } from '../../services/identity-service/identity-servic
 import { RippleModule } from 'primeng/ripple';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideGamepad,
+  lucideGamepad2,
   lucideMenu,
-  lucidePlay,
+  lucidePuzzle,
   lucideSettings,
-  lucideSwords,
+  lucideTv,
   lucideUser,
 } from '@ng-icons/lucide';
 import { PlayerService } from '../../services/player-service/player-service';
@@ -35,10 +35,10 @@ interface MenuItem {
     provideIcons({
       lucideSettings,
       lucideUser,
-      lucidePlay,
-      lucideSwords,
       lucideMenu,
-      lucideGamepad,
+      lucideGamepad2,
+      lucideTv,
+      lucidePuzzle,
     }),
   ],
 })
@@ -76,19 +76,19 @@ export class AppNavComponent implements AfterViewInit {
     const identity = this.identityService.identity();
     return [
       {
-        label: 'New Game',
-        icon: 'lucidePlay',
-        routerLink: '/new',
+        label: 'Play',
+        icon: 'lucideGamepad2',
+        routerLink: '/play',
       },
       {
-        label: 'Games',
-        icon: 'lucideGamepad',
-        routerLink: '/games',
+        label: 'Watch',
+        icon: 'lucideTv',
+        routerLink: '/watch',
       },
       {
-        label: 'Seeks',
-        icon: 'lucideSwords',
-        routerLink: '/seeks',
+        label: 'Puzzles',
+        icon: 'lucidePuzzle',
+        routerLink: '/puzzle',
       },
       {
         label: 'Settings',

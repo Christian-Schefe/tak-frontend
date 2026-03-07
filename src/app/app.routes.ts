@@ -69,17 +69,12 @@ export const routes: Routes = [
           import('./routes/puzzle-route/puzzle-route').then((m) => m.PuzzleRoute),
       },
       {
-        path: 'games',
-        loadComponent: () => import('./routes/games-route/games-route').then((m) => m.GamesRoute),
+        path: 'play',
+        loadComponent: () => import('./routes/play-route/play-route').then((m) => m.PlayRoute),
       },
       {
-        path: 'seeks',
-        loadComponent: () => import('./routes/seeks-route/seeks-route').then((m) => m.SeeksRoute),
-      },
-      {
-        path: 'new',
-        loadComponent: () =>
-          import('./routes/new-game-route/new-game-route').then((m) => m.NewGameRoute),
+        path: 'watch',
+        loadComponent: () => import('./routes/watch-route/watch-route').then((m) => m.WatchRoute),
       },
       {
         path: 'analysis',
