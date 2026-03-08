@@ -1,9 +1,5 @@
-import { Component, computed, inject, input, linkedSignal } from '@angular/core';
-import {
-  GameComponent,
-  GamePlayer,
-  TakActionEvent,
-} from '../../components/game-component/game-component';
+import { Component, inject, input, linkedSignal } from '@angular/core';
+import { GameComponent, TakActionEvent } from '../../components/game-component/game-component';
 import {
   doMove,
   newGameUI,
@@ -12,11 +8,12 @@ import {
   updatePartialMove,
 } from '../../../tak-core/ui';
 import { newGame } from '../../../tak-core/game';
-import { TakAction, TakPlayer, TakPos } from '../../../tak-core';
+import { TakAction, TakPos } from '../../../tak-core';
 import { PuzzleService } from '../../services/puzzle-service/puzzle-service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { produce } from 'immer';
 import { moveFromString, moveToString } from '../../../tak-core/move';
+import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
 
 @Component({
   selector: 'app-puzzle-route',
@@ -27,14 +24,8 @@ import { moveFromString, moveToString } from '../../../tak-core/move';
 export class PuzzleRoute {
   id = input.required<string>();
 
-  players = computed<Record<TakPlayer, GamePlayer>>(() => {
-    return {
-      white: { type: 'local', name: 'Player 1' },
-      black: { type: 'local', name: 'Player 2' },
-    };
-  });
-
   private puzzleService = inject(PuzzleService);
+  private gameAudioService = inject(GameAudioService);
 
   puzzleInfo = this.puzzleService.getPuzzle(() => this.id());
 
@@ -44,10 +35,10 @@ export class PuzzleRoute {
   });
 
   game = linkedSignal<{ game: TakGameUI; solution: TakAction[] } | null>(() => {
-    const puzzle = this.puzzleInfo.value();
-    if (puzzle === undefined) {
+    if (!this.puzzleInfo.resource.hasValue()) {
       return null;
     }
+    const puzzle = this.puzzleInfo.resource.value();
     const game = newGameUI(
       newGame({
         boardSize: puzzle.gameSettings.boardSize,
@@ -84,6 +75,10 @@ export class PuzzleRoute {
       pos = action.pos;
     }
 
+    if (move !== null) {
+      this.gameAudioService.playMoveSound();
+    }
+
     const newSolution = move !== null ? [...solution, move] : solution;
 
     this.game.update((game) => {
@@ -112,6 +107,9 @@ export class PuzzleRoute {
           this.puzzleInfo.refetch();
         } else {
           const action = moveFromString(res.action);
+
+          this.gameAudioService.playMoveSound();
+
           this.game.update((game) => {
             if (!game) {
               return game;

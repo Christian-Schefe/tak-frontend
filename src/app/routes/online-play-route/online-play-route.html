@@ -2,19 +2,38 @@
 @let ongoingGame = game();
 @let gamePlayers = players();
 @if (curGame && ongoingGame && gamePlayers) {
-  <app-game-component
-    [game]="ongoingGame"
-    (action)="onLocalAction($event)"
-    (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
-    [mode]="curGame.mode"
-    [players]="gamePlayers"
-    [requests]="requests()"
-    (resign)="onResign()"
-    (requestDraw)="onRequestDraw()"
-    (requestUndo)="onRequestUndo()"
-    (retractRequest)="onRetractRequest($event)"
-    (requestDecision)="onRequestDecision($event.requestId, $event.decision)"
-  ></app-game-component>
+  <app-game-component [game]="ongoingGame" (action)="onLocalAction($event)" [mode]="curGame.mode">
+    <app-game-actions-panel
+      [game]="ongoingGame"
+      [drawOffer]="myDrawOffer()"
+      [undoRequest]="myUndoRequest()"
+      (requestDraw)="onRequestDraw()"
+      (requestUndo)="onRequestUndo()"
+      (retractRequest)="onRetractRequest($event)"
+      (resign)="onResign()"
+    ></app-game-actions-panel>
+    <app-game-info-panel
+      [game]="ongoingGame"
+      [requests]="requests()"
+      (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
+      (requestDecision)="onRequestDecision($event)"
+    ></app-game-info-panel>
+    <div class="flex flex-col gap-2 p-2">
+      <app-game-player-bar
+        [gamePlayer]="gamePlayers.white"
+        [game]="ongoingGame"
+        [playerColor]="'white'"
+      >
+      </app-game-player-bar>
+      <app-game-player-bar
+        [gamePlayer]="gamePlayers.black"
+        [game]="ongoingGame"
+        [playerColor]="'black'"
+      >
+      </app-game-player-bar>
+    </div>
+    <app-game-chat-panel></app-game-chat-panel>
+  </app-game-component>
 } @else {
   <div class="flex flex-col items-center w-full">
     @if (ongoingGameStatus.resource.isLoading()) {

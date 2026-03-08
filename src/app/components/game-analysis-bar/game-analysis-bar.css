@@ -1,10 +1,13 @@
 :host {
   display: flex;
-  height: 100%;
+  width: 100%;
+  padding: 0.5rem;
 }
 
 .evalbar {
-  transition: height 1s ease;
+  transition:
+    height 1s ease,
+    width 1s ease;
 }
 
 .evallabel {

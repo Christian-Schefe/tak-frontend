@@ -25,6 +25,11 @@ import { moveFromString, moveToString } from '../../../tak-core/move';
 import { gameStateFromStr } from '../../../tak-core/ptn';
 import { produce } from 'immer';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
+import { GameActionsPanel } from '../../components/game-actions-panel/game-actions-panel';
+import { GameInfoPanel } from '../../components/game-info-panel/game-info-panel';
+import { GamePlayerBar } from '../../components/game-player-bar/game-player-bar';
+import { GameChatPanel } from '../../components/game-chat-panel/game-chat-panel';
 
 interface CurrentGame {
   gameId: number;
@@ -72,7 +77,14 @@ const gameEvent = z.union([
 
 @Component({
   selector: 'app-online-play-route',
-  imports: [GameComponent, ProgressSpinnerModule],
+  imports: [
+    GameComponent,
+    ProgressSpinnerModule,
+    GameActionsPanel,
+    GameInfoPanel,
+    GamePlayerBar,
+    GameChatPanel,
+  ],
   templateUrl: './online-play-route.html',
   styleUrl: './online-play-route.css',
 })
@@ -80,6 +92,8 @@ export class OnlinePlayRoute implements OnDestroy {
   private gameService = inject(GameService);
   private identityService = inject(IdentityService);
   private wsService = inject(WsService);
+  private gameAudioService = inject(GameAudioService);
+
   id = input.required<string>();
   numId = computed(() => {
     const numId = Number(this.id());
@@ -228,6 +242,8 @@ export class OnlinePlayRoute implements OnDestroy {
           }
           const resultingPlyIndex = game.actualGame.history.length + 1;
           if (resultingPlyIndex === event.plyIndex) {
+            this.gameAudioService.playMoveSound();
+
             return produce(game, (game) => {
               doMove(game, moveFromString(event.action));
             });
@@ -317,6 +333,10 @@ export class OnlinePlayRoute implements OnDestroy {
       pos = action.pos;
     }
 
+    if (move !== null) {
+      this.gameAudioService.playMoveSound();
+    }
+
     this.game.update((game) => {
       if (!game) {
         return game;
@@ -398,7 +418,7 @@ export class OnlinePlayRoute implements OnDestroy {
     });
   }
 
-  onRequestDecision(requestId: number, decision: 'accept' | 'reject') {
+  onRequestDecision({ requestId, decision }: { requestId: number; decision: 'accept' | 'reject' }) {
     const game = this.currentGame();
     if (!game) {
       return;
@@ -409,4 +429,52 @@ export class OnlinePlayRoute implements OnDestroy {
         console.log(`Sent request decision (${decision}) successfully.`);
       });
   }
+
+  gameStateTrigger = computed<TakGameState | undefined>(() => {
+    return this.game()?.actualGame.gameState;
+  });
+  showGameOverInfo = linkedSignal(() => {
+    const gameState = this.gameStateTrigger();
+    if (!gameState) {
+      return false;
+    }
+    return gameState.type !== 'ongoing';
+  });
+
+  opponentRequests = computed<GameRequestType[]>(() => {
+    const identity = this.identityService.identity();
+    const gameState = this.gameStateTrigger();
+    if (!identity || !gameState || gameState.type !== 'ongoing') {
+      return [];
+    }
+    const opponentRequests = this.requests().filter(
+      (request) => request.fromPlayerId !== identity.playerId,
+    );
+    console.log('opponentRequests', opponentRequests);
+    return opponentRequests;
+  });
+
+  myDrawOffer = computed<number | null>(() => {
+    const identity = this.identityService.identity();
+    if (!identity) {
+      return null;
+    }
+    const drawRequest = this.requests().find(
+      (request) =>
+        request.requestType.type === 'draw' && request.fromPlayerId === identity.playerId,
+    );
+    return drawRequest ? drawRequest.id : null;
+  });
+
+  myUndoRequest = computed<number | null>(() => {
+    const identity = this.identityService.identity();
+    if (!identity) {
+      return null;
+    }
+    const undoRequest = this.requests().find(
+      (request) =>
+        request.requestType.type === 'undo' && request.fromPlayerId === identity.playerId,
+    );
+    return undoRequest ? undoRequest.id : null;
+  });
 }

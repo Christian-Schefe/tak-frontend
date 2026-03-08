@@ -57,24 +57,10 @@ export class GameService {
   httpClient = inject(HttpClient);
 
   localGameSettings = signal<TakGameSettings>({
-    boardSize: 5,
+    boardSize: 6,
     halfKomi: 0,
-    reserve: { pieces: 21, capstones: 1 },
-    /* clock: {
-      type: 'realtime',
-      contingentMs: 10 * 60 * 1000,
-      incrementMs: 5 * 1000,
-      externallyDriven: false,
-      extra: {
-        onMove: 5,
-        extraMs: 5 * 60 * 1000,
-      },
-    },*/
-    clock: {
-      type: 'async',
-      contingentMs: 24 * 60 * 60 * 1000,
-      externallyDriven: false,
-    },
+    reserve: { pieces: 30, capstones: 1 },
+    clock: null,
   });
 
   startNewLocalGame(settings: TakGameSettings) {

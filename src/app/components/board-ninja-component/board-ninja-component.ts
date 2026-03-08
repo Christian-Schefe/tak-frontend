@@ -41,10 +41,7 @@ export class BoardNinjaComponent {
 
   sanitizer = inject(DomSanitizer);
   ninjaUrl = computed<SafeResourceUrl>(() => {
-    const mode = this.mode();
-    return this.sanitizer.bypassSecurityTrustResourceUrl(
-      `https://ptn.ninja/${params}${mode.type === 'spectator' ? '&disableBoard=true' : ''}`,
-    );
+    return this.sanitizer.bypassSecurityTrustResourceUrl(`https://ptn.ninja/${params}`);
   });
 
   hasLoaded = signal(false);
@@ -58,10 +55,12 @@ export class BoardNinjaComponent {
   private readonly _sendUiSettingsEffect = effect(() => {
     if (!this.hasLoaded()) return;
     const settings = this.settingsService.boardNinjaSettings();
+    const mode = this.mode();
     console.log('Sending UI settings to Board Ninja iframe.');
     this.sendMessageToIframe({
       action: 'SET_UI',
       value: {
+        disableBoard: mode.type === 'spectator',
         theme: settings.colorTheme,
         axisLabels: settings.axisLabels !== 'none',
         axisLabelsSmall: settings.axisLabels === 'small',
@@ -84,6 +83,8 @@ export class BoardNinjaComponent {
     const history = this.history();
     const settings = this.settings();
     const gameState = this.gameState();
+
+    console.log('Syncing game state to Board Ninja iframe. History length:', history.length);
 
     const ptn = gameToPTN(settings, history, gameState);
     this.sendMessageToIframe({

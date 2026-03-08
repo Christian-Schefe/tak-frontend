@@ -1,35 +1,19 @@
 @let takGame = game();
-@let pOrder = playerOrder();
 @let boardType = settingsService.generalSettings().boardType;
-@let eval = evaluation();
 <div
   [class]="
     `w-full max-xl:overflow-y-scroll gap-4 p-4 h-full flex flex-col xl:flex-row mx-auto xl:pl-4 ${boardType === '2d' ? 'max-w-400' : 'max-w-550'}`
   "
 >
-  @if (eval !== undefined) {
-    <div class="h-full flex items-center gap-4">
-      <app-game-analysis-bar [evaluation]="eval"></app-game-analysis-bar>
-    </div>
-  }
   <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
     <app-game-board [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
     </app-game-board>
   </div>
   <div class="h-full w-full xl:w-120 pb-0">
-    <app-game-side-panel
-      [game]="takGame"
-      [drawOffer]="myDrawOffer()"
-      [undoRequest]="myUndoRequest()"
-      [requests]="opponentRequests()"
-      [topPlayer]="{ color: pOrder.p2, info: players()[pOrder.p2] }"
-      [bottomPlayer]="{ color: pOrder.p1, info: players()[pOrder.p1] }"
-      (setHistoryPlyIndex)="setHistoryPlyIndex.emit($event)"
-      (requestDraw)="requestDraw.emit($event)"
-      (requestUndo)="requestUndo.emit($event)"
-      (retractRequest)="retractRequest.emit($event)"
-      (requestDecision)="requestDecision.emit($event)"
-      (resign)="resign.emit()"
-    ></app-game-side-panel>
+    <div
+      class="w-full h-full bg-surface-0 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-md flex flex-col"
+    >
+      <ng-content />
+    </div>
   </div>
 </div>

@@ -34,14 +34,6 @@ export class NewLocalForm {
   }));
   halfKomi = signal(0);
 
-  timeContingentDefault = 10;
-  timeIncrementDefault = 5;
-  timeContingentMinutes = signal<number | undefined | null>(this.timeContingentDefault);
-  timeIncrementSeconds = signal<number | undefined | null>(this.timeIncrementDefault);
-  timeExtraMove = signal<number | undefined | null>(undefined);
-  timeExtraMinutesDefault = 5;
-  timeExtraMinutes = signal<number | undefined | null>(this.timeExtraMinutesDefault);
-
   piecesDefault = computed(() => {
     const size = this.boardSize();
     if (size < 3 || size > 8) {
@@ -62,9 +54,6 @@ export class NewLocalForm {
   playLocal = output<TakGameSettings>();
 
   onSubmit() {
-    const extraMove = this.timeExtraMove() ?? null;
-    const extraMinutes = this.timeExtraMinutes() ?? null;
-
     const gameSettings: TakGameSettings = {
       boardSize: this.boardSize(),
       halfKomi: this.halfKomi(),
@@ -72,16 +61,7 @@ export class NewLocalForm {
         pieces: this.pieces() ?? this.piecesDefault(),
         capstones: this.capstones() ?? this.capstonesDefault(),
       },
-      clock: {
-        type: 'realtime',
-        externallyDriven: false,
-        contingentMs: (this.timeContingentMinutes() ?? this.timeContingentDefault) * 60 * 1000,
-        incrementMs: (this.timeIncrementSeconds() ?? this.timeIncrementDefault) * 1000,
-        extra:
-          extraMove !== null && extraMinutes !== null
-            ? { onMove: extraMove, extraMs: extraMinutes * 60 * 1000 }
-            : null,
-      },
+      clock: null,
     };
 
     this.playLocal.emit(gameSettings);

@@ -1,11 +1,19 @@
-<app-game-component
-  [game]="game()"
-  (action)="onAction($event)"
-  (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
-  [mode]="{ type: 'local' }"
-  [players]="players()"
-  [requests]="[]"
-  (requestUndo)="onRequestUndo()"
-  (requestDraw)="onRequestDraw()"
-  (resign)="onResign()"
-></app-game-component>
+<app-game-component [game]="game()" (action)="onAction($event)" [mode]="{ type: 'local' }">
+  <app-game-actions-panel
+    [game]="game()"
+    [drawOffer]="null"
+    [undoRequest]="null"
+    (requestDraw)="onRequestDraw()"
+    (requestUndo)="onRequestUndo()"
+    (resign)="onResign()"
+  ></app-game-actions-panel>
+  <app-game-analysis-bar
+    [evaluation]="evaluation()"
+    [gameState]="game().actualGame.gameState"
+  ></app-game-analysis-bar>
+  <app-game-info-panel
+    [game]="game()"
+    [requests]="[]"
+    (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
+  ></app-game-info-panel>
+</app-game-component>

@@ -49,60 +49,6 @@
       ></p-inputnumber>
       <label for="capstones">Capstones</label>
     </p-ifta-label>
-    <p class="col-span-full">Time Control</p>
-    <p-ifta-label>
-      <p-inputnumber
-        [(ngModel)]="timeContingentMinutes"
-        inputId="time-contingent"
-        name="timeContingent"
-        fluid
-        [useGrouping]="false"
-        [min]="1"
-        [max]="100000"
-        [placeholder]="timeContingentDefault.toString()"
-      ></p-inputnumber>
-      <label for="time-contingent">Time Contingent (minutes)</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-inputnumber
-        [(ngModel)]="timeIncrementSeconds"
-        inputId="time-increment"
-        name="timeIncrement"
-        fluid
-        [useGrouping]="false"
-        [min]="1"
-        [max]="100000"
-        [placeholder]="timeIncrementDefault.toString()"
-      ></p-inputnumber>
-      <label for="time-increment">Time Increment (seconds)</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-inputnumber
-        [(ngModel)]="timeExtraMove"
-        inputId="time-extra-move"
-        name="timeExtraMove"
-        fluid
-        [useGrouping]="false"
-        [min]="1"
-        [max]="100000"
-        placeholder="Never"
-      ></p-inputnumber>
-      <label for="time-extra-move">Time Extra Move</label>
-    </p-ifta-label>
-    <p-ifta-label>
-      <p-inputnumber
-        [(ngModel)]="timeExtraMinutes"
-        inputId="time-extra-minutes"
-        name="timeExtraMinutes"
-        fluid
-        [useGrouping]="false"
-        [min]="1"
-        [max]="100000"
-        [placeholder]="timeExtraMinutesDefault.toString()"
-        [disabled]="timeExtraMove() === undefined || timeExtraMove() === null"
-      ></p-inputnumber>
-      <label for="time-extra-minutes">Time Extra Minutes</label>
-    </p-ifta-label>
   </div>
   <button class="mt-4" pButton pRipple type="submit">
     <span pButtonLabel>Play</span>

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, linkedSignal } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal, signal, OnInit } from '@angular/core';
 import {
   GameComponent,
   GamePlayer,
@@ -21,15 +21,53 @@ import {
 import { newGame } from '../../../tak-core/game';
 import { GameService } from '../../services/game-service/game-service';
 import { produce } from 'immer';
+import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
+import { GameActionsPanel } from '../../components/game-actions-panel/game-actions-panel';
+import { GameInfoPanel } from '../../components/game-info-panel/game-info-panel';
+import { EngineService } from '../../services/engine-service/engine-service';
+import { GameAnalysisBar } from '../../components/game-analysis-bar/game-analysis-bar';
+
+const engineKey = 'local-play-worker';
 
 @Component({
   selector: 'app-local-play-route',
-  imports: [GameComponent],
+  imports: [GameComponent, GameActionsPanel, GameInfoPanel, GameAnalysisBar],
   templateUrl: './local-play-route.html',
   styleUrl: './local-play-route.css',
 })
-export class LocalPlayRoute {
+export class LocalPlayRoute implements OnInit {
   private gameService = inject(GameService);
+  private gameAudioService = inject(GameAudioService);
+
+  private engineService = inject(EngineService);
+  private hasLoaded = signal(false);
+
+  evaluation = signal<number>(0);
+
+  ngOnInit() {
+    void this.onInit();
+  }
+
+  private async onInit() {
+    await this.engineService.initialize(engineKey, (message) => {
+      const invert = this.game().actualGame.currentPlayer === 'black';
+      this.evaluation.set(invert ? -message.score : message.score);
+    });
+    this.hasLoaded.set(true);
+  }
+
+  private _updateEffect = effect(() => {
+    if (!this.hasLoaded()) {
+      return;
+    }
+    console.log('Game updated, sending new position to engine');
+    const game = this.game().actualGame;
+    if (game.gameState.type !== 'ongoing') {
+      return;
+    }
+    void this.engineService.evaluatePosition(engineKey, game);
+  });
+
   game = linkedSignal<TakGameUI>(() => {
     return newGameUI(newGame(this.gameService.localGameSettings()));
   });
@@ -66,6 +104,10 @@ export class LocalPlayRoute {
       } else {
         move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
         pos = action.pos;
+      }
+
+      if (move !== null) {
+        this.gameAudioService.playMoveSound();
       }
 
       return produce(game, (game) => {

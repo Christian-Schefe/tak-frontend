@@ -1,12 +1,8 @@
-import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
-import { TakAction, TakGameState, TakPieceVariant, TakPlayer, TakPos } from '../../../tak-core';
+import { Component, inject, input, output } from '@angular/core';
+import { TakAction, TakPieceVariant, TakPlayer, TakPos } from '../../../tak-core';
 import { TakGameUI } from '../../../tak-core/ui';
-import { GameSidePanel } from '../game-side-panel/game-side-panel';
-import { GameRequestType } from '../../services/game-service/game-service';
-import { IdentityService } from '../../services/identity-service/identity-service';
 import { SettingsService } from '../../services/settings-service/settings-service';
 import { GameBoard } from '../game-board/game-board';
-import { GameAnalysisBar } from '../game-analysis-bar/game-analysis-bar';
 
 export type GameMode =
   | { type: 'local' }
@@ -23,8 +19,6 @@ export type GamePlayer =
       name: string;
     };
 
-export type BoardStyle = 'ninja' | '2d' | '3d';
-
 export type TakActionEvent =
   | {
       type: 'full';
@@ -38,78 +32,14 @@ export type TakActionEvent =
 
 @Component({
   selector: 'app-game-component',
-  imports: [GameSidePanel, GameBoard, GameAnalysisBar],
+  imports: [GameBoard],
   templateUrl: './game-component.html',
   styleUrl: './game-component.css',
 })
 export class GameComponent {
   game = input.required<TakGameUI>();
   mode = input.required<GameMode>();
-  players = input.required<Record<TakPlayer, GamePlayer>>();
-  requests = input.required<GameRequestType[]>();
-
-  evaluation = input<number | undefined>(undefined);
 
   action = output<TakActionEvent>();
-  setHistoryPlyIndex = output<number>();
-  requestDraw = output();
-  requestUndo = output();
-  retractRequest = output<number>();
-  resign = output();
   settingsService = inject(SettingsService);
-  requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
-
-  private identityService = inject(IdentityService);
-
-  playerOrder = computed<{ p1: TakPlayer; p2: TakPlayer }>(() => {
-    const mode = this.mode();
-    if (mode.type === 'online' && mode.localPlayer === 'black') {
-      return { p1: 'black', p2: 'white' };
-    }
-    return { p1: 'white', p2: 'black' };
-  });
-
-  gameStateTrigger = computed<TakGameState>(() => {
-    return this.game().actualGame.gameState;
-  });
-  showGameOverInfo = linkedSignal(() => {
-    return this.gameStateTrigger().type !== 'ongoing';
-  });
-
-  opponentRequests = computed<GameRequestType[]>(() => {
-    const identity = this.identityService.identity();
-    const gameState = this.gameStateTrigger();
-    if (!identity || gameState.type !== 'ongoing') {
-      return [];
-    }
-    const opponentRequests = this.requests().filter(
-      (request) => request.fromPlayerId !== identity.playerId,
-    );
-    console.log('opponentRequests', opponentRequests);
-    return opponentRequests;
-  });
-
-  myDrawOffer = computed<number | null>(() => {
-    const identity = this.identityService.identity();
-    if (!identity) {
-      return null;
-    }
-    const drawRequest = this.requests().find(
-      (request) =>
-        request.requestType.type === 'draw' && request.fromPlayerId === identity.playerId,
-    );
-    return drawRequest ? drawRequest.id : null;
-  });
-
-  myUndoRequest = computed<number | null>(() => {
-    const identity = this.identityService.identity();
-    if (!identity) {
-      return null;
-    }
-    const undoRequest = this.requests().find(
-      (request) =>
-        request.requestType.type === 'undo' && request.fromPlayerId === identity.playerId,
-    );
-    return undoRequest ? undoRequest.id : null;
-  });
 }

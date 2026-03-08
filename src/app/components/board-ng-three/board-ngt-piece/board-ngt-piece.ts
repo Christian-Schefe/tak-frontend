@@ -89,7 +89,12 @@ export class BoardNgtPiece {
         : data.variant === 'capstone'
           ? meshes.capstoneBlack
           : meshes.pieceBlack;
-    return SkeletonUtils.clone(mesh.scene);
+    const clonedScene = SkeletonUtils.clone(mesh.scene);
+    clonedScene.traverse((obj) => {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    });
+    return clonedScene;
   });
 
   layoutData = computed(() => {

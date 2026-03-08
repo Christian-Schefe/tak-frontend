@@ -77,11 +77,6 @@ export const routes: Routes = [
         loadComponent: () => import('./routes/watch-route/watch-route').then((m) => m.WatchRoute),
       },
       {
-        path: 'analysis',
-        loadComponent: () =>
-          import('./routes/analysis-route/analysis-route').then((m) => m.AnalysisRoute),
-      },
-      {
         path: '**',
         loadComponent: () =>
           import('./routes/not-found-route/not-found-route').then((m) => m.NotFoundRoute),

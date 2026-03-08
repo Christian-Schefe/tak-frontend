@@ -2,8 +2,6 @@
   [position]="currentPos()"
   [quaternion]="currentQuat()"
   (click)="onClick($event)"
-  [castShadow]="true"
-  [receiveShadow]="true"
   [scale]="visualScale()"
 >
   <ngt-primitive *args="[gltf()]" />

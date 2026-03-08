@@ -3,8 +3,6 @@
   <app-game-component
     [game]="takGame"
     [mode]="this.solved() ? { type: 'spectator' } : { type: 'local' }"
-    [players]="players()"
-    [requests]="[]"
     (action)="onAction($event)"
   ></app-game-component>
 } @else {
