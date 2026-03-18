@@ -26,12 +26,13 @@ import { GameActionsPanel } from '../../components/game-actions-panel/game-actio
 import { GameInfoPanel } from '../../components/game-info-panel/game-info-panel';
 import { EngineService } from '../../services/engine-service/engine-service';
 import { GameAnalysisBar } from '../../components/game-analysis-bar/game-analysis-bar';
+import { GameChatPanel } from '../../components/game-chat-panel/game-chat-panel';
 
 const engineKey = 'local-play-worker';
 
 @Component({
   selector: 'app-local-play-route',
-  imports: [GameComponent, GameActionsPanel, GameInfoPanel, GameAnalysisBar],
+  imports: [GameComponent, GameActionsPanel, GameInfoPanel, GameAnalysisBar, GameChatPanel],
   templateUrl: './local-play-route.html',
   styleUrl: './local-play-route.css',
 })

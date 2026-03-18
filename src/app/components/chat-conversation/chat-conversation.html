@@ -6,7 +6,7 @@
           {{ item.msg.timestamp | date: 'shortTime' }}
         </p>
       }
-      @let playerInfo = playerInfos()[item.msg.fromAccountId];
+      @let playerInfo = playerInfos()[item.msg.sender];
       <p class="text-surface-700 dark:text-surface-400">
         <span class="font-bold wrap-anywhere"
           >{{ playerInfo.hasValue() ? playerInfo.value().displayName : '' }}:

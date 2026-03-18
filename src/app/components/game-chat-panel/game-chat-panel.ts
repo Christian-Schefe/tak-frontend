@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { ChatConversation } from '../chat-conversation/chat-conversation';
 import { InputTextModule } from 'primeng/inputtext';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -8,6 +8,7 @@ import { ChatMessageConversation, ChatService } from '../../services/chat-servic
 import { FormsModule } from '@angular/forms';
 import { TabsModule } from 'primeng/tabs';
 import { PlayerService } from '../../services/player-service/player-service';
+import { IdentityService } from '../../services/identity-service/identity-service';
 
 @Component({
   selector: 'app-game-chat-panel',
@@ -18,6 +19,9 @@ import { PlayerService } from '../../services/player-service/player-service';
 })
 export class GameChatPanel {
   private playerService = inject(PlayerService);
+  identityService = inject(IdentityService);
+
+  chatService = inject(ChatService);
 
   chatSources = computed(() => {
     const map = this.chatService.chatSources();
@@ -25,22 +29,51 @@ export class GameChatPanel {
     for (const conv of map.values()) {
       result.push(conv);
     }
-    result.sort((a, b) => a.id.localeCompare(b.id));
-    return result;
+    const identity = this.identityService.identity();
+    result.sort((a, b) => {
+      if (a.type === 'global' || (a.type === 'room' && b.type === 'private')) {
+        return -1;
+      } else if (b.type === 'global' || (b.type === 'room' && a.type === 'private')) {
+        return 1;
+      } else if (a.type === 'private' && b.type === 'private') {
+        const aOpponentId = a.account_id1 === identity?.accountId ? a.account_id2 : a.account_id1;
+        const bOpponentId = b.account_id1 === identity?.accountId ? b.account_id2 : b.account_id1;
+        return aOpponentId.localeCompare(bOpponentId);
+      } else if (a.type === 'room' && b.type === 'room') {
+        return a.roomName.localeCompare(b.roomName);
+      } else {
+        return 0;
+      }
+    });
+    return result.map((conv) => ({
+      conv: conv,
+      id: this.chatService.conversationId(conv),
+    }));
+  });
+
+  private _loadChatHistoryEffect = effect(() => {
+    const conv = this.chatSource();
+    this.chatService.loadChatHistory(conv);
+    console.log('Chat source changed, loading history for', conv);
   });
 
   chatSourceId = signal<string>('global');
   chatSource = computed<ChatMessageConversation>(() => {
     const id = this.chatSourceId();
-    return this.chatService.chatSources().get(id) ?? { id: 'global', type: 'global' };
+    return this.chatService.chatSources().get(id) ?? { type: 'global' };
   });
 
   playerInfos = this.playerService.getComputedPlayerInfosByAccountId(() => {
     const ids = new Set<string>();
+    const identity = this.identityService.identity();
     for (const conv of this.chatSources()) {
-      if (conv.type === 'private') {
-        ids.add(conv.toAccountId);
+      if (conv.conv.type === 'private') {
+        ids.add(conv.conv.account_id1);
+        ids.add(conv.conv.account_id2);
       }
+    }
+    if (identity) {
+      ids.delete(identity.accountId);
     }
     return Array.from(ids);
   });
@@ -51,8 +84,6 @@ export class GameChatPanel {
     }
     this.chatSourceId.set(id);
   }
-
-  chatService = inject(ChatService);
 
   message = signal<string>('');
 

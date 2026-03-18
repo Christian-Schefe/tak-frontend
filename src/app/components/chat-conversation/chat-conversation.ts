@@ -77,7 +77,7 @@ export class ChatConversation {
     const ids = new Set<string>();
     const messages = this.chatService.getMessageSignal(this.source())();
     for (const msg of messages) {
-      ids.add(msg.fromAccountId);
+      ids.add(msg.sender);
     }
     return Array.from(ids);
   });

@@ -3,16 +3,22 @@
     <p-tablist>
       @for (tab of chatSources(); track tab.id) {
         <p-tab [value]="tab.id">
-          @switch (tab.type) {
+          @switch (tab.conv.type) {
             @case ('global') {
               Global
             }
             @case ('room') {
-              Room {{ tab.roomName }}
+              Room {{ tab.conv.roomName }}
             }
             @case ('private') {
-              @let info = playerInfos()[tab.toAccountId];
-              {{ info.hasValue() ? info.value().displayName : '' }}
+              @let identity = identityService.identity();
+              @let info =
+                playerInfos()[
+                  tab.conv.account_id1 === identity?.accountId
+                    ? tab.conv.account_id2
+                    : tab.conv.account_id1
+                ];
+              {{ identity && info.hasValue() ? info.value().displayName : '' }}
             }
           }
         </p-tab>

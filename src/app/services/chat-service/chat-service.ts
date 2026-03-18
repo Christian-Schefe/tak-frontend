@@ -4,29 +4,25 @@ import z from 'zod';
 import { WsService } from '../ws-service/ws-service';
 import { GameService } from '../game-service/game-service';
 import { PlayerService } from '../player-service/player-service';
+import { HttpClient } from '@angular/common/http';
 
-export interface ChatMessage {
-  fromAccountId: string;
-  message: string;
-  timestamp: number;
-}
+export type ChatMessage = z.infer<typeof wsChatMessage>;
 
-export const chatMessageTarget = z.union([
+export const chatMessageConversation = z.union([
   z.object({ type: z.literal('global') }),
   z.object({ type: z.literal('room'), roomName: z.string() }),
-  z.object({ type: z.literal('private'), toAccountId: z.string() }),
+  z.object({ type: z.literal('private'), account_id1: z.string(), account_id2: z.string() }),
 ]);
 
 export const wsChatMessage = z.object({
-  fromAccountId: z.string(),
+  messageId: z.number(),
+  sender: z.string(),
   message: z.string(),
-  target: chatMessageTarget,
+  conversation: chatMessageConversation,
+  timestamp: z.number(),
 });
 
-export type ChatMessageConversation =
-  | { id: string; type: 'global' }
-  | { id: string; type: 'room'; roomName: string }
-  | { id: string; type: 'private'; toAccountId: string };
+export type ChatMessageConversation = z.infer<typeof chatMessageConversation>;
 
 @Injectable({
   providedIn: 'root',
@@ -37,7 +33,7 @@ export class ChatService {
   gameService = inject(GameService);
   playerService = inject(PlayerService);
 
-  messageSignals = new Map<ChatMessageConversation['id'], WritableSignal<ChatMessage[]>>();
+  messageSignals = new Map<string, WritableSignal<ChatMessage[]>>();
 
   opponentPlayerInfos = this.playerService.getComputedPlayerInfos(() => {
     const identity = this.identityService.identity();
@@ -53,21 +49,24 @@ export class ChatService {
     return Array.from(opponents);
   });
 
-  chatSources = computed<Map<ChatMessageConversation['id'], ChatMessageConversation>>(() => {
+  chatSources = computed<Map<string, ChatMessageConversation>>(() => {
     const opponents = Object.values(this.opponentPlayerInfos())
       .map((info) => (info.hasValue() ? info.value().accountId : ''))
       .filter((id) => id !== '');
-    const convs: ChatMessageConversation[] = [{ id: 'global', type: 'global' }];
-    for (const opponentId of opponents) {
-      convs.push({
-        id: `private:${opponentId}`,
-        type: 'private',
-        toAccountId: opponentId,
-      });
+    const convs: ChatMessageConversation[] = [{ type: 'global' }];
+    const identity = this.identityService.identity();
+    if (identity) {
+      for (const opponentId of opponents) {
+        convs.push({
+          type: 'private',
+          account_id1: identity.accountId,
+          account_id2: opponentId,
+        });
+      }
     }
-    const map = new Map<ChatMessageConversation['id'], ChatMessageConversation>();
+    const map = new Map<string, ChatMessageConversation>();
     for (const conv of convs) {
-      map.set(conv.id, conv);
+      map.set(this.conversationId(conv), conv);
     }
     return map;
   });
@@ -76,48 +75,19 @@ export class ChatService {
     'chatMessage',
     wsChatMessage,
     (data) => {
-      const newMessage: ChatMessage = {
-        fromAccountId: data.fromAccountId,
-        message: data.message,
-        timestamp: Date.now(),
-      };
-      let conversation: ChatMessageConversation;
-      if (data.target.type === 'global') {
-        conversation = { id: 'global', type: 'global' };
-      } else if (data.target.type === 'room') {
-        conversation = {
-          id: `room:${data.target.roomName}`,
-          type: 'room',
-          roomName: data.target.roomName,
-        };
-      } else {
-        const identity = this.identityService.identity();
-        if (identity && data.target.toAccountId === identity.accountId) {
-          conversation = {
-            id: `private:${data.fromAccountId}`,
-            type: 'private',
-            toAccountId: data.fromAccountId,
-          };
-        } else {
-          conversation = {
-            id: `private:${data.target.toAccountId}`,
-            type: 'private',
-            toAccountId: data.target.toAccountId,
-          };
-        }
-      }
-      const messageSignal = this.getMessageSignal(conversation);
-      messageSignal.update((messages) => [...messages, newMessage]);
+      const messageSignal = this.getMessageSignal(data.conversation);
+      messageSignal.update((messages) => [...messages, data]);
     },
   );
 
   getMessageSignal(conversation: ChatMessageConversation): WritableSignal<ChatMessage[]> {
-    const messages = this.messageSignals.get(conversation.id);
+    const id = this.conversationId(conversation);
+    const messages = this.messageSignals.get(id);
     if (messages) {
       return messages;
     }
     const messageSignal = signal<ChatMessage[]>([]);
-    this.messageSignals.set(conversation.id, messageSignal);
+    this.messageSignals.set(id, messageSignal);
     return messageSignal;
   }
 
@@ -129,15 +99,46 @@ export class ChatService {
     this.wsService
       .sendMessage('chatMessage', {
         message,
-        target:
-          conversation.type === 'global'
-            ? { type: 'global' }
-            : conversation.type === 'room'
-              ? { type: 'room', roomName: conversation.roomName }
-              : { type: 'private', toAccountId: conversation.toAccountId },
+        conversation,
       })
       .subscribe(() => {
         console.log('Message sent');
+      });
+  }
+
+  conversationId(conversation: ChatMessageConversation): string {
+    if (conversation.type === 'global') {
+      return 'global';
+    } else if (conversation.type === 'room') {
+      return `room:${conversation.roomName}`;
+    } else {
+      const ids = [conversation.account_id1, conversation.account_id2].sort();
+      return `private:${ids.join(':')}`;
+    }
+  }
+
+  private httpClient = inject(HttpClient);
+
+  loadChatHistory(conversation: ChatMessageConversation) {
+    this.httpClient
+      .get<ChatMessage[]>(`/api2/chat/${this.conversationId(conversation)}?limit=50`)
+      .subscribe((newMessages) => {
+        const messageSignal = this.getMessageSignal(conversation);
+        messageSignal.update((messages) => {
+          const updatedMessages = [...messages, ...newMessages];
+
+          const uniqueMessages = Array.from(
+            new Map(updatedMessages.map((msg) => [msg.messageId, msg])).values(),
+          );
+          const sortedMessages = uniqueMessages.sort((a, b) => {
+            if (a.timestamp !== b.timestamp) {
+              return a.timestamp - b.timestamp;
+            }
+            return a.messageId - b.messageId;
+          });
+          console.log('Loaded chat history for', conversation, sortedMessages);
+          return sortedMessages;
+        });
       });
   }
 }
