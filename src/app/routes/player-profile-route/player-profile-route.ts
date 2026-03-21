@@ -23,8 +23,14 @@ import { DatePipe } from '@angular/common';
 import { ProfilePictureChangeDialog } from '../../components/profile-picture-change-dialog/profile-picture-change-dialog';
 import { MessageService } from 'primeng/api';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
+import { ChartModule } from 'primeng/chart';
+import { endOfDay, startOfDay, subDays } from 'date-fns';
+import { SelectModule } from 'primeng/select';
+import { FormsModule } from '@angular/forms';
 
 const flagsMap = new Map<string, string>(Object.entries(flags));
+
+type RatingRangeOptionKey = 'today' | 'last-7-days' | 'last-30-days' | 'all-time';
 
 @Component({
   selector: 'app-player-profile-route',
@@ -41,6 +47,9 @@ const flagsMap = new Map<string, string>(Object.entries(flags));
     DatePipe,
     ProfilePictureChangeDialog,
     ScrollPanelModule,
+    ChartModule,
+    SelectModule,
+    FormsModule,
   ],
   templateUrl: './player-profile-route.html',
   styleUrl: './player-profile-route.css',
@@ -140,6 +149,92 @@ export class PlayerProfileRoute {
         color: 'var(--p-red-500)',
       },
     ];
+  });
+  ratingRangeOptionsMap = computed(() => {
+    const now = new Date();
+    const startOfToday = startOfDay(now);
+    const endOfToday = endOfDay(now);
+    return {
+      today: { from: startOfToday, to: endOfToday },
+      'last-7-days': { from: subDays(startOfToday, 6), to: endOfToday },
+      'last-30-days': { from: subDays(startOfToday, 29), to: endOfToday },
+      'all-time': { from: null, to: endOfToday },
+    };
+  });
+
+  ratingRangeOptions = [
+    { label: 'Today', value: 'today' },
+    { label: 'Last 7 days', value: 'last-7-days' },
+    { label: 'Last 30 days', value: 'last-30-days' },
+    { label: 'All time', value: 'all-time' },
+  ];
+
+  ratingRange = signal<RatingRangeOptionKey>('today');
+  ratingHistoryData = this.playerService.getRatingHistory(() => {
+    const id = this.id();
+    const range = this.ratingRange();
+    const rangeOptions = this.ratingRangeOptionsMap();
+    const selectedRange = rangeOptions[range];
+    return {
+      playerId: id,
+      from: selectedRange.from,
+      to: selectedRange.to,
+    };
+  });
+
+  ratingHistory = computed(() => {
+    const data = this.ratingHistoryData.value();
+    const range = this.ratingRange();
+    const rangeOptions = this.ratingRangeOptionsMap();
+    const selectedRange = rangeOptions[range];
+    const entries = data ? data.entries : [];
+    if (data?.firstEntryBeforeRange) {
+      entries.push({
+        timestamp: selectedRange.from
+          ? selectedRange.from.getTime()
+          : data.firstEntryBeforeRange.timestamp,
+        rating: data.firstEntryBeforeRange.rating,
+      });
+    }
+    const chartData = entries
+      .map((entry) => ({
+        x: new Date(entry.timestamp),
+        y: Math.round(entry.rating),
+      }))
+      .reverse();
+    return {
+      datasets: [
+        {
+          data: chartData,
+          stepped: true,
+        },
+      ],
+    };
+  });
+
+  ratingHistoryOptions = computed(() => {
+    const range = this.ratingRange();
+    const unit = range === 'today' ? 'hour' : 'day';
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit,
+          },
+        },
+        y: {
+          beginAtZero: false,
+        },
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+    };
   });
 
   editDialogVisible = signal(false);

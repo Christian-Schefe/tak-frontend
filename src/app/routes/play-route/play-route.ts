@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { TabsModule } from 'primeng/tabs';
 import { GameService } from '../../services/game-service/game-service';
 import { CardModule } from 'primeng/card';
@@ -35,9 +35,12 @@ export class PlayRoute {
 
   seeks = this.seekService.seeks;
 
+  activeTab = signal('0');
+
   onCreateSeek(payload: CreateSeekPayload) {
     this.seekService.createSeek(payload).subscribe(() => {
       console.log('Seek created');
+      this.activeTab.set('0');
     });
   }
 

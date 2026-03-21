@@ -9,6 +9,8 @@ import {
   untracked,
 } from '@angular/core';
 import { Observable } from 'rxjs';
+import z from 'zod';
+import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 
 export interface PlayerInfo {
   id: string;
@@ -30,6 +32,17 @@ export interface PlayerStats {
   gamesLost: number;
   gamesDrawn: number;
 }
+
+const ratingHistoryEntry = z.object({
+  timestamp: z.number(),
+  rating: z.number(),
+});
+
+const ratingHistoryResponse = z.object({
+  entries: z.array(ratingHistoryEntry),
+  firstEntryBeforeRange: ratingHistoryEntry.nullable(),
+});
+type RatingHistoryResponse = z.infer<typeof ratingHistoryResponse>;
 
 @Injectable({
   providedIn: 'root',
@@ -154,6 +167,25 @@ export class PlayerService {
         return undefined;
       }
       return `/api2/players/${pid}/stats`;
+    });
+  }
+
+  getRatingHistory(
+    data: () => { playerId: string; from: Date | null; to: Date | null } | undefined,
+  ) {
+    return smartHttpResource<RatingHistoryResponse>(ratingHistoryResponse, () => {
+      const vals = data();
+      if (vals === undefined) {
+        return undefined;
+      }
+      const queryParams = new URLSearchParams();
+      if (vals.from) {
+        queryParams.append('from', vals.from.getTime().toString());
+      }
+      if (vals.to) {
+        queryParams.append('to', vals.to.getTime().toString());
+      }
+      return `/api2/players/${vals.playerId}/rating-history?${queryParams.toString()}`;
     });
   }
 }
