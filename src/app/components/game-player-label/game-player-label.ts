@@ -49,8 +49,8 @@ export class GamePlayerLabel {
     if (player.type === 'local') {
       return null;
     } else {
-      const rating = this.playerInfo()?.rating?.rating;
-      return rating !== undefined ? Math.round(rating) : null;
+      const rating = this.playerInfo()?.participationRating ?? null;
+      return rating !== null ? Math.round(rating) : null;
     }
   });
 

@@ -10,28 +10,37 @@ import {
 } from '@angular/core';
 import { Observable } from 'rxjs';
 import z from 'zod';
-import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
+import {
+  SmartHttpResource,
+  smartHttpResource,
+} from '../../util/smart-http-resource/smart-http-resource';
 
 export interface PlayerInfo {
   id: string;
   accountId: string;
   username: string;
   displayName: string;
-  rating?: PlayerRating | null;
+  participationRating: number | null;
 }
 
-export interface PlayerRating {
-  rating: number;
-  participationRating: number;
-}
+const playerStatsSchema = z.object({
+  ranking: z
+    .object({
+      rating: z.number(),
+      maxRating: z.number(),
+      rank: z.number(),
+    })
+    .nullable(),
+  gamesPlayed: z.number(),
+  ratedGamesPlayed: z.number(),
+  gamesWon: z.number(),
+  gamesLost: z.number(),
+  gamesDrawn: z.number(),
+  winStreak: z.number(),
+  longestWinStreak: z.number(),
+});
 
-export interface PlayerStats {
-  gamesPlayed: number;
-  ratedGamesPlayed: number;
-  gamesWon: number;
-  gamesLost: number;
-  gamesDrawn: number;
-}
+export type PlayerStats = z.infer<typeof playerStatsSchema>;
 
 const ratingHistoryEntry = z.object({
   timestamp: z.number(),
@@ -160,8 +169,10 @@ export class PlayerService {
     );
   }
 
-  getPlayerStatsRef(playerId: () => string | undefined): HttpResourceRef<PlayerStats | undefined> {
-    return httpResource<PlayerStats>(() => {
+  getPlayerStatsRef(
+    playerId: () => string | undefined,
+  ): SmartHttpResource<PlayerStats | undefined> {
+    return smartHttpResource<PlayerStats>(playerStatsSchema, () => {
       const pid = playerId();
       if (pid === undefined) {
         return undefined;

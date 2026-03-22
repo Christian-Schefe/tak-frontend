@@ -1,75 +1,88 @@
 @let player = playerInfo();
 @let stats = playerStats();
 @let avatarUrl = profilePictureUrl();
-
-@if (player) {
-  <p-card>
-    <div class="flex flex-row gap-4">
-      <button
-        class="w-32 h-full aspect-square rounded-lg p-0 overflow-hidden cursor-pointer flex items-center justify-center"
-        (click)="onClickProfilePicture()"
-      >
-        @if (avatarUrl !== null) {
-          <img [src]="avatarUrl" alt="Player Avatar" class="w-full h-full pointer-events-none" />
-        } @else {
-          <p-progress-spinner ariaLabel="loading" />
-        }
-      </button>
-      <div class="flex flex-col grow">
-        <div class="font-bold text-2xl flex items-center gap-2">
-          <h1>{{ player.displayName }}</h1>
-          @let svg = flagSvg();
-          @if (svg) {
-            <div [innerHTML]="svg" class="w-8 rounded-sm overflow-clip"></div>
+<div class="w-full max-w-200 flex flex-col gap-4 p-4 mx-auto">
+  @if (player) {
+    <p-card>
+      <div class="flex flex-row gap-4">
+        <button
+          class="w-32 h-full aspect-square rounded-lg p-0 overflow-hidden cursor-pointer flex items-center justify-center"
+          (click)="onClickProfilePicture()"
+        >
+          @if (avatarUrl !== null) {
+            <img [src]="avatarUrl" alt="Player Avatar" class="w-full h-full pointer-events-none" />
+          } @else {
+            <p-progress-spinner ariaLabel="loading" />
           }
+        </button>
+        <div class="flex flex-col grow">
+          <div class="font-bold text-2xl flex items-center gap-2">
+            <h1>{{ player.displayName }}</h1>
+            @let svg = flagSvg();
+            @if (svg) {
+              <div [innerHTML]="svg" class="w-8 rounded-sm overflow-clip"></div>
+            }
+          </div>
+          <p class="text-muted-color mb-4">@{{ player.username }}</p>
         </div>
-        <p class="text-muted-color mb-4">@{{ player.username }}</p>
-      </div>
-      @if (canEditProfile()) {
-        <div>
-          <button
-            pButton
-            severity="secondary"
-            class="aspect-square"
-            (click)="editDialogVisible.set(true)"
-          >
-            <ng-icon name="lucideEdit" size="20px"></ng-icon>
-          </button>
-        </div>
-      }
-    </div>
-  </p-card>
-  <div class="flex gap-4 w-full">
-    <p-card class="grow w-0!">
-      <div class="flex flex-col items-center">
-        <ng-icon name="lucideTrophy" size="60px" />
-        <p class="text-primary text-4xl mt-4">{{ player.rating?.rating ?? '...' | round }}</p>
-        <p>Rating</p>
+        @if (canEditProfile()) {
+          <div>
+            <button
+              pButton
+              severity="secondary"
+              class="aspect-square"
+              (click)="editDialogVisible.set(true)"
+            >
+              <ng-icon name="lucideEdit" size="20px"></ng-icon>
+            </button>
+          </div>
+        }
       </div>
     </p-card>
-    <p-card class="grow w-0!">
-      <div class="flex flex-col items-center">
-        <ng-icon name="lucideSwords" size="60px" />
-        <p class="text-primary text-4xl mt-4">{{ stats?.gamesPlayed ?? '...' }}</p>
-        <p>Games</p>
+    @if (stats) {
+      <div class="grid grid-cols-2 lg:grid-cols-4 justify-stretch gap-4 w-full">
+        <p-card class="w-full!">
+          <div class="flex flex-col items-center">
+            <ng-icon name="lucideHash" size="48px" />
+            <p class="text-primary text-4xl my-4">{{ stats.ranking?.rank ?? '...' }}</p>
+            <p class="text-lg">Rank</p>
+          </div>
+        </p-card>
+        <p-card class="w-full!">
+          <div class="flex flex-col items-center">
+            <ng-icon name="lucideTrophy" size="48px" />
+            <p class="text-primary text-4xl my-4">{{ player.participationRating | round }}</p>
+            <p class="text-lg">Rating</p>
+          </div>
+        </p-card>
+        <p-card class="w-full!">
+          <div class="flex flex-col items-center">
+            <ng-icon name="lucideSwords" size="48px" />
+            <p class="text-primary text-4xl my-4">{{ stats.gamesPlayed }}</p>
+            <p class="text-lg">Games</p>
+          </div>
+        </p-card>
+        <p-card class="w-full!">
+          <div class="flex flex-col items-center">
+            <ng-icon name="lucideFlame" size="48px" />
+            <p class="text-primary text-4xl my-4">{{ stats.winStreak }}</p>
+            <p class="text-lg">Win Streak</p>
+          </div>
+        </p-card>
+      </div>
+      <p-metergroup [value]="wdlItems()" [dt]="thickMeter"></p-metergroup>
+    }
+    <p-card>
+      <div class="flex flex-col gap-4">
+        <p-select [options]="ratingRangeOptions" [(ngModel)]="ratingRange"></p-select>
+        <p-chart
+          type="line"
+          [data]="ratingHistory().data"
+          [options]="ratingHistory().options"
+          class="h-64"
+        ></p-chart>
       </div>
     </p-card>
-  </div>
-  <p-card>
-    <div class="flex flex-col gap-4">
-      <p-select [options]="ratingRangeOptions" [(ngModel)]="ratingRange"></p-select>
-      <p-chart
-        type="line"
-        [data]="ratingHistory()"
-        [options]="ratingHistoryOptions()"
-        class="h-64"
-      ></p-chart>
-    </div>
-  </p-card>
-  @if (stats) {
-    <p-metergroup [value]="wdlItems()" [dt]="thickMeter"></p-metergroup>
-  }
-  <p-scrollpanel [style]="{ width: '100%', height: '250px', flexGrow: '1' }">
     @let gameHistory = playerGameHistory.value();
     @if (gameHistory) {
       <p-card>
@@ -102,8 +115,9 @@
     } @else {
       <p-progress-spinner></p-progress-spinner>
     }
-  </p-scrollpanel>
-}
+  }
+</div>
+
 @if (canEditProfile()) {
   <app-edit-player-profile-dialog
     [(visible)]="editDialogVisible"

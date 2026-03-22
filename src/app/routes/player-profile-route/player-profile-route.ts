@@ -4,7 +4,14 @@ import { PlayerService } from '../../services/player-service/player-service';
 import { CardModule } from 'primeng/card';
 import { RoundPipe } from '../../util/round-pipe/round-pipe';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideEdit, lucideEye, lucideSwords, lucideTrophy } from '@ng-icons/lucide';
+import {
+  lucideEdit,
+  lucideEye,
+  lucideFlame,
+  lucideHash,
+  lucideSwords,
+  lucideTrophy,
+} from '@ng-icons/lucide';
 import { MeterGroupModule, MeterItem } from 'primeng/metergroup';
 import * as flags from 'country-flag-icons/string/3x2';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -24,13 +31,18 @@ import { ProfilePictureChangeDialog } from '../../components/profile-picture-cha
 import { MessageService } from 'primeng/api';
 import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { ChartModule } from 'primeng/chart';
-import { endOfDay, startOfDay, subDays } from 'date-fns';
+import { endOfDay, startOfDay, subDays, subYears } from 'date-fns';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 
 const flagsMap = new Map<string, string>(Object.entries(flags));
 
-type RatingRangeOptionKey = 'today' | 'last-7-days' | 'last-30-days' | 'all-time';
+type RatingRangeOptionKey =
+  | 'last-7-days'
+  | 'last-30-days'
+  | 'last-90-days'
+  | 'last-year'
+  | 'all-time';
 
 @Component({
   selector: 'app-player-profile-route',
@@ -53,7 +65,9 @@ type RatingRangeOptionKey = 'today' | 'last-7-days' | 'last-30-days' | 'all-time
   ],
   templateUrl: './player-profile-route.html',
   styleUrl: './player-profile-route.css',
-  viewProviders: [provideIcons({ lucideTrophy, lucideSwords, lucideEdit, lucideEye })],
+  viewProviders: [
+    provideIcons({ lucideTrophy, lucideSwords, lucideEdit, lucideEye, lucideHash, lucideFlame }),
+  ],
 })
 export class PlayerProfileRoute {
   private identityService = inject(IdentityService);
@@ -73,12 +87,7 @@ export class PlayerProfileRoute {
     return null;
   });
   playerStatsRef = this.playerService.getPlayerStatsRef(() => this.id());
-  playerStats = computed(() => {
-    if (this.playerStatsRef.hasValue()) {
-      return this.playerStatsRef.value();
-    }
-    return null;
-  });
+  playerStats = this.playerStatsRef.value;
   playerProfile = this.profileService.getProfile(() => this.playerInfo()?.accountId);
   playerGameHistory = this.gameHistoryService.playerGameHistory(() => {
     const id = this.id();
@@ -154,22 +163,25 @@ export class PlayerProfileRoute {
     const now = new Date();
     const startOfToday = startOfDay(now);
     const endOfToday = endOfDay(now);
-    return {
-      today: { from: startOfToday, to: endOfToday },
+    const options: Record<RatingRangeOptionKey, { from: Date | null; to: Date }> = {
       'last-7-days': { from: subDays(startOfToday, 6), to: endOfToday },
       'last-30-days': { from: subDays(startOfToday, 29), to: endOfToday },
+      'last-90-days': { from: subDays(startOfToday, 89), to: endOfToday },
+      'last-year': { from: subYears(startOfToday, 1), to: endOfToday },
       'all-time': { from: null, to: endOfToday },
     };
+    return options;
   });
 
-  ratingRangeOptions = [
-    { label: 'Today', value: 'today' },
+  ratingRangeOptions: { label: string; value: RatingRangeOptionKey }[] = [
     { label: 'Last 7 days', value: 'last-7-days' },
     { label: 'Last 30 days', value: 'last-30-days' },
+    { label: 'Last 90 days', value: 'last-90-days' },
+    { label: 'Last year', value: 'last-year' },
     { label: 'All time', value: 'all-time' },
   ];
 
-  ratingRange = signal<RatingRangeOptionKey>('today');
+  ratingRange = signal<RatingRangeOptionKey>('last-30-days');
   ratingHistoryData = this.playerService.getRatingHistory(() => {
     const id = this.id();
     const range = this.ratingRange();
@@ -184,16 +196,15 @@ export class PlayerProfileRoute {
 
   ratingHistory = computed(() => {
     const data = this.ratingHistoryData.value();
-    const range = this.ratingRange();
-    const rangeOptions = this.ratingRangeOptionsMap();
-    const selectedRange = rangeOptions[range];
     const entries = data ? data.entries : [];
     if (data?.firstEntryBeforeRange) {
-      entries.push({
-        timestamp: selectedRange.from
-          ? selectedRange.from.getTime()
-          : data.firstEntryBeforeRange.timestamp,
-        rating: data.firstEntryBeforeRange.rating,
+      entries.push(data.firstEntryBeforeRange);
+    }
+    if (entries.length > 0) {
+      const lastRating = entries[0].rating;
+      entries.unshift({
+        timestamp: Date.now(),
+        rating: lastRating,
       });
     }
     const chartData = entries
@@ -202,37 +213,69 @@ export class PlayerProfileRoute {
         y: Math.round(entry.rating),
       }))
       .reverse();
-    return {
-      datasets: [
-        {
-          data: chartData,
-          stepped: true,
-        },
-      ],
-    };
-  });
+    const documentStyle = getComputedStyle(document.documentElement);
+    const primaryColor = documentStyle.getPropertyValue('--p-primary-500');
 
-  ratingHistoryOptions = computed(() => {
     const range = this.ratingRange();
-    const unit = range === 'today' ? 'hour' : 'day';
-    return {
+    const rangeOptions = this.ratingRangeOptionsMap();
+    const selectedRange = rangeOptions[range];
+    const textColorSecondary = documentStyle.getPropertyValue('--p-text-muted-color');
+    const surfaceBorder = documentStyle.getPropertyValue('--p-content-border-color');
+
+    const yMin = chartData.length > 0 ? Math.min(...chartData.map((d) => d.y)) : undefined;
+    const yMax = chartData.length > 0 ? Math.max(...chartData.map((d) => d.y)) : undefined;
+
+    const nearestSmallerHundred = (num: number) => Math.floor(num / 100) * 100;
+    const nearestLargerHundred = (num: number) => Math.ceil(num / 100) * 100;
+
+    const options = {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
         x: {
           type: 'time',
-          time: {
-            unit,
+          time: {},
+          min: selectedRange.from ? selectedRange.from.getTime() : undefined,
+          max: selectedRange.to,
+          ticks: {
+            color: textColorSecondary,
+          },
+          grid: {
+            color: surfaceBorder,
           },
         },
         y: {
           beginAtZero: false,
+          min: yMin !== undefined ? nearestSmallerHundred(yMin - 10) : undefined,
+          max: yMax !== undefined ? nearestLargerHundred(yMax + 10) : undefined,
+          ticks: {
+            color: textColorSecondary,
+          },
+          grid: {
+            color: surfaceBorder,
+          },
         },
       },
       plugins: {
         legend: {
           display: false,
         },
+      },
+      interaction: {
+        mode: 'nearest',
+        intersect: false,
+      },
+    };
+    return {
+      options,
+      data: {
+        datasets: [
+          {
+            borderColor: primaryColor,
+            data: chartData,
+            stepped: true,
+          },
+        ],
       },
     };
   });
