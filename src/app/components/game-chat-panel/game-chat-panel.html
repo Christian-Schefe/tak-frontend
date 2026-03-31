@@ -26,9 +26,18 @@
     </p-tablist>
   </p-tabs>
   <app-chat-conversation [source]="chatSource()"></app-chat-conversation>
-  <form class="flex gap-2 w-full" (ngSubmit)="onSendMessage()">
-    <input class="grow" type="text" pInputText [(ngModel)]="message" name="chatMessage" />
-    <button pButton class="h-full! aspect-square! p-0!" (click)="onSendMessage()">
+  <form class="flex gap-2 w-full items-end" (ngSubmit)="onSendMessage()">
+    <textarea
+      pTextarea
+      [(ngModel)]="message"
+      name="chatMessage"
+      rows="1"
+      autoResize
+      cols="30"
+      class="resize-none w-0 grow"
+      (keydown)="textareaKeydown($event)"
+    ></textarea>
+    <button pButton class="h-10! w-10! p-0!" (click)="onSendMessage()">
       <ng-icon name="lucideSend" size="20px"></ng-icon>
     </button>
     <input type="submit" hidden />

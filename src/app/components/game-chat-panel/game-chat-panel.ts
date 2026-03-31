@@ -9,10 +9,19 @@ import { FormsModule } from '@angular/forms';
 import { TabsModule } from 'primeng/tabs';
 import { PlayerService } from '../../services/player-service/player-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
+import { TextareaModule } from 'primeng/textarea';
 
 @Component({
   selector: 'app-game-chat-panel',
-  imports: [ChatConversation, InputTextModule, NgIcon, ButtonModule, FormsModule, TabsModule],
+  imports: [
+    ChatConversation,
+    InputTextModule,
+    NgIcon,
+    ButtonModule,
+    FormsModule,
+    TabsModule,
+    TextareaModule,
+  ],
   templateUrl: './game-chat-panel.html',
   styleUrl: './game-chat-panel.css',
   viewProviders: [provideIcons({ lucideSend })],
@@ -83,6 +92,13 @@ export class GameChatPanel {
       return;
     }
     this.chatSourceId.set(id);
+  }
+
+  textareaKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.onSendMessage();
+    }
   }
 
   message = signal<string>('');

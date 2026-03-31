@@ -5,7 +5,7 @@
     `w-full max-xl:overflow-y-scroll gap-4 p-4 h-full flex flex-col xl:flex-row mx-auto xl:pl-4 ${boardType === '2d' ? 'max-w-400' : 'max-w-550'}`
   "
 >
-  <div class="w-full h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
+  <div class="w-full xl:w-0 xl:grow h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
     <app-game-board [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
     </app-game-board>
   </div>
