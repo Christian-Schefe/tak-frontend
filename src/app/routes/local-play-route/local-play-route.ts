@@ -17,6 +17,7 @@ import {
   undoMove,
   updatePartialMove,
   tryPlaceOrAddToPartialMove,
+  getShownGame,
 } from '../../../tak-core/ui';
 import { newGame } from '../../../tak-core/game';
 import { GameService } from '../../services/game-service/game-service';
@@ -25,7 +26,10 @@ import { GameAudioService } from '../../services/game-audio-service/game-audio-s
 import { GameActionsPanel } from '../../components/game-actions-panel/game-actions-panel';
 import { GameInfoPanel } from '../../components/game-info-panel/game-info-panel';
 import { EngineService } from '../../services/engine-service/engine-service';
-import { GameAnalysisBar } from '../../components/game-analysis-bar/game-analysis-bar';
+import {
+  EvalVariation,
+  GameAnalysisBar,
+} from '../../components/game-analysis-bar/game-analysis-bar';
 import { GameChatPanel } from '../../components/game-chat-panel/game-chat-panel';
 
 const engineKey = 'local-play-worker';
@@ -43,7 +47,8 @@ export class LocalPlayRoute implements OnInit {
   private engineService = inject(EngineService);
   private hasLoaded = signal(false);
 
-  evaluation = signal<number>(0);
+  variations = signal<EvalVariation[]>([]);
+  evaluationSupported = signal<null | boolean>(null);
 
   ngOnInit() {
     void this.onInit();
@@ -51,18 +56,39 @@ export class LocalPlayRoute implements OnInit {
 
   private async onInit() {
     await this.engineService.initialize(engineKey, (message) => {
-      const invert = this.game().actualGame.currentPlayer === 'black';
-      this.evaluation.set(invert ? -message.score : message.score);
+      if (message.type === 'evaluation') {
+        this.variations.set(message.variations);
+      } else {
+        this.evaluationSupported.set(message.supported);
+      }
     });
     this.hasLoaded.set(true);
   }
+
+  shownGame = computed(() => {
+    return getShownGame(this.game());
+  });
+
+  private _checkSettingsEffect = effect(() => {
+    if (!this.hasLoaded()) {
+      return;
+    }
+    const game = this.shownGame();
+    if (game.gameState.type !== 'ongoing') {
+      return;
+    }
+    void this.engineService.checkSettings(engineKey, game);
+  });
 
   private _updateEffect = effect(() => {
     if (!this.hasLoaded()) {
       return;
     }
-    console.log('Game updated, sending new position to engine');
-    const game = this.game().actualGame;
+    const supported = this.evaluationSupported();
+    if (supported !== true) {
+      return;
+    }
+    const game = this.shownGame();
     if (game.gameState.type !== 'ongoing') {
       return;
     }

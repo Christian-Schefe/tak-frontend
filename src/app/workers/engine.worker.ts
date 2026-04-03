@@ -1,6 +1,10 @@
 /// <reference lib="webworker" />
 
-import init, { initialize, search_position } from '../../tak-wasm-engine/pkg';
+import init, {
+  initialize,
+  is_settings_supported,
+  search_position,
+} from '../../tak-wasm-engine/pkg';
 import { workerInput } from '../services/engine-service/engine-service';
 
 let isInit = false;
@@ -25,6 +29,11 @@ addEventListener('message', ({ data }) => {
     }
     const message = parsed.data;
 
-    search_position(JSON.stringify(message.game.settings), message.game.tps);
+    if (message.type === 'checkSettings') {
+      const result = is_settings_supported(JSON.stringify(message.settings));
+      postMessage(JSON.stringify({ type: 'checkSettings', supported: result }));
+    } else {
+      search_position(JSON.stringify(message.game.settings), message.game.tps);
+    }
   });
 });

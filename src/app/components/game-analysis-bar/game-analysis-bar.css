@@ -2,14 +2,11 @@
   display: flex;
   width: 100%;
   padding: 0.5rem;
+  flex-direction: column;
 }
 
-.evalbar {
+.variationlabel {
   transition:
-    height 1s ease,
-    width 1s ease;
-}
-
-.evallabel {
-  transition: opacity 0.2s ease;
+    background-color 0.2s ease,
+    color 0.2s ease;
 }

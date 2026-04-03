@@ -1,6 +1,9 @@
 import { Component, computed, input } from '@angular/core';
-import { TakGameState } from '../../../tak-core';
-import { gameResultToString } from '../../../tak-core/game';
+
+export interface EvalVariation {
+  evaluation: number;
+  moves: string[];
+}
 
 @Component({
   selector: 'app-game-analysis-bar',
@@ -9,28 +12,15 @@ import { gameResultToString } from '../../../tak-core/game';
   styleUrl: './game-analysis-bar.css',
 })
 export class GameAnalysisBar {
-  evaluation = input.required<number>();
-  gameState = input.required<TakGameState>();
+  variations = input.required<EvalVariation[]>();
 
-  adjustedEvaluation = computed(() => {
-    const gameState = this.gameState();
-    if (gameState.type === 'win') {
-      return gameState.player === 'white' ? 100 : 0;
-    } else if (gameState.type !== 'ongoing') {
-      return 50;
-    }
-
-    const evalValue = this.evaluation(); // [-100; 100]
-    return evalValue * 0.5 + 50; // [0; 100]
-  });
-  displayEvaluation = computed(() => {
-    const gameState = this.gameState();
-    if (gameState.type !== 'ongoing') {
-      const gameStateStr = gameResultToString(gameState);
-      return gameStateStr ?? '';
-    }
-    const evalValue = this.evaluation(); // [-100; 100]
-    const val = Math.abs(evalValue) / 10; // [0; 10]
-    return val.toFixed(1);
+  adjustedVariations = computed(() => {
+    return this.variations().map((variation) => ({
+      ...variation,
+      displayMoves: variation.moves.slice(0, 12).join(' '),
+      displayEvaluation:
+        (variation.evaluation > 0 ? '+' : variation.evaluation < 0 ? '-' : '') +
+        (Math.abs(variation.evaluation) / 10).toFixed(1),
+    }));
   });
 }

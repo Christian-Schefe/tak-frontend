@@ -84,8 +84,6 @@ export class BoardNinjaComponent {
     const settings = this.settings();
     const gameState = this.gameState();
 
-    console.log('Syncing game state to Board Ninja iframe. History length:', history.length);
-
     const ptn = gameToPTN(settings, history, gameState);
     this.sendMessageToIframe({
       action: 'SET_CURRENT_PTN',

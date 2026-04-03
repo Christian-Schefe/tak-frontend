@@ -7,7 +7,16 @@ import { gameToTPS } from '../../../tak-core/game';
 const workerResponse = z.union([
   z.object({
     type: z.literal('evaluation'),
-    score: z.number(),
+    variations: z.array(
+      z.object({
+        moves: z.array(z.string()),
+        evaluation: z.number(),
+      }),
+    ),
+  }),
+  z.object({
+    type: z.literal('checkSettings'),
+    supported: z.boolean(),
   }),
   z.object({
     type: z.literal('loaded'),
@@ -21,6 +30,10 @@ export const workerInput = z.union([
       settings: gameBaseSettings,
       tps: z.string(),
     }),
+  }),
+  z.object({
+    type: z.literal('checkSettings'),
+    settings: gameBaseSettings,
   }),
 ]);
 
@@ -94,6 +107,20 @@ export class EngineService {
         callback(parsed.data);
       }
     };
+  }
+
+  async checkSettings(id: string, game: TakGame) {
+    const worker = await this.getWorker(id);
+    const input: z.infer<typeof workerInput> = {
+      type: 'checkSettings',
+      settings: {
+        boardSize: game.settings.boardSize,
+        halfKomi: game.settings.halfKomi,
+        pieces: game.settings.reserve.pieces,
+        capstones: game.settings.reserve.capstones,
+      },
+    };
+    worker.postMessage(input);
   }
 
   async evaluatePosition(id: string, game: TakGame) {

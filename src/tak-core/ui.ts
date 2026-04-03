@@ -327,12 +327,17 @@ function areTilesDifferent(tile: TakUITile, newTile: TakUITile): boolean {
   );
 }
 
-export function onGameUpdate(ui: TakGameUI) {
+export function getShownGame(ui: TakGameUI): TakGame {
   const gameClone = isDraft(ui)
     ? structuredClone(current(ui).actualGame)
     : structuredClone(ui.actualGame);
   const shownGame =
     ui.plyIndex !== null ? game.gameFromPlyCount(gameClone, ui.plyIndex, true) : gameClone;
+  return shownGame;
+}
+
+export function onGameUpdate(ui: TakGameUI) {
+  const shownGame = getShownGame(ui);
 
   const partialMove = partialMoveToMove(ui.partialMove);
   if (partialMove) {
