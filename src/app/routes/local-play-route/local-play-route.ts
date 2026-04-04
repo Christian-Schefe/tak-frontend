@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, linkedSignal, signal, OnInit } from '@angular/core';
+import { Component, computed, effect, inject, linkedSignal } from '@angular/core';
 import {
   GameComponent,
   GamePlayer,
@@ -17,7 +17,6 @@ import {
   undoMove,
   updatePartialMove,
   tryPlaceOrAddToPartialMove,
-  getShownGame,
 } from '../../../tak-core/ui';
 import { newGame } from '../../../tak-core/game';
 import { GameService } from '../../services/game-service/game-service';
@@ -25,14 +24,8 @@ import { produce } from 'immer';
 import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
 import { GameActionsPanel } from '../../components/game-actions-panel/game-actions-panel';
 import { GameInfoPanel } from '../../components/game-info-panel/game-info-panel';
-import { EngineService } from '../../services/engine-service/engine-service';
-import {
-  EvalVariation,
-  GameAnalysisBar,
-} from '../../components/game-analysis-bar/game-analysis-bar';
+import { GameAnalysisBar } from '../../components/game-analysis-bar/game-analysis-bar';
 import { GameChatPanel } from '../../components/game-chat-panel/game-chat-panel';
-
-const engineKey = 'local-play-worker';
 
 @Component({
   selector: 'app-local-play-route',
@@ -40,60 +33,9 @@ const engineKey = 'local-play-worker';
   templateUrl: './local-play-route.html',
   styleUrl: './local-play-route.css',
 })
-export class LocalPlayRoute implements OnInit {
+export class LocalPlayRoute {
   private gameService = inject(GameService);
   private gameAudioService = inject(GameAudioService);
-
-  private engineService = inject(EngineService);
-  private hasLoaded = signal(false);
-
-  variations = signal<EvalVariation[]>([]);
-  evaluationSupported = signal<null | boolean>(null);
-
-  ngOnInit() {
-    void this.onInit();
-  }
-
-  private async onInit() {
-    await this.engineService.initialize(engineKey, (message) => {
-      if (message.type === 'evaluation') {
-        this.variations.set(message.variations);
-      } else {
-        this.evaluationSupported.set(message.supported);
-      }
-    });
-    this.hasLoaded.set(true);
-  }
-
-  shownGame = computed(() => {
-    return getShownGame(this.game());
-  });
-
-  private _checkSettingsEffect = effect(() => {
-    if (!this.hasLoaded()) {
-      return;
-    }
-    const game = this.shownGame();
-    if (game.gameState.type !== 'ongoing') {
-      return;
-    }
-    void this.engineService.checkSettings(engineKey, game);
-  });
-
-  private _updateEffect = effect(() => {
-    if (!this.hasLoaded()) {
-      return;
-    }
-    const supported = this.evaluationSupported();
-    if (supported !== true) {
-      return;
-    }
-    const game = this.shownGame();
-    if (game.gameState.type !== 'ongoing') {
-      return;
-    }
-    void this.engineService.evaluatePosition(engineKey, game);
-  });
 
   game = linkedSignal<TakGameUI>(() => {
     return newGameUI(newGame(this.gameService.localGameSettings()));

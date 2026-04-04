@@ -7,9 +7,7 @@
     (requestUndo)="onRequestUndo()"
     (resign)="onResign()"
   ></app-game-actions-panel>
-  @if (evaluationSupported() === true && shownGame().gameState.type === 'ongoing') {
-    <app-game-analysis-bar [variations]="variations()"></app-game-analysis-bar>
-  }
+  <app-game-analysis-bar [game]="game()"></app-game-analysis-bar>
   <app-game-info-panel
     [game]="game()"
     [requests]="[]"

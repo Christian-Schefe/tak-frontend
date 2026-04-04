@@ -4,20 +4,24 @@ import init, {
   initialize,
   is_settings_supported,
   search_position,
+  stop_searching,
 } from '../../tak-wasm-engine/pkg';
 import { workerInput } from '../services/engine-service/engine-service';
 
-let isInit = false;
+let initializingPromise: Promise<void> | null = null;
 
 async function assertInit() {
-  if (!isInit) {
-    await init({
+  if (initializingPromise === null) {
+    console.log('Initializing engine worker...');
+    initializingPromise = init({
       module_or_path: '/wasm/tak_wasm_engine_bg.wasm',
+    }).then(() => {
+      console.log('Engine WASM module initialized');
+      initialize();
+      return;
     });
-    initialize();
-    isInit = true;
   }
-  return isInit;
+  await initializingPromise;
 }
 
 addEventListener('message', ({ data }) => {
@@ -32,8 +36,10 @@ addEventListener('message', ({ data }) => {
     if (message.type === 'checkSettings') {
       const result = is_settings_supported(JSON.stringify(message.settings));
       postMessage(JSON.stringify({ type: 'checkSettings', supported: result }));
-    } else {
+    } else if (message.type === 'evaluate') {
       search_position(JSON.stringify(message.game.settings), message.game.tps);
+    } else {
+      stop_searching();
     }
   });
 });

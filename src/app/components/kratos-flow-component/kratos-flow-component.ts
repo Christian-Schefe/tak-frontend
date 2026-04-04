@@ -13,10 +13,14 @@ import {
 } from '@ory/client';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { KratosFormComponent } from '../kratos-form-component/kratos-form-component';
-import { AxiosError } from 'axios';
 
 type Flow = RecoveryFlow | VerificationFlow | SettingsFlow | LoginFlow;
 type FlowType = 'recovery' | 'verification' | 'settings' | 'relogin';
+interface AxiosError {
+  response?: {
+    data?: unknown;
+  };
+}
 
 @Component({
   selector: 'app-kratos-flow-component',

@@ -1,11 +1,26 @@
-@for (item of adjustedVariations(); track $index) {
-  <div class="flex flex-row items-center gap-2 mt-1">
-    <span
-      [class]="
-        `variationlabel px-2 py-1 font-bold rounded-sm font-mono text-sm border border-surface-200 dark:border-surface-700 ${item.evaluation >= 0 ? 'bg-surface-0 text-surface-800' : 'bg-surface-950 text-surface-100'}`
-      "
-      >{{ item.displayEvaluation }}</span
-    >
-    <span class="font-mono text-sm text-nowrap overflow-hidden">{{ item.displayMoves }}</span>
+<div class="flex flex-row mb-1 items-center">
+  <p-toggleswitch
+    [(ngModel)]="enabled"
+    [disabled]="!isEvaluationSupported()"
+    size="small"
+  ></p-toggleswitch>
+
+  <span class="ml-2 text-muted-color font-bold text-sm">Analysis</span>
+</div>
+@if (showEvaluation()) {
+  <div
+    class="flex flex-col mt-1 p-0.5 gap-1 bg-surface-100 dark:bg-surface-800 rounded-sm border border-surface-200 dark:border-surface-700"
+  >
+    @for (item of adjustedVariations(); track $index) {
+      <div class="flex flex-row items-center gap-2">
+        <span
+          [class]="
+            `variationlabel px-1 py-0.5 font-bold rounded-sm font-mono text-sm border border-surface-200 dark:border-surface-700 ${item.evaluation >= 0 ? 'bg-surface-0 text-surface-800' : 'bg-surface-950 text-surface-100'}`
+          "
+          >{{ item.displayEvaluation }}</span
+        >
+        <span class="font-mono text-sm text-nowrap overflow-hidden">{{ item.displayMoves }}</span>
+      </div>
+    }
   </div>
 }

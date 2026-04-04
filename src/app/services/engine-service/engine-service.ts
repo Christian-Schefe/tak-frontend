@@ -32,6 +32,9 @@ export const workerInput = z.union([
     }),
   }),
   z.object({
+    type: z.literal('stop'),
+  }),
+  z.object({
     type: z.literal('checkSettings'),
     settings: gameBaseSettings,
   }),
@@ -119,6 +122,14 @@ export class EngineService {
         pieces: game.settings.reserve.pieces,
         capstones: game.settings.reserve.capstones,
       },
+    };
+    worker.postMessage(input);
+  }
+
+  async stop(id: string) {
+    const worker = await this.getWorker(id);
+    const input: z.infer<typeof workerInput> = {
+      type: 'stop',
     };
     worker.postMessage(input);
   }
