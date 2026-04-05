@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal, WritableSignal } from '@angular/core';
+import { inject, Injectable, signal, WritableSignal } from '@angular/core';
 import { IdentityService } from '../identity-service/identity-service';
 import z from 'zod';
 import { WsService } from '../ws-service/ws-service';
@@ -11,7 +11,7 @@ export type ChatMessage = z.infer<typeof wsChatMessage>;
 export const chatMessageConversation = z.union([
   z.object({ type: z.literal('global') }),
   z.object({ type: z.literal('room'), roomName: z.string() }),
-  z.object({ type: z.literal('private'), account_id1: z.string(), account_id2: z.string() }),
+  z.object({ type: z.literal('private'), accountId1: z.string(), accountId2: z.string() }),
 ]);
 
 export const wsChatMessage = z.object({
@@ -34,42 +34,6 @@ export class ChatService {
   playerService = inject(PlayerService);
 
   messageSignals = new Map<string, WritableSignal<ChatMessage[]>>();
-
-  opponentPlayerInfos = this.playerService.getComputedPlayerInfos(() => {
-    const identity = this.identityService.identity();
-    const opponents = new Set<string>();
-    if (identity) {
-      const thisPlayerGames = this.gameService.thisPlayerGames();
-      for (const game of thisPlayerGames) {
-        const opponentId =
-          game.playerIds.white === identity.playerId ? game.playerIds.black : game.playerIds.white;
-        opponents.add(opponentId);
-      }
-    }
-    return Array.from(opponents);
-  });
-
-  chatSources = computed<Map<string, ChatMessageConversation>>(() => {
-    const opponents = Object.values(this.opponentPlayerInfos())
-      .map((info) => (info.hasValue() ? info.value().accountId : ''))
-      .filter((id) => id !== '');
-    const convs: ChatMessageConversation[] = [{ type: 'global' }];
-    const identity = this.identityService.identity();
-    if (identity) {
-      for (const opponentId of opponents) {
-        convs.push({
-          type: 'private',
-          account_id1: identity.accountId,
-          account_id2: opponentId,
-        });
-      }
-    }
-    const map = new Map<string, ChatMessageConversation>();
-    for (const conv of convs) {
-      map.set(this.conversationId(conv), conv);
-    }
-    return map;
-  });
 
   private readonly _chatMessageEffect = this.wsService.subscribeEffect(
     'chatMessage',
@@ -112,7 +76,7 @@ export class ChatService {
     } else if (conversation.type === 'room') {
       return `room:${conversation.roomName}`;
     } else {
-      const ids = [conversation.account_id1, conversation.account_id2].sort();
+      const ids = [conversation.accountId1, conversation.accountId2].sort();
       return `private:${ids.join(':')}`;
     }
   }

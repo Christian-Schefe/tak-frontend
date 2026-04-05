@@ -13,6 +13,7 @@
       (resign)="onResign()"
     ></app-game-actions-panel>
     <app-game-info-panel
+      class="grow"
       [game]="ongoingGame"
       [requests]="requests()"
       (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
@@ -32,7 +33,7 @@
       >
       </app-game-player-bar>
     </div>
-    <app-game-chat-panel></app-game-chat-panel>
+    <app-game-chat-panel class="grow" [gameChatSource]="undefined"></app-game-chat-panel>
   </app-game-component>
 } @else {
   <div class="flex flex-col items-center w-full">

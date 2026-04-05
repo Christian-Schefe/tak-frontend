@@ -24,7 +24,7 @@ export class GameAnalysisBar implements OnInit {
 
   variations = signal<EvalVariation[]>([]);
   evaluationSupported = signal<null | boolean>(null);
-  enabled = signal(true);
+  enabled = signal(false);
 
   isEvaluationSupported = computed(() => {
     return this.evaluationSupported() === true && this.shownGame().gameState.type === 'ongoing';

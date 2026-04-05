@@ -52,15 +52,36 @@ export class BoardNinjaComponent {
     this.iframe().nativeElement.contentWindow?.postMessage(message, '*');
   }
 
+  private shouldBoardBeDisabled = computed(() => {
+    const mode = this.mode();
+    const game = this.game();
+    return (
+      mode.type === 'spectator' ||
+      game.plyIndex !== null ||
+      game.actualGame.gameState.type !== 'ongoing' ||
+      (mode.type === 'online' && mode.localPlayer !== game.actualGame.currentPlayer)
+    );
+  });
+
+  private readonly _sendDisableBoardEffect = effect(() => {
+    if (!this.hasLoaded()) return;
+    const disableBoard = this.shouldBoardBeDisabled();
+    console.log('Sending disableBoard =', disableBoard, 'to Board Ninja iframe.');
+    this.sendMessageToIframe({
+      action: 'SET_UI',
+      value: {
+        disableBoard,
+      },
+    });
+  });
+
   private readonly _sendUiSettingsEffect = effect(() => {
     if (!this.hasLoaded()) return;
     const settings = this.settingsService.boardNinjaSettings();
-    const mode = this.mode();
     console.log('Sending UI settings to Board Ninja iframe.');
     this.sendMessageToIframe({
       action: 'SET_UI',
       value: {
-        disableBoard: mode.type === 'spectator',
         theme: settings.colorTheme,
         axisLabels: settings.axisLabels !== 'none',
         axisLabelsSmall: settings.axisLabels === 'small',
@@ -95,7 +116,6 @@ export class BoardNinjaComponent {
   private readonly _historyNavigationEffect = effect(() => {
     if (!this.hasLoaded()) return;
     const game = this.game();
-    const mode = this.mode();
     if (game.plyIndex === null) {
       this.sendMessageToIframe({
         action: 'LAST',
@@ -117,26 +137,6 @@ export class BoardNinjaComponent {
         });
       }
     }
-    this.sendMessageToIframe({
-      action: 'SET_UI',
-      value: {
-        disableBoard: !(
-          game.plyIndex === null &&
-          mode.type !== 'spectator' &&
-          game.actualGame.gameState.type === 'ongoing'
-        ),
-      },
-    });
-  });
-
-  private readonly _sendPlayerSettingsEffect = effect(() => {
-    if (!this.hasLoaded()) return;
-    const mode = this.mode();
-    if (mode.type !== 'online') return;
-    this.sendMessageToIframe({
-      action: 'SET_PLAYER',
-      value: mode.localPlayer === 'white' ? 1 : 2,
-    });
   });
 
   @HostListener('window:message', ['$event'])

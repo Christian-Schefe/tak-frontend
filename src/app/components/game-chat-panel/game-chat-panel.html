@@ -14,9 +14,9 @@
               @let identity = identityService.identity();
               @let info =
                 playerInfos()[
-                  tab.conv.account_id1 === identity?.accountId
-                    ? tab.conv.account_id2
-                    : tab.conv.account_id1
+                  tab.conv.accountId1 === identity?.accountId
+                    ? tab.conv.accountId2
+                    : tab.conv.accountId1
                 ];
               {{ identity && info.hasValue() ? info.value().displayName : '' }}
             }

@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { ChatConversation } from '../chat-conversation/chat-conversation';
 import { InputTextModule } from 'primeng/inputtext';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -27,13 +27,25 @@ import { TextareaModule } from 'primeng/textarea';
   viewProviders: [provideIcons({ lucideSend })],
 })
 export class GameChatPanel {
+  gameChatSource = input<ChatMessageConversation>();
+
   private playerService = inject(PlayerService);
   identityService = inject(IdentityService);
 
   chatService = inject(ChatService);
 
+  chatSourcesMap = computed(() => {
+    const map = new Map<string, ChatMessageConversation>();
+    map.set('global', { type: 'global' });
+    const chatSource = this.gameChatSource();
+    if (chatSource) {
+      map.set(this.chatService.conversationId(chatSource), chatSource);
+    }
+    return map;
+  });
+
   chatSources = computed(() => {
-    const map = this.chatService.chatSources();
+    const map = this.chatSourcesMap();
     const result: ChatMessageConversation[] = [];
     for (const conv of map.values()) {
       result.push(conv);
@@ -45,8 +57,8 @@ export class GameChatPanel {
       } else if (b.type === 'global' || (b.type === 'room' && a.type === 'private')) {
         return 1;
       } else if (a.type === 'private' && b.type === 'private') {
-        const aOpponentId = a.account_id1 === identity?.accountId ? a.account_id2 : a.account_id1;
-        const bOpponentId = b.account_id1 === identity?.accountId ? b.account_id2 : b.account_id1;
+        const aOpponentId = a.accountId1 === identity?.accountId ? a.accountId2 : a.accountId1;
+        const bOpponentId = b.accountId1 === identity?.accountId ? b.accountId2 : b.accountId1;
         return aOpponentId.localeCompare(bOpponentId);
       } else if (a.type === 'room' && b.type === 'room') {
         return a.roomName.localeCompare(b.roomName);
@@ -69,7 +81,7 @@ export class GameChatPanel {
   chatSourceId = signal<string>('global');
   chatSource = computed<ChatMessageConversation>(() => {
     const id = this.chatSourceId();
-    return this.chatService.chatSources().get(id) ?? { type: 'global' };
+    return this.chatSourcesMap().get(id) ?? { type: 'global' };
   });
 
   playerInfos = this.playerService.getComputedPlayerInfosByAccountId(() => {
@@ -77,8 +89,8 @@ export class GameChatPanel {
     const identity = this.identityService.identity();
     for (const conv of this.chatSources()) {
       if (conv.conv.type === 'private') {
-        ids.add(conv.conv.account_id1);
-        ids.add(conv.conv.account_id2);
+        ids.add(conv.conv.accountId1);
+        ids.add(conv.conv.accountId2);
       }
     }
     if (identity) {
