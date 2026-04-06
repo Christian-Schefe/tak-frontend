@@ -75,4 +75,20 @@
       <p>The game is a draw!</p>
     }
   }
+  @let action = rematchRequestAction();
+  @if (action !== undefined) {
+    <p-button (click)="onClickRematchAction()">
+      @switch (action) {
+        @case ('retract') {
+          Retract Rematch Request
+        }
+        @case ('accept') {
+          Accept Rematch Request
+        }
+        @case ('request') {
+          Request Rematch
+        }
+      }
+    </p-button>
+  }
 </p-dialog>

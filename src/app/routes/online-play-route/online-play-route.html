@@ -11,6 +11,9 @@
       (requestUndo)="onRequestUndo()"
       (retractRequest)="onRetractRequest($event)"
       (resign)="onResign()"
+      (requestRematch)="onRequestRematch()"
+      (retractRematchRequest)="onRetractRematchRequest()"
+      [rematchRequestAction]="rematchRequestAction()"
     ></app-game-actions-panel>
     <app-game-info-panel
       class="grow"

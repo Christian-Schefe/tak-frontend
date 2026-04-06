@@ -75,6 +75,18 @@ const gameEvent = z.union([
   }),
 ]);
 
+const matchEvent = z.union([
+  z.object({
+    eventType: z.literal('matchRematchRequestAdded'),
+    matchId: z.number(),
+    fromPlayerId: z.string(),
+  }),
+  z.object({
+    eventType: z.literal('matchRematchRequestRemoved'),
+    matchId: z.number(),
+  }),
+]);
+
 @Component({
   selector: 'app-online-play-route',
   imports: [
@@ -227,6 +239,22 @@ export class OnlinePlayRoute implements OnDestroy {
     }
   }
 
+  private readonly _matchEventEffect = this.wsService.subscribeEffect(
+    'matchEvent',
+    matchEvent,
+    (event) => {
+      const currentGame = this.ongoingGameStatus.value();
+      if (!currentGame || currentGame.matchId !== event.matchId) {
+        return;
+      }
+      if (event.eventType === 'matchRematchRequestAdded') {
+        this.rematchRequestedBy.set(event.fromPlayerId);
+      } else {
+        this.rematchRequestedBy.set(null);
+      }
+    },
+  );
+
   private readonly _gameEventEffect = this.wsService.subscribeEffect(
     'gameEvent',
     gameEvent,
@@ -317,6 +345,28 @@ export class OnlinePlayRoute implements OnDestroy {
       return [];
     }
     return gameStatus.status.requests;
+  });
+
+  rematchRequestedBy = linkedSignal(() => {
+    const rematchStatus = this.rematchRequestStatus.value();
+    return rematchStatus?.rematchRequestedBy ?? null;
+  });
+
+  rematchRequestAction = computed<'request' | 'accept' | 'retract' | undefined>(() => {
+    const identity = this.identityService.identity();
+    const gameStatus = this.currentGame();
+    if (!gameStatus || !identity || gameStatus.mode.type !== 'online') {
+      return undefined;
+    }
+
+    const rematchRequestedBy = this.rematchRequestedBy();
+    if (rematchRequestedBy === null) {
+      return 'request';
+    }
+    if (rematchRequestedBy === identity.playerId) {
+      return 'retract';
+    }
+    return 'accept';
   });
 
   onLocalAction(action: TakActionEvent) {
@@ -428,6 +478,37 @@ export class OnlinePlayRoute implements OnDestroy {
       .subscribe(() => {
         console.log(`Sent request decision (${decision}) successfully.`);
       });
+  }
+
+  rematchRequestStatus = this.gameService.getRematchStatus(() => {
+    const gameStatus = this.ongoingGameStatus.value();
+    if (!gameStatus || gameStatus.matchId === null) {
+      return undefined;
+    }
+    return gameStatus.matchId;
+  });
+
+  onRequestRematch() {
+    console.log('Requesting rematch...');
+    const gameStatus = this.ongoingGameStatus.value();
+    if (!gameStatus || gameStatus.matchId === null) {
+      console.error('Cannot request rematch: no match ID found.');
+      return;
+    }
+    this.gameService.requestRematch(gameStatus.matchId).subscribe(() => {
+      console.log('Requested rematch successfully.');
+    });
+  }
+
+  onRetractRematchRequest() {
+    const gameStatus = this.ongoingGameStatus.value();
+    if (!gameStatus || gameStatus.matchId === null) {
+      console.error('Cannot retract rematch request: no match ID found.');
+      return;
+    }
+    this.gameService.retractRematchRequest(gameStatus.matchId).subscribe(() => {
+      console.log('Retracted rematch request successfully.');
+    });
   }
 
   gameStateTrigger = computed<TakGameState | undefined>(() => {

@@ -19,6 +19,9 @@ export class GameActionsPanel {
   requestDraw = output();
   requestUndo = output();
   retractRequest = output<number>();
+  rematchRequestAction = input<'request' | 'accept' | 'retract'>();
+  requestRematch = output();
+  retractRematchRequest = output();
   game = input.required<TakGameUI>();
   resign = output();
   gameState = computed(() => this.game().actualGame.gameState);
@@ -77,6 +80,18 @@ export class GameActionsPanel {
       },
       event,
     );
+  }
+
+  onClickRematchAction() {
+    const action = this.rematchRequestAction();
+    console.log('Rematch action:', action);
+    if (action === 'request') {
+      this.requestRematch.emit();
+    } else if (action === 'accept') {
+      this.requestRematch.emit();
+    } else if (action === 'retract') {
+      this.retractRematchRequest.emit();
+    }
   }
 
   showGameOverInfo = linkedSignal(() => {

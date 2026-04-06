@@ -19,6 +19,7 @@ export type GameRequestType = z.infer<typeof gameRequest>;
 
 export const gameStatus = z.object({
   id: z.number(),
+  matchId: z.number().nullable(),
   playerIds: z.object({
     white: z.string(),
     black: z.string(),
@@ -43,6 +44,10 @@ export const gameStatus = z.object({
       requests: z.array(gameRequest),
     }),
   ]),
+});
+
+const rematchStatus = z.object({
+  rematchRequestedBy: z.string().nullable(),
 });
 
 export type GameStatus = z.infer<typeof gameStatus>;
@@ -154,5 +159,18 @@ export class GameService {
         accept,
       },
     );
+  }
+  requestRematch(matchId: number) {
+    return this.httpClient.post(`/api2/matches/${matchId.toString()}/rematch`, {});
+  }
+  retractRematchRequest(matchId: number) {
+    return this.httpClient.delete(`/api2/matches/${matchId.toString()}/rematch`, {});
+  }
+
+  getRematchStatus(matchId: () => number | undefined) {
+    return smartHttpResource(rematchStatus, () => {
+      const mid = matchId();
+      return mid !== undefined ? `/api2/matches/${mid.toString()}/rematch` : undefined;
+    });
   }
 }
