@@ -2,6 +2,7 @@ import {
   Component,
   computed,
   CUSTOM_ELEMENTS_SCHEMA,
+  effect,
   inject,
   input,
   linkedSignal,
@@ -28,13 +29,21 @@ import {
   BufferGeometry,
   RingGeometry,
 } from 'three';
-import { GameMode, TakActionEvent } from '../../game-component/game-component';
+import { GameMode } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
-import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
+import {
+  TakAction,
+  TakBaseGame,
+  TakPieceId,
+  TakPlayer,
+  TakPos,
+  TakVariant,
+} from '../../../../tak-core';
 import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
 import { fontResource, gltfResource, textureResource } from 'angular-three-soba/loaders';
 import { Board3dPresetService } from '../../../services/board-3d-preset-service/board-3d-preset-service';
 import { TextGeometry } from 'three-stdlib';
+import { produce } from 'immer';
 
 @Component({
   selector: 'app-board-ngt-canvas',
@@ -59,9 +68,10 @@ export class BoardNgtCanvas {
     RIGHT: MOUSE.ROTATE,
   };
   PI = Math.PI;
-  game = input.required<TakGameUI>();
-  action = output<TakActionEvent>();
+  game = input.required<TakBaseGame>();
+  action = output<TakAction>();
   mode = input.required<GameMode>();
+  plyIndex = input.required<number | null>();
 
   tileRotation = [-Math.PI / 2, 0, 0];
   tableRotation = [0, Math.PI / 2, 0];
@@ -82,6 +92,38 @@ export class BoardNgtCanvas {
       AmbientLight,
     });
   }
+
+  gameUi = linkedSignal<TakBaseGame, TakGameUI>({
+    source: () => this.game(),
+    computation: (source, prev) => {
+      if (prev?.value) {
+        return produce(prev.value, (gameUi) => {
+          gameUi.updateGame(source);
+          return gameUi;
+        });
+      }
+      return new TakGameUI(source);
+    },
+  });
+
+  private _updateGameUiEffect = effect(() => {
+    const game = this.game();
+    this.gameUi.update((prev) => {
+      return produce(prev, (gameUi) => {
+        gameUi.updateGame(game);
+        return gameUi;
+      });
+    });
+  });
+  private _updatePlyIndexGameUiEffect = effect(() => {
+    const plyIndex = this.plyIndex();
+    this.gameUi.update((prev) => {
+      return produce(prev, (gameUi) => {
+        gameUi.setPlyIndex(plyIndex);
+        return gameUi;
+      });
+    });
+  });
 
   boardPresetName = signal<string>('basic');
   boardPreset = this.presetService.getComputedBoardPreset(() => this.boardPresetName());
@@ -173,10 +215,10 @@ export class BoardNgtCanvas {
   tableGeometry = signal<BufferGeometry | undefined>(undefined);
 
   gameSettings = computed(() => {
-    return this.game().actualGame.settings;
+    return this.game().settings;
   });
 
-  private tiles = computed(() => this.game().tiles);
+  private tiles = computed(() => this.gameUi().tiles);
 
   font = fontResource(() => '/board-3d/helvetiker_regular.typeface.json');
 
@@ -207,13 +249,13 @@ export class BoardNgtCanvas {
     const mode = this.mode();
     const game = this.game();
     return (
-      ((mode.type === 'online' && game.actualGame.currentPlayer === mode.localPlayer) ||
+      ((mode.type === 'online' && game.currentPlayer === mode.localPlayer) ||
         mode.type === 'local') &&
-      game.actualGame.gameState.type === 'ongoing'
+      game.isOngoing()
     );
   });
 
-  pieces = computed(() => this.game().pieces);
+  pieces = computed(() => this.gameUi().pieces);
 
   piecesWithReserve = computed(() => {
     const settings = this.gameSettings();
@@ -244,17 +286,27 @@ export class BoardNgtCanvas {
   onTileClick(pos: TakPos) {
     if (!this.areTilesInteractive()) return;
     const variant = this.currentVariant();
-    this.action.emit({ type: 'partial', pos, variant: variant ?? 'flat' });
+    this.gameUi.update((prev) => {
+      const action = prev.tryPlaceOrAddToPartialAction(pos, variant ?? 'flat');
+      return produce(prev, (gameUi) => {
+        if (action) {
+          this.action.emit(action);
+        } else {
+          gameUi.updatePartialAction(pos);
+        }
+        return gameUi;
+      });
+    });
     this.currentVariant.set(null);
   }
 
   lastMovePositions = computed(() => {
-    const game = this.game();
+    const game = this.gameUi();
     const positions = [];
     for (let y = 0; y < game.tiles.length; y++) {
       for (let x = 0; x < game.tiles[y].length; x++) {
         const tile = game.tiles[y][x];
-        if (tile.lastMove) {
+        if (tile.lastAction) {
           positions.push({ x, y });
         }
       }
@@ -267,7 +319,7 @@ export class BoardNgtCanvas {
   showHoverHighlight = computed(() => {
     const hoveredTile = this.hoveredTile();
     if (!hoveredTile) return false;
-    const tile = this.game().tiles[hoveredTile.y][hoveredTile.x];
+    const tile = this.gameUi().tiles[hoveredTile.y][hoveredTile.x];
     return tile.hoverable;
   });
 
@@ -319,7 +371,7 @@ export class BoardNgtCanvas {
       } | null;
       interactive: boolean;
     },
-    TakPieceVariant | null
+    TakVariant | null
   >({
     source: () => ({ canPlace: this.canPlace(), interactive: this.areTilesInteractive() }),
     computation: (source, prev) => {
@@ -348,18 +400,18 @@ export class BoardNgtCanvas {
     const mode = this.mode();
     let player: TakPlayer;
     if (mode.type === 'local') {
-      player = game.actualGame.currentPlayer;
+      player = game.currentPlayer;
     } else if (mode.type === 'online') {
       player = mode.localPlayer;
     } else {
       return null;
     }
-    const isOngoing = game.actualGame.gameState.type === 'ongoing';
-    const reserves = game.actualGame.reserves[player];
+    const isOngoing = game.isOngoing();
+    const reserves = game.reserves[player];
     return {
       flat: isOngoing && reserves.pieces > 0,
-      standing: isOngoing && reserves.pieces > 0 && game.actualGame.history.length >= 2,
-      capstone: isOngoing && reserves.capstones > 0 && game.actualGame.history.length >= 2,
+      standing: isOngoing && reserves.pieces > 0 && game.actionHistory.length >= 2,
+      capstone: isOngoing && reserves.capstones > 0 && game.actionHistory.length >= 2,
     };
   });
 }

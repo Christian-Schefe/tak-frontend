@@ -1,28 +1,23 @@
-import { Component, computed, effect, inject, input, linkedSignal, OnDestroy } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  linkedSignal,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import {
   GameComponent,
   GameMode,
   GamePlayer,
-  TakActionEvent,
 } from '../../components/game-component/game-component';
 import { GameRequestType, GameService } from '../../services/game-service/game-service';
 import { IdentityService } from '../../services/identity-service/identity-service';
 import { WsService } from '../../services/ws-service/ws-service';
 import z from 'zod';
-import { TakGameSettings, TakGameState, TakAction, TakPlayer, TakPos } from '../../../tak-core';
-import {
-  doMove,
-  TakGameUI,
-  newGameUI,
-  setPlyIndex,
-  setGameOverState,
-  tryPlaceOrAddToPartialMove,
-  updatePartialMove,
-  undoMove,
-} from '../../../tak-core/ui';
-import { newGame, setTimeRemaining } from '../../../tak-core/game';
-import { moveFromString, moveToString } from '../../../tak-core/move';
-import { gameStateFromStr } from '../../../tak-core/ptn';
+
 import { produce } from 'immer';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
@@ -30,13 +25,22 @@ import { GameActionsPanel } from '../../components/game-actions-panel/game-actio
 import { GameInfoPanel } from '../../components/game-info-panel/game-info-panel';
 import { GamePlayerBar } from '../../components/game-player-bar/game-player-bar';
 import { GameChatPanel } from '../../components/game-chat-panel/game-chat-panel';
+import {
+  TakAction,
+  TakGame,
+  TakGameResult,
+  TakGameSettings,
+  TakGameState,
+  TakPlayer,
+} from '../../../tak-core';
+import { actionFromString, actionToString, gameResultFromString } from '../../../tak-core/ptn';
 
 interface CurrentGame {
   gameId: number;
   settings: TakGameSettings;
   mode: GameMode;
   actions: string[];
-  gameState: TakGameState;
+  gameResult: TakGameResult | null;
   remainingMs: Record<TakPlayer, number>;
 }
 
@@ -127,16 +131,15 @@ export class OnlinePlayRoute implements OnDestroy {
       return null;
     }
     const settings: TakGameSettings = {
-      boardSize: game.gameSettings.boardSize,
-      halfKomi: game.gameSettings.halfKomi,
-      reserve: {
-        pieces: game.gameSettings.pieces,
-        capstones: game.gameSettings.capstones,
+      base: {
+        boardSize: game.gameSettings.boardSize,
+        halfKomi: game.gameSettings.halfKomi,
+        reserve: {
+          pieces: game.gameSettings.pieces,
+          capstones: game.gameSettings.capstones,
+        },
       },
-      clock: {
-        ...game.gameSettings.timeSettings,
-        externallyDriven: true,
-      },
+      timeControl: game.gameSettings.timeSettings,
     };
     const mode: GameMode =
       identity.playerId === game.playerIds.white
@@ -153,9 +156,9 @@ export class OnlinePlayRoute implements OnDestroy {
               type: 'spectator',
             };
 
-    const gameState: TakGameState | null =
+    const gameState: TakGameResult | null =
       game.status.type === 'ended'
-        ? gameStateFromStr(game.status.result)
+        ? gameResultFromString(game.status.result)
         : game.status.type === 'aborted'
           ? { type: 'aborted' }
           : null;
@@ -165,27 +168,35 @@ export class OnlinePlayRoute implements OnDestroy {
       gameId: game.id,
       mode,
       actions: game.actions,
-      gameState: gameState ?? { type: 'ongoing' },
+      gameResult: gameState,
       remainingMs: game.remainingMs,
     };
   });
 
-  game = linkedSignal<TakGameUI | null>(() => {
+  game = linkedSignal<TakGame | null>(() => {
     const currentGame = this.currentGame();
     if (!currentGame) {
       return null;
     }
-    const game = newGameUI(newGame(currentGame.settings));
+    const now = Date.now();
+    const game = new TakGame(currentGame.settings);
     for (const actionRecord of currentGame.actions) {
-      doMove(game, moveFromString(actionRecord));
+      const action = actionFromString(actionRecord);
+      if (!action) {
+        console.error('Invalid action string from server:', actionRecord);
+        continue;
+      }
+      game.doAction(action, now);
     }
-    setTimeRemaining(game.actualGame, currentGame.remainingMs, new Date());
-    if (game.actualGame.gameState.type === 'ongoing' && currentGame.gameState.type !== 'ongoing') {
-      game.actualGame.gameState = currentGame.gameState;
+    game.setTimeRemaining(currentGame.remainingMs, now);
+    if (game.base.isOngoing() && currentGame.gameResult) {
+      game.setGameOver(currentGame.gameResult, now);
     }
     console.log(`Replayed ${currentGame.actions.length.toString()} actions from server.`);
     return game;
   });
+
+  plyIndex = signal<number | null>(null);
 
   players = computed<Record<TakPlayer, GamePlayer> | null>(() => {
     const game = this.ongoingGameStatus.value();
@@ -207,7 +218,7 @@ export class OnlinePlayRoute implements OnDestroy {
       currentGame !== null &&
       game !== null &&
       currentGame.mode.type === 'spectator' &&
-      game.actualGame.gameState.type === 'ongoing'
+      game.base.isOngoing()
         ? currentGame.gameId
         : null;
     if (
@@ -268,12 +279,16 @@ export class OnlinePlayRoute implements OnDestroy {
           if (!game) {
             return game;
           }
-          const resultingPlyIndex = game.actualGame.history.length + 1;
+          const resultingPlyIndex = game.base.actionHistory.length + 1;
           if (resultingPlyIndex === event.plyIndex) {
             this.gameAudioService.playMoveSound();
-
+            const action = actionFromString(event.action);
+            if (!action) {
+              console.error('Invalid action string from server:', event.action);
+              return game;
+            }
             return produce(game, (game) => {
-              doMove(game, moveFromString(event.action));
+              game.doAction(action, Date.now());
             });
           } else if (resultingPlyIndex - 1 === event.plyIndex) {
             // This is our own action echoed back; ignore it.
@@ -289,11 +304,11 @@ export class OnlinePlayRoute implements OnDestroy {
           if (!game) {
             return game;
           }
-          const resultingPlyIndex = game.actualGame.history.length - 1;
+          const resultingPlyIndex = game.base.actionHistory.length - 1;
           if (resultingPlyIndex === event.plyIndex) {
             console.log('Applying undo from server.');
             return produce(game, (game) => {
-              undoMove(game);
+              game.undoAction(Date.now());
             });
           } else {
             console.error(`Ply index mismatch on undo: got ${event.plyIndex.toString()}`);
@@ -303,12 +318,12 @@ export class OnlinePlayRoute implements OnDestroy {
         });
       } else if (event.eventType === 'gameEnded') {
         this.game.update((game) => {
-          const newGameState = gameStateFromStr(event.result);
+          const newGameState = gameResultFromString(event.result);
           if (!game || !newGameState) {
             return game;
           }
           return produce(game, (game) => {
-            setGameOverState(game, newGameState);
+            game.setGameOver(newGameState, Date.now());
           });
         });
       } else if (event.eventType === 'gameRequestAdded') {
@@ -333,7 +348,7 @@ export class OnlinePlayRoute implements OnDestroy {
           return game;
         }
         return produce(game, (game) => {
-          setTimeRemaining(game.actualGame, event.timeInfo, new Date());
+          game.setTimeRemaining(event.timeInfo, Date.now());
         });
       });
     },
@@ -369,34 +384,20 @@ export class OnlinePlayRoute implements OnDestroy {
     return 'accept';
   });
 
-  onLocalAction(action: TakActionEvent) {
+  onLocalAction(action: TakAction) {
     const game = this.game();
     if (!game) {
       return;
     }
-    let move: TakAction | null = null;
-    let pos: TakPos | null = null;
-    if (action.type === 'full') {
-      move = action.action;
-    } else {
-      move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
-      pos = action.pos;
-    }
 
-    if (move !== null) {
-      this.gameAudioService.playMoveSound();
-    }
+    this.gameAudioService.playMoveSound();
 
     this.game.update((game) => {
       if (!game) {
         return game;
       }
       return produce(game, (game) => {
-        if (move !== null) {
-          doMove(game, move);
-        } else if (pos !== null) {
-          updatePartialMove(game, pos);
-        }
+        game.doAction(action, Date.now());
       });
     });
 
@@ -405,27 +406,14 @@ export class OnlinePlayRoute implements OnDestroy {
       return;
     }
 
-    if (move !== null) {
-      this.wsService
-        .sendMessage('gameAction', {
-          gameId: currentGame.gameId,
-          action: moveToString(move),
-        })
-        .subscribe(() => {
-          console.log('Sent action to server:', action);
-        });
-    }
-  }
-
-  onSetHistoryPlyIndex(plyIndex: number) {
-    this.game.update((game) => {
-      if (!game) {
-        return game;
-      }
-      return produce(game, (game) => {
-        setPlyIndex(game, plyIndex);
+    this.wsService
+      .sendMessage('gameAction', {
+        gameId: currentGame.gameId,
+        action: actionToString(action),
+      })
+      .subscribe(() => {
+        console.log('Sent action to server:', action);
       });
-    });
   }
 
   onResign() {
@@ -480,6 +468,16 @@ export class OnlinePlayRoute implements OnDestroy {
       });
   }
 
+  onSetHistoryPlyIndex(plyIndex: number | null) {
+    const game = this.game();
+    if (!game) {
+      return;
+    }
+    const currentPlyIndex = game.base.actionHistory.length;
+    const newPlyIndex = plyIndex !== null && plyIndex >= currentPlyIndex ? null : plyIndex;
+    this.plyIndex.set(newPlyIndex);
+  }
+
   rematchRequestStatus = this.gameService.getRematchStatus(() => {
     const gameStatus = this.ongoingGameStatus.value();
     if (!gameStatus || gameStatus.matchId === null) {
@@ -512,14 +510,18 @@ export class OnlinePlayRoute implements OnDestroy {
   }
 
   gameStateTrigger = computed<TakGameState | undefined>(() => {
-    return this.game()?.actualGame.gameState;
+    const game = this.game();
+    if (!game) {
+      return undefined;
+    }
+    if (game.base.gameResult) {
+      return game.base.gameResult;
+    }
+    return { type: 'ongoing' };
   });
   showGameOverInfo = linkedSignal(() => {
     const gameState = this.gameStateTrigger();
-    if (!gameState) {
-      return false;
-    }
-    return gameState.type !== 'ongoing';
+    return !!gameState;
   });
 
   opponentRequests = computed<GameRequestType[]>(() => {

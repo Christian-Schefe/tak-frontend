@@ -1,19 +1,12 @@
 import { Component, inject, input, linkedSignal } from '@angular/core';
-import { GameComponent, TakActionEvent } from '../../components/game-component/game-component';
-import {
-  doMove,
-  newGameUI,
-  TakGameUI,
-  tryPlaceOrAddToPartialMove,
-  updatePartialMove,
-} from '../../../tak-core/ui';
-import { newGame } from '../../../tak-core/game';
-import { TakAction, TakPos } from '../../../tak-core';
-import { PuzzleService } from '../../services/puzzle-service/puzzle-service';
+import { GameComponent } from '../../components/game-component/game-component';
+
+import { TakAction, TakBaseGame } from '../../../tak-core';
+import { PuzzleService, SolveResponse } from '../../services/puzzle-service/puzzle-service';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { produce } from 'immer';
-import { moveFromString, moveToString } from '../../../tak-core/move';
 import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
+import { actionFromString, actionToString } from '../../../tak-core/ptn';
 
 @Component({
   selector: 'app-puzzle-route',
@@ -34,52 +27,36 @@ export class PuzzleRoute {
     return false;
   });
 
-  game = linkedSignal<{ game: TakGameUI; solution: TakAction[] } | null>(() => {
+  game = linkedSignal<{ game: TakBaseGame; solution: TakAction[] } | null>(() => {
     if (!this.puzzleInfo.resource.hasValue()) {
       return null;
     }
     const puzzle = this.puzzleInfo.resource.value();
-    const game = newGameUI(
-      newGame({
-        boardSize: puzzle.gameSettings.boardSize,
-        halfKomi: puzzle.gameSettings.halfKomi,
-        reserve: {
-          pieces: puzzle.gameSettings.pieces,
-          capstones: puzzle.gameSettings.capstones,
-        },
-        clock: null,
-      }),
-    );
+    const game = new TakBaseGame({
+      boardSize: puzzle.gameSettings.boardSize,
+      halfKomi: puzzle.gameSettings.halfKomi,
+      reserve: {
+        pieces: puzzle.gameSettings.pieces,
+        capstones: puzzle.gameSettings.capstones,
+      },
+    });
     return {
       game: produce(game, (game) => {
-        for (const action of puzzle.actions) {
-          doMove(game, moveFromString(action));
+        for (const actionStr of puzzle.actions) {
+          const action = actionFromString(actionStr);
+          if (!action) {
+            console.error('Invalid action in puzzle:', actionStr);
+            continue;
+          }
+          game.doAction(action);
         }
       }),
       solution: [],
     };
   });
 
-  onAction(action: TakActionEvent) {
-    const gameData = this.game();
-    if (!gameData) {
-      return;
-    }
-    const { game, solution } = gameData;
-    let move: TakAction | null = null;
-    let pos: TakPos | null = null;
-    if (action.type === 'full') {
-      move = action.action;
-    } else {
-      move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
-      pos = action.pos;
-    }
-
-    if (move !== null) {
-      this.gameAudioService.playMoveSound();
-    }
-
-    const newSolution = move !== null ? [...solution, move] : solution;
+  onAction(action: TakAction) {
+    this.gameAudioService.playMoveSound();
 
     this.game.update((game) => {
       if (!game) {
@@ -87,39 +64,38 @@ export class PuzzleRoute {
       }
 
       return produce(game, (game) => {
-        if (move !== null) {
-          doMove(game.game, move);
-          game.solution.push(move);
-        } else if (pos !== null) {
-          updatePartialMove(game.game, pos);
-        }
+        game.game.doAction(action);
+        game.solution.push(action);
+        const solutionStrs = game.solution.map((entry) => actionToString(entry));
+        this.puzzleService.trySolvePuzzle(this.id(), solutionStrs).subscribe((res) => {
+          this.onSolveResponse(res);
+        });
       });
     });
+  }
+  private onSolveResponse(res: SolveResponse) {
+    console.log('Tried solving puzzle:', res);
+    if (res.type === 'correct') {
+      this.solved.set(true);
+    } else if (res.type === 'incorrect') {
+      console.log('Incorrect, try again!');
+      this.puzzleInfo.refetch();
+    } else {
+      const action = actionFromString(res.action);
+      if (!action) {
+        console.error('Invalid action from server:', res.action);
+        return;
+      }
 
-    if (move !== null) {
-      const solution = newSolution.map((entry) => moveToString(entry));
-      this.puzzleService.trySolvePuzzle(this.id(), solution).subscribe((res) => {
-        console.log('Tried solving puzzle:', action, res);
-        if (res.type === 'correct') {
-          this.solved.set(true);
-        } else if (res.type === 'incorrect') {
-          console.log('Incorrect, try again!');
-          this.puzzleInfo.refetch();
-        } else {
-          const action = moveFromString(res.action);
+      this.gameAudioService.playMoveSound();
 
-          this.gameAudioService.playMoveSound();
-
-          this.game.update((game) => {
-            if (!game) {
-              return game;
-            }
-            console.log(game.game.actualGame.history.map((entry) => moveToString(entry)));
-            return produce(game, (game) => {
-              doMove(game.game, action);
-            });
-          });
+      this.game.update((game) => {
+        if (!game) {
+          return game;
         }
+        return produce(game, (game) => {
+          game.game.doAction(action);
+        });
       });
     }
   }

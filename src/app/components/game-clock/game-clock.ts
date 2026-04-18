@@ -1,8 +1,7 @@
 import { Component, computed, effect, input, signal } from '@angular/core';
 import { Pipe, PipeTransform } from '@angular/core';
-import { TakGameUI } from '../../../tak-core/ui';
 import { TakPlayer } from '../../../tak-core';
-import { getTimeRemaining } from '../../../tak-core/game';
+import { TakGame } from '../../../tak-core/game';
 
 @Pipe({
   name: 'clockFormat',
@@ -40,7 +39,7 @@ export class ClockFormatPipe implements PipeTransform {
   styleUrl: './game-clock.css',
 })
 export class GameClock {
-  game = input.required<TakGameUI>();
+  game = input.required<TakGame>();
   player = input.required<TakPlayer>();
   updateClock = signal(0);
 
@@ -48,9 +47,8 @@ export class GameClock {
     this.updateClock();
     const player = this.player();
     const game = this.game();
-    const remainingMs = getTimeRemaining(game.actualGame, player, new Date());
-    const isActive =
-      player === game.actualGame.currentPlayer && game.actualGame.gameState.type === 'ongoing';
+    const remainingMs = game.getTimeRemaining(player, Date.now());
+    const isActive = player === game.base.currentPlayer && game.clock.isTicking;
     return { remainingMs, isActive };
   });
 

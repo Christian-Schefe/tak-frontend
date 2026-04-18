@@ -2,6 +2,7 @@
 @if (takGame !== null) {
   <app-game-component
     [game]="takGame"
+    [plyIndex]="null"
     [mode]="this.solved() ? { type: 'spectator' } : { type: 'local' }"
     (action)="onAction($event)"
   ></app-game-component>

@@ -1,4 +1,5 @@
 @let takGame = game();
+@let ui = gameUi();
 @let settings = gameSettings();
 @let pBoardSettings = boardSettings();
 <div
@@ -10,7 +11,7 @@
       <div
         class="w-full h-full grid"
         [style]="{
-          gridTemplateColumns: `repeat(${takGame.actualGame.settings.boardSize}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${takGame.settings.boardSize}, minmax(0, 1fr))`,
         }"
       >
         @let interactive = areTilesInteractive();
@@ -20,8 +21,8 @@
             [x]="item.pos.x"
             [y]="item.pos.y"
             [settings]="settings"
-            [gameState]="takGame.actualGame.gameState"
-            [plyIndex]="takGame.plyIndex"
+            [gameState]="takGame.gameState()"
+            [plyIndex]="ui.plyIndex"
             (tileClick)="onClickTile(item.pos)"
             [data]="item.data"
             [boardSettings]="pBoardSettings"

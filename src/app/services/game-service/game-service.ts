@@ -4,7 +4,7 @@ import { WsService } from '../ws-service/ws-service';
 import { smartHttpResource } from '../../util/smart-http-resource/smart-http-resource';
 import { IdentityService } from '../identity-service/identity-service';
 import { Router } from '@angular/router';
-import { TakGameSettings } from '../../../tak-core';
+import { TakBaseGameSettings } from '../../../tak-core';
 import { HttpClient } from '@angular/common/http';
 import { GameInfo, gameInfo, gameSettings } from '../game-history-service/game-history-service';
 
@@ -61,14 +61,13 @@ export class GameService {
   router = inject(Router);
   httpClient = inject(HttpClient);
 
-  localGameSettings = signal<TakGameSettings>({
+  localGameSettings = signal<TakBaseGameSettings>({
     boardSize: 6,
     halfKomi: 0,
     reserve: { pieces: 30, capstones: 1 },
-    clock: null,
   });
 
-  startNewLocalGame(settings: TakGameSettings) {
+  startNewLocalGame(settings: TakBaseGameSettings) {
     this.localGameSettings.set(settings);
   }
 

@@ -1,336 +1,173 @@
+import { immerable } from 'immer';
 import {
-  playerOpposite,
-  type TakGame,
-  type TakGameSettings,
-  type TakGameState,
-  type TakAction,
-  type TakActionRecord,
-  type TakPlayer,
+  playerOpponent,
+  TakAction,
+  TakAsyncTimeControl,
+  TakGameResult,
+  TakGameSettings,
+  TakPlayer,
+  TakRealtimeTimeControl,
 } from '.';
+import { TakBaseGame } from './base';
 
-import {
-  canMovePiece,
-  canPlacePiece,
-  countFlats,
-  findRoads,
-  getFlats,
-  isFilled,
-  movePiece,
-  newBoard,
-  placePiece,
-  toPositionString,
-} from './board';
+export interface TakClock {
+  remainingTimeMs: Record<TakPlayer, number>;
+  lastUpdateTimestamp: number;
+  isTicking: boolean;
+}
 
-export function newGame(settings: TakGameSettings): TakGame {
-  const board = newBoard(settings.boardSize);
-  return {
-    board,
-    settings,
-    currentPlayer: 'white',
-    history: [],
-    reserves: {
-      white: { ...settings.reserve },
-      black: { ...settings.reserve },
-    },
-    gameState: { type: 'ongoing' },
-    clock: settings.clock
-      ? {
-          clock: {
-            isTicking: false,
-            lastUpdate: new Date(),
-            remainingMs: {
-              white: settings.clock.contingentMs,
-              black: settings.clock.contingentMs,
+export type TakClockUpdatePolicy =
+  | {
+      type: 'realtime';
+      timeControl: TakRealtimeTimeControl;
+      hasGainedExtraTime: Record<TakPlayer, boolean>;
+    }
+  | {
+      type: 'async';
+      timeControl: TakAsyncTimeControl;
+    };
+
+export class TakGame {
+  [immerable] = true;
+
+  base: TakBaseGame;
+  clock: TakClock;
+  clockUpdatePolicy: TakClockUpdatePolicy;
+
+  constructor(settings: TakGameSettings) {
+    this.base = new TakBaseGame(settings.base);
+    this.clock = {
+      remainingTimeMs: {
+        white: settings.timeControl.contingentMs,
+        black: settings.timeControl.contingentMs,
+      },
+      lastUpdateTimestamp: Date.now(),
+      isTicking: false,
+    };
+    this.clockUpdatePolicy =
+      settings.timeControl.type === 'realtime'
+        ? {
+            type: settings.timeControl.type,
+            timeControl: settings.timeControl,
+            hasGainedExtraTime: {
+              white: false,
+              black: false,
             },
-          },
-          updatePolicy:
-            settings.clock.type === 'realtime'
-              ? {
-                  type: 'realtime',
-                  hasGainedExtra: { white: false, black: false },
-                }
-              : { type: 'async' },
+          }
+        : {
+            type: settings.timeControl.type,
+            timeControl: settings.timeControl,
+          };
+  }
+
+  setGameOver(gameResult: TakGameResult, now: number) {
+    this.stopClock(this.base.currentPlayer, now);
+    this.base.gameResult = gameResult;
+  }
+
+  private stopClock(player: TakPlayer, now: number) {
+    this.maybeApplyElapsed(player, now);
+    this.clock.isTicking = false;
+  }
+
+  private maybeApplyElapsed(player: TakPlayer, now: number) {
+    if (this.clock.isTicking) {
+      const elapsed = now - this.clock.lastUpdateTimestamp;
+      this.clock.remainingTimeMs[player] = Math.max(
+        this.clock.remainingTimeMs[player] - elapsed,
+        0,
+      );
+    }
+    this.clock.lastUpdateTimestamp = now;
+  }
+
+  getTimeRemaining(player: TakPlayer, now: number): number {
+    const baseRemaining = this.clock.remainingTimeMs[player];
+    if (this.base.currentPlayer !== player || !this.clock.isTicking) {
+      return baseRemaining;
+    }
+    const elapsed = now - this.clock.lastUpdateTimestamp;
+    return Math.max(baseRemaining - elapsed, 0);
+  }
+
+  private startOrUpdateClock(player: TakPlayer, now: number) {
+    this.maybeApplyElapsed(player, now);
+    switch (this.clockUpdatePolicy.type) {
+      case 'realtime': {
+        this.clock.remainingTimeMs[player] += this.clockUpdatePolicy.timeControl.incrementMs;
+        if (
+          this.clockUpdatePolicy.timeControl.extra !== null &&
+          !this.clockUpdatePolicy.hasGainedExtraTime[player]
+        ) {
+          const moveIndex = (this.base.actionHistory.length + 1) / 2;
+
+          if (moveIndex === this.clockUpdatePolicy.timeControl.extra.onMove) {
+            this.clock.remainingTimeMs[player] += this.clockUpdatePolicy.timeControl.extra.extraMs;
+            this.clockUpdatePolicy.hasGainedExtraTime[player] = true;
+          }
         }
-      : null,
-  };
-}
-
-export function canDoMove(game: TakGame, move: TakAction, now: Date): string | null {
-  if (isTimeout(game, now)) {
-    return 'Game is over: timeout';
-  }
-
-  if (game.gameState.type !== 'ongoing') return `Game is not ongoing: ${game.gameState.type}`;
-
-  if (move.type === 'place') {
-    if (game.history.length < 2 && move.variant !== 'flat') {
-      return 'Invalid place move';
-    }
-    const reserve = game.reserves[game.currentPlayer];
-    const reserveNumber = move.variant === 'capstone' ? reserve.capstones : reserve.pieces;
-    if (reserveNumber <= 0) {
-      return 'Not enough pieces in reserve';
-    }
-    return canPlacePiece(game.board, move.pos);
-  } else {
-    if (game.history.length < 2) {
-      return 'Cannot move piece';
-    }
-    return canMovePiece(game.board, move.from, move.dir, move.drops, game.currentPlayer);
-  }
-}
-
-function isReserveEmpty(game: TakGame) {
-  return (
-    (game.reserves.white.pieces === 0 && game.reserves.white.capstones === 0) ||
-    (game.reserves.black.pieces === 0 && game.reserves.black.capstones === 0)
-  );
-}
-
-export function gameFromPlyCount(game: TakGame, plyCount: number, removeClock?: boolean): TakGame {
-  const resultGame = newGame({ ...game.settings, clock: null });
-  const history = game.history.slice(0, plyCount);
-  for (const move of history) {
-    doMove(resultGame, move, new Date());
-  }
-  if (removeClock !== true) {
-    resultGame.clock = game.clock;
-    resultGame.settings.clock = game.settings.clock;
-  }
-  return resultGame;
-}
-
-export function getTimeRemaining(game: TakGame, player: TakPlayer, now: Date): number | null {
-  if (game.clock) {
-    const elapsed =
-      game.currentPlayer === player &&
-      game.clock.clock.isTicking &&
-      game.gameState.type === 'ongoing'
-        ? now.getTime() - game.clock.clock.lastUpdate.getTime()
-        : 0;
-    return Math.max(0, game.clock.clock.remainingMs[player] - elapsed);
-  }
-  return null;
-}
-
-export function setTimeRemaining(game: TakGame, remaining: Record<TakPlayer, number>, now: Date) {
-  if (game.clock) {
-    game.clock.clock.remainingMs.white = remaining.white;
-    game.clock.clock.remainingMs.black = remaining.black;
-    game.clock.clock.lastUpdate = now;
-    checkTimeout(game, now);
-  }
-}
-
-export function applyTimeToClock(game: TakGame, player: TakPlayer, now: Date) {
-  if (game.clock) {
-    const elapsed = game.clock.clock.isTicking
-      ? now.getTime() - game.clock.clock.lastUpdate.getTime()
-      : 0;
-    game.clock.clock.remainingMs[player] = Math.max(
-      0,
-      game.clock.clock.remainingMs[player] - elapsed,
-    );
-    game.clock.clock.lastUpdate = now;
-  }
-}
-
-export function isTimeout(game: TakGame, now: Date): boolean {
-  if (game.gameState.type !== 'ongoing') return false;
-
-  const player = game.currentPlayer;
-  const timeRemaining = getTimeRemaining(game, player, now);
-  return timeRemaining !== null && timeRemaining <= 0;
-}
-
-export function checkTimeout(game: TakGame, now: Date) {
-  if (game.gameState.type !== 'ongoing') return;
-
-  const player = game.currentPlayer;
-  const timeRemaining = getTimeRemaining(game, player, now);
-  if (timeRemaining !== null && timeRemaining <= 0) {
-    game.gameState = {
-      type: 'win',
-      player: playerOpposite(player),
-      reason: 'timeout',
-    };
-    stopClock(game, player, now);
-  }
-}
-
-export function canUndoMove(game: TakGame, now: Date): string | null {
-  if (isTimeout(game, now)) {
-    return 'Game is over: timeout';
-  }
-
-  if (game.gameState.type !== 'ongoing') return `Game is not ongoing: ${game.gameState.type}`;
-
-  if (game.history.length === 0) {
-    return 'No moves to undo';
-  }
-
-  return null;
-}
-
-export function undoMove(game: TakGame, now: Date) {
-  if (game.settings.clock?.externallyDriven !== true) {
-    checkTimeout(game, now);
-  }
-
-  const err = canUndoMove(game, now);
-  if (err !== null) {
-    throw new Error(`Cannot undo: ${err}`);
-  }
-
-  const player = game.currentPlayer;
-
-  const undoneGame = gameFromPlyCount(game, game.history.length - 1);
-  const undoneMove = game.history[game.history.length - 1];
-  game.board = undoneGame.board;
-  game.currentPlayer = undoneGame.currentPlayer;
-  game.reserves = undoneGame.reserves;
-  game.gameState = undoneGame.gameState;
-  game.history = undoneGame.history;
-
-  startOrUpdateClock(game, player, now);
-
-  return undoneMove;
-}
-
-export function doMove(game: TakGame, move: TakAction, now: Date) {
-  if (game.settings.clock?.externallyDriven !== true) {
-    checkTimeout(game, now);
-  }
-
-  const err = canDoMove(game, move, now);
-  if (err !== null) {
-    throw new Error(`Invalid move: ${err}`);
-  }
-
-  const player = game.currentPlayer;
-
-  let record: TakActionRecord;
-  if (move.type === 'place') {
-    const placingPlayer = game.history.length < 2 ? playerOpposite(player) : player;
-
-    record = placePiece(game.board, move.pos, placingPlayer, move.variant);
-
-    const reserve = game.reserves[game.currentPlayer];
-    if (move.variant === 'capstone') {
-      reserve.capstones--;
-    } else {
-      reserve.pieces--;
-    }
-  } else {
-    record = movePiece(game.board, move.from, move.dir, move.drops, game.currentPlayer);
-  }
-
-  game.history.push(record);
-  game.currentPlayer = playerOpposite(player);
-
-  const road = findRoads(game.board, player) ?? findRoads(game.board, playerOpposite(player));
-  if (road) {
-    game.gameState = {
-      type: 'win',
-      player,
-      reason: 'road',
-      road,
-    };
-  } else if (isReserveEmpty(game) || isFilled(game.board)) {
-    const flatCounts = countFlats(game.board);
-    const whiteScore = flatCounts.white * 2;
-    const blackScore = flatCounts.black * 2 + game.settings.halfKomi;
-    if (whiteScore !== blackScore) {
-      const winner = whiteScore > blackScore ? 'white' : 'black';
-      game.gameState = {
-        type: 'win',
-        player: winner,
-        reason: 'flats',
-        flats: getFlats(game.board, winner),
-        counts: flatCounts,
-      };
-    } else {
-      game.gameState = {
-        type: 'draw',
-        reason: 'flats',
-        counts: flatCounts,
-      };
-    }
-  }
-
-  if (game.gameState.type !== 'ongoing') {
-    stopClock(game, player, now);
-  } else {
-    startOrUpdateClock(game, player, now);
-  }
-}
-
-export function setGameOver(game: TakGame, newState: TakGameState, now: Date) {
-  if (game.gameState.type !== 'ongoing' || newState.type === 'ongoing') {
-    throw new Error('Can only set game over from ongoing to a non-ongoing state');
-  }
-  stopClock(game, game.currentPlayer, now);
-  game.gameState = newState;
-}
-
-function endTurnClockUpdate(game: TakGame, player: TakPlayer) {
-  if (game.clock && game.settings.clock) {
-    if (game.clock.updatePolicy.type === 'realtime' && game.settings.clock.type === 'realtime') {
-      const move = Math.floor((game.history.length + 1) / 2);
-      const shouldGainExtra =
-        game.settings.clock.extra !== null &&
-        move === game.settings.clock.extra.onMove &&
-        !game.clock.updatePolicy.hasGainedExtra[player];
-
-      if (shouldGainExtra) {
-        game.clock.updatePolicy.hasGainedExtra[player] = true;
+        break;
       }
-      const extraGain = shouldGainExtra ? (game.settings.clock.extra?.extraMs ?? 0) : 0;
-      game.clock.clock.remainingMs[player] += game.settings.clock.incrementMs + extraGain;
-    } else if (game.clock.updatePolicy.type === 'async' && game.settings.clock.type === 'async') {
-      game.clock.clock.remainingMs = {
-        white: game.settings.clock.contingentMs,
-        black: game.settings.clock.contingentMs,
+      case 'async': {
+        this.clock.remainingTimeMs.white = this.clockUpdatePolicy.timeControl.contingentMs;
+        this.clock.remainingTimeMs.black = this.clockUpdatePolicy.timeControl.contingentMs;
+        break;
+      }
+    }
+    this.clock.isTicking = true;
+  }
+
+  setTimeRemaining(remainingMs: Record<TakPlayer, number>, now: number) {
+    this.clock.remainingTimeMs = remainingMs;
+    this.clock.lastUpdateTimestamp = now;
+  }
+
+  checkTimeout(now: number): boolean {
+    const player = this.base.currentPlayer;
+    const timeRemaining = this.getTimeRemaining(player, now);
+    if (timeRemaining <= 0) {
+      const gameResult: TakGameResult = {
+        type: 'win',
+        winner: playerOpponent(player),
+        reason: 'default',
       };
+      this.setGameOver(gameResult, now);
+    }
+    return false;
+  }
+
+  doAction(action: TakAction, now: number): boolean {
+    const gameResult = this.base.gameResult;
+    if (gameResult !== null) {
+      return false;
+    }
+    if (this.checkTimeout(now)) {
+      return false;
+    }
+    const player = this.base.currentPlayer;
+    const result = this.base.doAction(action);
+    if (!result) {
+      return false;
+    }
+    if (this.base.gameResult !== null) {
+      this.stopClock(player, now);
     } else {
-      throw new Error('Mismatched clock types between game and settings');
+      this.startOrUpdateClock(player, now);
     }
+    return true;
   }
-}
 
-function startOrUpdateClock(game: TakGame, player: TakPlayer, now: Date) {
-  applyTimeToClock(game, player, now);
-  endTurnClockUpdate(game, player);
-  if (game.clock && game.settings.clock) {
-    game.clock.clock.isTicking = true;
-  }
-}
-
-function stopClock(game: TakGame, player: TakPlayer, now: Date) {
-  applyTimeToClock(game, player, now);
-  if (game.clock) {
-    game.clock.clock.isTicking = false;
-  }
-}
-
-export function gameResultToString(gameResult: TakGameState) {
-  switch (gameResult.type) {
-    case 'win': {
-      const letter = gameResult.reason === 'flats' ? 'F' : gameResult.reason === 'road' ? 'R' : '1';
-      return gameResult.player === 'white' ? `${letter}-0` : `0-${letter}`;
+  undoAction(now: number): boolean {
+    if (this.checkTimeout(now)) {
+      return false;
     }
-    case 'draw':
-      return '1/2-1/2';
-    case 'ongoing':
-      return null;
-    case 'aborted':
-      return '0-0';
+    const player = this.base.currentPlayer;
+    const newBase = this.base.undoAction();
+    if (!newBase) {
+      return false;
+    }
+    this.base = newBase;
+    this.startOrUpdateClock(player, now);
+    return true;
   }
-}
-
-export function gameToTPS(game: TakGame): string {
-  const boardStr = toPositionString(game.board);
-  const playerStr = game.history.length % 2 === 0 ? '1' : '2';
-  const moveStr = (Math.floor(game.history.length / 2) + 1).toString();
-  return `${boardStr} ${playerStr} ${moveStr}`;
 }

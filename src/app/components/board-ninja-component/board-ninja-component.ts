@@ -12,11 +12,10 @@ import {
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import z from 'zod';
-import { GameMode, TakActionEvent } from '../game-component/game-component';
-import { TakGameUI } from '../../../tak-core/ui';
-import { moveFromString } from '../../../tak-core/move';
-import { gameToPTN } from '../../../tak-core/ptn';
+import { GameMode } from '../game-component/game-component';
+import { actionFromString, gameToPTN } from '../../../tak-core/ptn';
 import { SettingsService } from '../../services/settings-service/settings-service';
+import { TakAction, TakBaseGame } from '../../../tak-core';
 
 const params =
   '&moveNumber=false&unplayedPieces=true&disableStoneCycling=true&showBoardPrefsBtn=false&disableNavigation=true&disablePTN=true&disableText=true&flatCounts=false&turnIndicator=false&showHeader=false&showEval=false&showRoads=false&stackCounts=false&notifyGame=false';
@@ -33,8 +32,9 @@ const NinjaMessageSchema = z.object({
   styleUrl: './board-ninja-component.css',
 })
 export class BoardNinjaComponent {
-  game = input.required<TakGameUI>();
-  action = output<TakActionEvent>();
+  game = input.required<TakBaseGame>();
+  plyIndex = input.required<number | null>();
+  action = output<TakAction>();
   mode = input.required<GameMode>();
 
   settingsService = inject(SettingsService);
@@ -57,9 +57,9 @@ export class BoardNinjaComponent {
     const game = this.game();
     return (
       mode.type === 'spectator' ||
-      game.plyIndex !== null ||
-      game.actualGame.gameState.type !== 'ongoing' ||
-      (mode.type === 'online' && mode.localPlayer !== game.actualGame.currentPlayer)
+      this.plyIndex() !== null ||
+      !game.isOngoing() ||
+      (mode.type === 'online' && mode.localPlayer !== game.currentPlayer)
     );
   });
 
@@ -94,18 +94,18 @@ export class BoardNinjaComponent {
     });
   });
 
-  private history = computed(() => this.game().actualGame.history);
-  private settings = computed(() => this.game().actualGame.settings);
-  private gameState = computed(() => this.game().actualGame.gameState);
+  private history = computed(() => this.game().actionHistory);
+  private settings = computed(() => this.game().settings);
+  private gameResult = computed(() => this.game().gameResult);
 
   private readonly _syncGameStateEffect = effect(() => {
     if (!this.hasLoaded()) return;
 
     const history = this.history();
     const settings = this.settings();
-    const gameState = this.gameState();
+    const gameResult = this.gameResult();
 
-    const ptn = gameToPTN(settings, history, gameState);
+    const ptn = gameToPTN(settings, history, gameResult);
     this.sendMessageToIframe({
       action: 'SET_CURRENT_PTN',
       value: ptn,
@@ -115,14 +115,14 @@ export class BoardNinjaComponent {
 
   private readonly _historyNavigationEffect = effect(() => {
     if (!this.hasLoaded()) return;
-    const game = this.game();
-    if (game.plyIndex === null) {
+    const plyIndex = this.plyIndex();
+    if (plyIndex === null) {
       this.sendMessageToIframe({
         action: 'LAST',
         value: null,
       });
     } else {
-      if (game.plyIndex === 0) {
+      if (plyIndex === 0) {
         this.sendMessageToIframe({
           action: 'FIRST',
           value: null,
@@ -131,7 +131,7 @@ export class BoardNinjaComponent {
         this.sendMessageToIframe({
           action: 'GO_TO_PLY',
           value: {
-            plyID: game.plyIndex - 1,
+            plyID: plyIndex - 1,
             isDone: true,
           },
         });
@@ -149,7 +149,12 @@ export class BoardNinjaComponent {
     if (message.action === 'GAME_STATE' && !hasLoaded) {
       this.hasLoaded.set(true);
     } else if (hasLoaded && message.action === 'INSERT_PLY') {
-      this.action.emit({ type: 'full', action: moveFromString(message.value as string) });
+      const action = actionFromString(message.value as string);
+      if (!action) {
+        console.warn('Received invalid action from Board Ninja iframe:', message.value);
+        return;
+      }
+      this.action.emit(action);
     }
   }
 }

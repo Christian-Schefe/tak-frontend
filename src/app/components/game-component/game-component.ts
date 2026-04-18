@@ -1,8 +1,8 @@
 import { Component, inject, input, output } from '@angular/core';
-import { TakAction, TakPieceVariant, TakPlayer, TakPos } from '../../../tak-core';
-import { TakGameUI } from '../../../tak-core/ui';
+import { TakAction, TakPlayer } from '../../../tak-core';
 import { SettingsService } from '../../services/settings-service/settings-service';
 import { GameBoard } from '../game-board/game-board';
+import { TakBaseGame } from '../../../tak-core/base';
 
 export type GameMode =
   | { type: 'local' }
@@ -19,17 +19,6 @@ export type GamePlayer =
       name: string;
     };
 
-export type TakActionEvent =
-  | {
-      type: 'full';
-      action: TakAction;
-    }
-  | {
-      type: 'partial';
-      pos: TakPos;
-      variant: TakPieceVariant | null;
-    };
-
 @Component({
   selector: 'app-game-component',
   imports: [GameBoard],
@@ -37,9 +26,10 @@ export type TakActionEvent =
   styleUrl: './game-component.css',
 })
 export class GameComponent {
-  game = input.required<TakGameUI>();
+  game = input.required<TakBaseGame>();
+  plyIndex = input.required<number | null>();
   mode = input.required<GameMode>();
 
-  action = output<TakActionEvent>();
+  action = output<TakAction>();
   settingsService = inject(SettingsService);
 }

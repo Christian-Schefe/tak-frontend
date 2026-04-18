@@ -50,14 +50,14 @@
     }
     @case ('win') {
       <p>
-        {{ gs.player === 'white' ? 'White' : 'Black' }} wins by
+        {{ gs.winner === 'white' ? 'White' : 'Black' }} wins by
         @switch (gs.reason) {
           @case ('road') {
             completing a road!
           }
           @case ('flats') {
             flat count! ({{ gs.counts?.white }} to {{ gs.counts?.black }} +
-            {{ game().actualGame.settings.halfKomi / 2 }})
+            {{ game().settings.halfKomi / 2 }})
           }
           @case ('timeout') {
             timeout!
@@ -65,7 +65,7 @@
           @case ('resignation') {
             resignation!
           }
-          @case ('timeout or resignation') {
+          @case ('default') {
             timeout or resignation!
           }
         }

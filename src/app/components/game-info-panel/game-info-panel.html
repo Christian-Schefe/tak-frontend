@@ -14,7 +14,7 @@
                 [class]="
                   `font-mono font-bold min-w-20 text-left hover:underline ${item.active ? '' : 'text-muted-color'}`
                 "
-                (click)="setHistoryPlyIndex.emit(item.plyIndex)"
+                (click)="plyIndex.set(item.plyIndex)"
               >
                 {{ item.text }}
               </button>
@@ -24,7 +24,7 @@
                 [class]="
                   `font-mono font-bold min-w-20 text-left ml-4 hover:underline ${item.active ? '' : 'text-muted-color'}`
                 "
-                (click)="setHistoryPlyIndex.emit(item.plyIndex)"
+                (click)="plyIndex.set(item.plyIndex)"
               >
                 {{ item.text }}
               </button>

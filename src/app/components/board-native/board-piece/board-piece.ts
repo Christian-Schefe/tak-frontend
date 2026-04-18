@@ -1,6 +1,6 @@
 import { Component, computed, input, OnInit, signal } from '@angular/core';
 import { TakUIPiece } from '../../../../tak-core/ui';
-import { TakGameSettings } from '../../../../tak-core';
+import { TakBaseGameSettings } from '../../../../tak-core';
 import { BoardSettings } from '../board-native-component/board-native-component';
 
 @Component({
@@ -19,7 +19,7 @@ import { BoardSettings } from '../board-native-component/board-native-component'
 })
 export class BoardPiece implements OnInit {
   data = input.required<TakUIPiece>();
-  settings = input.required<TakGameSettings>();
+  settings = input.required<TakBaseGameSettings>();
   boardSettings = input.required<BoardSettings>();
 
   private hasTickedOnce = signal(false);
@@ -55,8 +55,6 @@ export class BoardPiece implements OnInit {
 
     const hidden =
       data.deleted || (!data.canBePicked && data.buriedPieceCount - height >= buriedLimit);
-
-    console.log('recompute');
 
     return {
       zIndex,

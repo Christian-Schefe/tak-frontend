@@ -8,7 +8,7 @@ import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
 import { SeeksTableComponent } from '../../components/seeks-table-component/seeks-table-component';
 import { CreateSeekPayload, SeekService } from '../../services/seek-service/seek-service';
-import { TakGameSettings } from '../../../tak-core';
+import { TakBaseGameSettings } from '../../../tak-core';
 import { NewSeekForm } from '../../components/new-seek-form/new-seek-form';
 import { NewLocalForm } from '../../components/new-local-form/new-local-form';
 
@@ -44,7 +44,7 @@ export class PlayRoute {
     });
   }
 
-  onPlayLocal(payload: TakGameSettings) {
+  onPlayLocal(payload: TakBaseGameSettings) {
     this.gameService.startNewLocalGame(payload);
     void this.router.navigate(['/local']);
   }

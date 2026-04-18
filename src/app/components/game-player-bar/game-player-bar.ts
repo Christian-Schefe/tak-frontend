@@ -2,8 +2,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { GamePlayer } from '../game-component/game-component';
 import { PlayerService } from '../../services/player-service/player-service';
 import { GameClock } from '../game-clock/game-clock';
-import { TakGameUI } from '../../../tak-core/ui';
-import { TakPlayer } from '../../../tak-core';
+import { TakGame, TakPlayer } from '../../../tak-core';
 import { GamePlayerLabel } from '../game-player-label/game-player-label';
 
 @Component({
@@ -16,7 +15,7 @@ export class GamePlayerBar {
   private playerService = inject(PlayerService);
   gamePlayer = input.required<GamePlayer>();
   playerColor = input.required<TakPlayer>();
-  game = input.required<TakGameUI>();
+  game = input.required<TakGame>();
 
   playerInfoRef = this.playerService.getComputedPlayerInfo(() => {
     const player = this.gamePlayer();

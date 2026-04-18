@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { TakGameUI, TakUIPiece } from '../../../../tak-core/ui';
-import { playerOpposite, TakGameSettings, TakPieceId, TakPieceVariant } from '../../../../tak-core';
+import { playerOpponent, TakBaseGameSettings, TakPieceId, TakVariant } from '../../../../tak-core';
 import { beforeRender, NgtArgs, NgtThreeEvent } from 'angular-three';
 import { GameMode } from '../../game-component/game-component';
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three';
@@ -27,10 +27,10 @@ import { SkeletonUtils } from 'three-stdlib';
 export class BoardNgtPiece {
   id = input.required<TakPieceId>();
   data = input.required<TakUIPiece | undefined>();
-  settings = input.required<TakGameSettings>();
+  settings = input.required<TakBaseGameSettings>();
   game = input.required<TakGameUI>();
   mode = input.required<GameMode>();
-  currentVariant = input.required<TakPieceVariant | null>();
+  currentVariant = input.required<TakVariant | null>();
   clickPiece = output<boolean>();
   settingsService = inject(SettingsService);
 
@@ -117,12 +117,13 @@ export class BoardNgtPiece {
 
     const isFirstFlat = variant === 'flat' && num === 0;
 
-    const effectivePlayer = game.actualGame.history.length < 2 ? playerOpposite(player) : player;
+    const effectivePlayer =
+      game.actualGame.actionHistory.length < 2 ? playerOpponent(player) : player;
     const isFloating =
       isFirstPieceInReserve &&
       ((variant === 'capstone' && currentVariant === 'capstone') ||
         (variant === 'flat' && (currentVariant === 'flat' || currentVariant === 'standing'))) &&
-      game.actualGame.gameState.type === 'ongoing' &&
+      game.actualGame.isOngoing() &&
       ((mode.type === 'online' && mode.localPlayer === effectivePlayer) ||
         (mode.type === 'local' && game.actualGame.currentPlayer === effectivePlayer));
     const actualVariant = isFloating && currentVariant === 'standing' ? 'standing' : variant;
@@ -272,7 +273,7 @@ export class BoardNgtPiece {
     const mode = this.mode();
     const data = this.layoutData();
     const isFirstFlat = data.variant === 'flat' && this.id().endsWith('/0');
-    const effectivePlayer = isFirstFlat ? playerOpposite(data.player) : data.player;
+    const effectivePlayer = isFirstFlat ? playerOpponent(data.player) : data.player;
     if (!data.deleted) return;
     if (mode.type === 'spectator') return;
     if (mode.type === 'online' && effectivePlayer !== mode.localPlayer) return;

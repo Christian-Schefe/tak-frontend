@@ -1,7 +1,7 @@
 import { Component, computed, input, output } from '@angular/core';
 import { TakUITile } from '../../../../tak-core/ui';
 import { BoardSettings } from '../board-native-component/board-native-component';
-import { TakGameSettings, TakGameState } from '../../../../tak-core';
+import { TakBaseGameSettings, TakGameState } from '../../../../tak-core';
 import Color from 'colorjs.io';
 
 @Component({
@@ -15,7 +15,7 @@ export class BoardTile {
   y = input.required<number>();
   interactive = input.required<boolean>();
   data = input.required<TakUITile>();
-  settings = input.required<TakGameSettings>();
+  settings = input.required<TakBaseGameSettings>();
   tileClick = output();
   gameState = input.required<TakGameState>();
   plyIndex = input.required<number | null>();

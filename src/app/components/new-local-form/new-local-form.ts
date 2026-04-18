@@ -6,7 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { RippleModule } from 'primeng/ripple';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { TakGameSettings } from '../../../tak-core';
+import { TakBaseGameSettings } from '../../../tak-core';
 
 @Component({
   selector: 'app-new-local-form',
@@ -51,17 +51,16 @@ export class NewLocalForm {
   pieces = signal<number | undefined | null>(undefined);
   capstones = signal<number | undefined | null>(undefined);
 
-  playLocal = output<TakGameSettings>();
+  playLocal = output<TakBaseGameSettings>();
 
   onSubmit() {
-    const gameSettings: TakGameSettings = {
+    const gameSettings: TakBaseGameSettings = {
       boardSize: this.boardSize(),
       halfKomi: this.halfKomi(),
       reserve: {
         pieces: this.pieces() ?? this.piecesDefault(),
         capstones: this.capstones() ?? this.capstonesDefault(),
       },
-      clock: null,
     };
 
     this.playLocal.emit(gameSettings);

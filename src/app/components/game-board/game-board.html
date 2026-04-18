@@ -1,14 +1,29 @@
 @switch (boardType()) {
   @case ('2d') {
-    <app-board-native-component [game]="game()" [mode]="mode()" (action)="action.emit($event)">
+    <app-board-native-component
+      [game]="game()"
+      [plyIndex]="plyIndex()"
+      [mode]="mode()"
+      (action)="action.emit($event)"
+    >
     </app-board-native-component>
   }
   @case ('3d') {
-    <app-board-ngt-component [game]="game()" [mode]="mode()" (action)="action.emit($event)">
+    <app-board-ngt-component
+      [game]="game()"
+      [plyIndex]="plyIndex()"
+      [mode]="mode()"
+      (action)="action.emit($event)"
+    >
     </app-board-ngt-component>
   }
   @case ('ninja') {
-    <app-board-ninja-component [game]="game()" [mode]="mode()" (action)="action.emit($event)">
+    <app-board-ninja-component
+      [game]="game()"
+      [plyIndex]="plyIndex()"
+      [mode]="mode()"
+      (action)="action.emit($event)"
+    >
     </app-board-ninja-component>
   }
 }

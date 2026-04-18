@@ -1,24 +1,8 @@
-import { Component, computed, effect, inject, linkedSignal } from '@angular/core';
-import {
-  GameComponent,
-  GamePlayer,
-  TakActionEvent,
-} from '../../components/game-component/game-component';
+import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { GameComponent, GamePlayer } from '../../components/game-component/game-component';
 
-import { TakAction, TakPlayer, TakPos } from '../../../tak-core';
-import {
-  checkTimeout,
-  doMove,
-  TakGameUI,
-  newGameUI,
-  setPlyIndex,
-  doDraw,
-  doResign,
-  undoMove,
-  updatePartialMove,
-  tryPlaceOrAddToPartialMove,
-} from '../../../tak-core/ui';
-import { newGame } from '../../../tak-core/game';
+import { TakAction, TakBaseGame, TakPlayer } from '../../../tak-core';
+
 import { GameService } from '../../services/game-service/game-service';
 import { produce } from 'immer';
 import { GameAudioService } from '../../services/game-audio-service/game-audio-service';
@@ -37,8 +21,9 @@ export class LocalPlayRoute {
   private gameService = inject(GameService);
   private gameAudioService = inject(GameAudioService);
 
-  game = linkedSignal<TakGameUI>(() => {
-    return newGameUI(newGame(this.gameService.localGameSettings()));
+  plyIndex = signal<number | null>(null);
+  game = linkedSignal<TakBaseGame>(() => {
+    return new TakBaseGame(this.gameService.localGameSettings());
   });
   players = computed<Record<TakPlayer, GamePlayer>>(() => {
     return {
@@ -47,76 +32,26 @@ export class LocalPlayRoute {
     };
   });
 
-  private readonly _timeoutEffect = effect((onCleanup) => {
-    const id = setInterval(() => {
-      this.game.update((game) => {
-        return produce(game, (game) => {
-          if (game.actualGame.gameState.type !== 'ongoing') {
-            return;
-          }
-          checkTimeout(game);
-        });
-      });
-    }, 300);
-
-    onCleanup(() => {
-      clearInterval(id);
-    });
-  });
-
-  onAction(action: TakActionEvent) {
+  onAction(action: TakAction) {
+    this.gameAudioService.playMoveSound();
     this.game.update((game) => {
-      let move: TakAction | null = null;
-      let pos: TakPos | null = null;
-      if (action.type === 'full') {
-        move = action.action;
-      } else {
-        move = tryPlaceOrAddToPartialMove(game, action.pos, action.variant);
-        pos = action.pos;
-      }
-
-      if (move !== null) {
-        this.gameAudioService.playMoveSound();
-      }
-
       return produce(game, (game) => {
-        if (move !== null) {
-          doMove(game, move);
-        } else if (pos !== null) {
-          updatePartialMove(game, pos);
-        }
+        game.doAction(action);
       });
     });
   }
 
-  onSetHistoryPlyIndex(plyIndex: number) {
-    this.game.update((game) => {
-      return produce(game, (game) => {
-        setPlyIndex(game, plyIndex);
-      });
-    });
-  }
-
-  onRequestDraw() {
-    this.game.update((game) => {
-      return produce(game, (game) => {
-        doDraw(game);
-      });
-    });
+  onSetHistoryPlyIndex(plyIndex: number | null) {
+    const game = this.game();
+    const currentPlyIndex = game.actionHistory.length;
+    const newPlyIndex = plyIndex !== null && plyIndex >= currentPlyIndex ? null : plyIndex;
+    this.plyIndex.set(newPlyIndex);
   }
 
   onRequestUndo() {
     this.game.update((game) => {
       return produce(game, (game) => {
-        undoMove(game);
-      });
-    });
-  }
-
-  onResign() {
-    this.game.update((game) => {
-      return produce(game, (game) => {
-        doResign(game, game.actualGame.currentPlayer);
+        game.undoAction();
       });
     });
   }

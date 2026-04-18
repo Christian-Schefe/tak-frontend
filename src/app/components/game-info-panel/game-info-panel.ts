@@ -1,13 +1,22 @@
-import { Component, computed, effect, HostListener, input, output, viewChild } from '@angular/core';
-import { TakGameUI } from '../../../tak-core/ui';
-import { moveRecordToString } from '../../../tak-core/move';
+import {
+  Component,
+  computed,
+  effect,
+  HostListener,
+  input,
+  model,
+  output,
+  viewChild,
+} from '@angular/core';
 import { ScrollPanel, ScrollPanelModule } from 'primeng/scrollpanel';
-import { gameResultToString } from '../../../tak-core/game';
 import { provideIcons } from '@ng-icons/core';
 import { lucideFlag, lucideHandshake, lucideInfo, lucideUndo } from '@ng-icons/lucide';
 import { GameRequest } from '../game-request/game-request';
 import { GameRequestType } from '../../services/game-service/game-service';
 import { ConfirmationService } from 'primeng/api';
+import { TakBaseGame } from '../../../tak-core/base';
+import { TakGameState } from '../../../tak-core';
+import { actionToString, gameResultToString } from '../../../tak-core/ptn';
 
 type HistoryEntry =
   | {
@@ -30,22 +39,21 @@ type HistoryEntry =
   providers: [ConfirmationService],
 })
 export class GameInfoPanel {
-  game = input.required<TakGameUI>();
-  setHistoryPlyIndex = output<number>();
+  game = input.required<TakBaseGame>();
+  plyIndex = model.required<number | null>();
   requests = input.required<GameRequestType[]>();
   requestDecision = output<{ requestId: number; decision: 'accept' | 'reject' }>();
 
-  private gamePlyIndex = computed(
-    () => this.game().plyIndex ?? this.game().actualGame.history.length,
-  );
+  private gamePlyIndex = computed(() => this.plyIndex() ?? this.game().actionHistory.length);
 
-  private gameHistory = computed(() => this.game().actualGame.history);
+  private gameHistory = computed(() => this.game().actionHistory);
 
-  gameState = computed(() => this.game().actualGame.gameState);
+  gameState = computed<TakGameState>(() => this.game().gameResult ?? { type: 'ongoing' });
 
   historyItems = computed(() => {
     const curPlyIndex = this.gamePlyIndex();
     const history = this.gameHistory();
+
     const gameState = this.gameState();
     const items: HistoryEntry[][] = [];
     for (let i = 0; i < history.length; i += 2) {
@@ -56,7 +64,7 @@ export class GameInfoPanel {
       const whitePlyIndex = i + 1 === curPlyIndex ? i : i + 1;
       row.push({
         type: 'whiteMove',
-        text: moveRecordToString(whiteMove),
+        text: actionToString(whiteMove.action),
         plyIndex: whitePlyIndex,
         active: whitePlyIndex < curPlyIndex,
       });
@@ -64,7 +72,7 @@ export class GameInfoPanel {
         const blackPlyIndex = i + 2 === curPlyIndex ? i + 1 : i + 2;
         row.push({
           type: 'blackMove',
-          text: moveRecordToString(blackMove),
+          text: actionToString(blackMove.action),
           plyIndex: blackPlyIndex,
           active: blackPlyIndex < curPlyIndex,
         });
@@ -74,7 +82,7 @@ export class GameInfoPanel {
     if (gameState.type !== 'ongoing') {
       const row: HistoryEntry[] = [];
       row.push({ type: 'moveNumber', text: '' });
-      row.push({ type: 'gameResult', text: gameResultToString(gameState) ?? '' });
+      row.push({ type: 'gameResult', text: gameResultToString(gameState) });
       items.push(row);
     }
     return items;
@@ -104,9 +112,9 @@ export class GameInfoPanel {
     }
 
     if (event.key === 'ArrowLeft') {
-      this.setHistoryPlyIndex.emit(this.gamePlyIndex() - 1);
+      this.plyIndex.set(this.gamePlyIndex() - 1);
     } else if (event.key === 'ArrowRight') {
-      this.setHistoryPlyIndex.emit(this.gamePlyIndex() + 1);
+      this.plyIndex.set(this.gamePlyIndex() + 1);
     }
   }
 }

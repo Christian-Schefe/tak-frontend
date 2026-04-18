@@ -17,6 +17,7 @@
       <app-board-ngt-canvas
         *canvasContent
         [game]="game()"
+        [plyIndex]="plyIndex()"
         (action)="action.emit($event)"
         [mode]="mode()"
       />

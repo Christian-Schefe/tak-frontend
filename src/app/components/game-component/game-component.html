@@ -6,7 +6,12 @@
   "
 >
   <div class="w-full xl:w-0 xl:grow h-full max-xl:aspect-[0.9] max-xl:max-h-2/3">
-    <app-game-board [game]="takGame" [mode]="mode()" (action)="action.emit($event)">
+    <app-game-board
+      [game]="takGame"
+      [plyIndex]="plyIndex()"
+      [mode]="mode()"
+      (action)="action.emit($event)"
+    >
     </app-game-board>
   </div>
   <div class="h-full w-full xl:w-120 pb-0">

@@ -10,7 +10,7 @@ const puzzleSchema = z.object({
   gameSettings: gameBaseSettings,
 });
 
-type SolveResponse =
+export type SolveResponse =
   | {
       type: 'correct';
     }

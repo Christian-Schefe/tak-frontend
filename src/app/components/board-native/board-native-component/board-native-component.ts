@@ -1,6 +1,6 @@
-import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
-import { TakPieceId, TakPieceVariant, TakPlayer, TakPos } from '../../../../tak-core';
-import { GameMode, TakActionEvent } from '../../game-component/game-component';
+import { Component, computed, effect, inject, input, linkedSignal, output } from '@angular/core';
+import { TakAction, TakBaseGame, TakPlayer, TakPos, TakVariant } from '../../../../tak-core';
+import { GameMode } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
 import { BoardPiece } from '../board-piece/board-piece';
 import { BoardTile } from '../board-tile/board-tile';
@@ -9,6 +9,7 @@ import { ThemeParams, themes } from '../../../../2d-themes';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
 import { filterTruthy } from '../../../util';
+import { produce } from 'immer';
 
 export interface BoardSettings {
   theme: ThemeParams;
@@ -23,10 +24,43 @@ export interface BoardSettings {
   styleUrl: './board-native-component.css',
 })
 export class BoardNativeComponent {
-  game = input.required<TakGameUI>();
-  action = output<TakActionEvent>();
+  game = input.required<TakBaseGame>();
+  plyIndex = input.required<number | null>();
+  action = output<TakAction>();
   mode = input.required<GameMode>();
   private settingsService = inject(SettingsService);
+
+  gameUi = linkedSignal<TakBaseGame, TakGameUI>({
+    source: () => this.game(),
+    computation: (source, prev) => {
+      if (prev?.value) {
+        return produce(prev.value, (gameUi) => {
+          gameUi.updateGame(source);
+          return gameUi;
+        });
+      }
+      return new TakGameUI(source);
+    },
+  });
+
+  private _updateGameUiEffect = effect(() => {
+    const game = this.game();
+    this.gameUi.update((prev) => {
+      return produce(prev, (gameUi) => {
+        gameUi.updateGame(game);
+        return gameUi;
+      });
+    });
+  });
+  private _updatePlyIndexGameUiEffect = effect(() => {
+    const plyIndex = this.plyIndex();
+    this.gameUi.update((prev) => {
+      return produce(prev, (gameUi) => {
+        gameUi.setPlyIndex(plyIndex);
+        return gameUi;
+      });
+    });
+  });
 
   boardSettings = computed<BoardSettings>(() => {
     const settings = this.settingsService.boardNativeSettings();
@@ -40,7 +74,7 @@ export class BoardNativeComponent {
       standing: boolean;
       capstone: boolean;
     } | null,
-    TakPieceVariant
+    TakVariant
   >({
     source: () => this.canPlace(),
     computation: (source, prev) => {
@@ -63,10 +97,10 @@ export class BoardNativeComponent {
   });
 
   gameSettings = computed(() => {
-    return this.game().actualGame.settings;
+    return this.game().settings;
   });
 
-  private tiles = computed(() => this.game().tiles);
+  private tiles = computed(() => this.gameUi().tiles);
 
   tilePositions = computed(() => {
     const tiles = this.tiles();
@@ -80,7 +114,7 @@ export class BoardNativeComponent {
     return tileData;
   });
 
-  pieces = computed(() => this.game().pieces);
+  pieces = computed(() => this.gameUi().pieces);
 
   pieceData = computed(() => {
     const pieces = this.pieces();
@@ -88,7 +122,7 @@ export class BoardNativeComponent {
       .map(([id, data]) =>
         data
           ? {
-              id: id as TakPieceId,
+              id,
               data,
             }
           : null,
@@ -102,14 +136,24 @@ export class BoardNativeComponent {
     const mode = this.mode();
     const game = this.game();
     return (
-      ((mode.type === 'online' && game.actualGame.currentPlayer === mode.localPlayer) ||
+      ((mode.type === 'online' && game.currentPlayer === mode.localPlayer) ||
         mode.type === 'local') &&
-      game.actualGame.gameState.type === 'ongoing'
+      game.isOngoing()
     );
   });
 
   onClickTile(pos: TakPos) {
-    this.action.emit({ type: 'partial', pos, variant: this.currentVariant() });
+    this.gameUi.update((prev) => {
+      const action = prev.tryPlaceOrAddToPartialAction(pos, this.currentVariant());
+      return produce(prev, (gameUi) => {
+        if (action) {
+          this.action.emit(action);
+        } else {
+          gameUi.updatePartialAction(pos);
+        }
+        return gameUi;
+      });
+    });
   }
 
   canPlace = computed(() => {
@@ -117,22 +161,22 @@ export class BoardNativeComponent {
     const mode = this.mode();
     let player: TakPlayer;
     if (mode.type === 'local') {
-      player = game.actualGame.currentPlayer;
+      player = game.currentPlayer;
     } else if (mode.type === 'online') {
       player = mode.localPlayer;
     } else {
       return null;
     }
-    const isOngoing = game.actualGame.gameState.type === 'ongoing';
-    const reserves = game.actualGame.reserves[player];
+    const isOngoing = game.isOngoing();
+    const reserves = game.reserves[player];
     return {
       flat: isOngoing && reserves.pieces > 0,
-      standing: isOngoing && reserves.pieces > 0 && game.actualGame.history.length >= 2,
-      capstone: isOngoing && reserves.capstones > 0 && game.actualGame.history.length >= 2,
+      standing: isOngoing && reserves.pieces > 0 && game.actionHistory.length >= 2,
+      capstone: isOngoing && reserves.capstones > 0 && game.actionHistory.length >= 2,
     };
   });
 
-  setVariant(variant: TakPieceVariant) {
+  setVariant(variant: TakVariant) {
     this.currentVariant.set(variant);
   }
 }

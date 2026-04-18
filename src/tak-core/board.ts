@@ -1,397 +1,242 @@
-import type {
-  TakBoard,
-  TakPos,
+import { immerable } from 'immer';
+import { v4 } from 'uuid';
+import {
+  allDirections,
+  isValidPos,
+  offsetPos,
   TakDir,
-  TakActionRecord,
-  TakPieceVariant,
+  TakPieceId,
   TakPlayer,
-  TakStack,
-  TakTrackedPiece,
+  TakPos,
+  TakVariant,
 } from '.';
-import { coordEquals, coordToString, newCoord, offsetCoord } from './coord';
 
-export function isValidCoord(size: number, pos: TakPos): boolean {
-  return pos.x >= 0 && pos.x < size && pos.y >= 0 && pos.y < size;
+export interface TakPiece {
+  player: TakPlayer;
+  id: TakPieceId;
 }
 
-export function newBoard(size: number): TakBoard {
-  return {
-    size,
-    pieces: Array.from<(TakStack | null)[], (TakStack | null)[]>(
-      { length: size },
-      () => Array(size).fill(null) as (TakStack | null)[],
-    ),
-    _idCounter: {
-      white: { pieces: 0, capstones: 0 },
-      black: { pieces: 0, capstones: 0 },
-    },
-  };
+export interface TakStack {
+  variant: TakVariant;
+  composition: TakPiece[];
 }
 
-export function canPlacePiece(board: TakBoard, pos: TakPos): string | null {
-  if (!isValidCoord(board.size, pos)) return `Invalid place position: ${coordToString(pos)}`;
+export class TakBoard {
+  [immerable] = true;
 
-  const stack = board.pieces[pos.y][pos.x];
-  return !stack ? null : 'Position is already occupied';
-}
+  size: number;
+  stacks: (TakStack | null)[];
 
-export function placePiece(
-  board: TakBoard,
-  pos: TakPos,
-  player: TakPlayer,
-  variant: TakPieceVariant,
-): TakActionRecord {
-  const err = canPlacePiece(board, pos);
-  if (err !== null) {
-    throw new Error(`Cannot place: ${err}`);
+  constructor(size: number) {
+    this.size = size;
+    this.stacks = new Array(size * size).fill(null).map(() => null);
   }
 
-  const idCounter = board._idCounter[player];
-
-  const trackedPiece: TakTrackedPiece = {
-    id: `${player === 'white' ? 'W' : 'B'}/${variant === 'capstone' ? 'C' : 'P'}/${(variant ===
-    'capstone'
-      ? idCounter.capstones
-      : idCounter.pieces
-    ).toString()}`,
-    player,
-  };
-
-  if (variant === 'capstone') idCounter.capstones++;
-  else idCounter.pieces++;
-
-  const stack: TakStack = {
-    variant,
-    composition: [trackedPiece],
-  };
-
-  board.pieces[pos.y][pos.x] = stack;
-
-  return {
-    type: 'place',
-    pos,
-    variant,
-    affectedPieces: [trackedPiece.id],
-  };
-}
-
-export function canMovePiece(
-  board: TakBoard,
-  from: TakPos,
-  dir: TakDir,
-  drops: number[],
-  player: TakPlayer,
-): string | null {
-  if (!isValidCoord(board.size, from)) return `Invalid move start position: ${coordToString(from)}`;
-  const to = offsetCoord(from, dir, drops.length);
-  if (!isValidCoord(board.size, to)) return `Invalid move end position: ${coordToString(to)}`;
-  const take = drops.reduce((acc, drop) => acc + drop, 0);
-  if (drops.length === 0 || take === 0) return 'Invalid move';
-
-  const stack = board.pieces[from.y][from.x];
-  if (!stack || stack.composition.length < take) return 'Not enough pieces to move';
-  if (stack.composition[stack.composition.length - 1].player !== player) return 'Not your piece';
-  const variant = stack.variant;
-
-  for (let i = 0; i < drops.length; i++) {
-    const pos = offsetCoord(from, dir, i + 1);
-    const stack = board.pieces[pos.y][pos.x];
-    const canSmash = variant === 'capstone' && i === drops.length - 1 && drops[i] === 1;
-    if (stack && stack.variant === 'capstone') return 'Cannot move onto capstone';
-    if (stack && stack.variant === 'standing' && !canSmash)
-      return 'Cannot move onto standing piece';
-  }
-  return null;
-}
-
-export function movePiece(
-  board: TakBoard,
-  from: TakPos,
-  dir: TakDir,
-  drops: number[],
-  player: TakPlayer,
-): TakActionRecord {
-  const err = canMovePiece(board, from, dir, drops, player);
-  if (err !== null) {
-    throw new Error(`Cannot move: ${err}`);
-  }
-  const take = drops.reduce((acc, drop) => acc + drop, 0);
-
-  const stack = board.pieces[from.y][from.x];
-  if (!stack) throw new Error('No stack found at move origin. This should never happen');
-
-  const takenPieces = stack.composition.splice(-take);
-  const affectedPieces = takenPieces.map((p) => p.id);
-  const variant = stack.variant;
-  stack.variant = 'flat';
-
-  if (stack.composition.length === 0) {
-    board.pieces[from.y][from.x] = null;
-  }
-
-  let smash = false;
-
-  for (let i = 0; i < drops.length; i++) {
-    const pos = offsetCoord(from, dir, i + 1);
-    const stack = board.pieces[pos.y][pos.x];
-    const piecesToAdd = takenPieces.splice(0, drops[i]);
-    const thisVariant = i === drops.length - 1 ? variant : 'flat';
-    if (!stack) {
-      board.pieces[pos.y][pos.x] = {
-        variant: thisVariant,
-        composition: piecesToAdd,
+  clone(): TakBoard {
+    const newBoard = new TakBoard(this.size);
+    newBoard.stacks = this.stacks.map((stack) => {
+      if (stack === null) {
+        return null;
+      }
+      return {
+        variant: stack.variant,
+        composition: stack.composition.map((piece) => ({ ...piece })),
       };
-    } else {
-      if (stack.variant === 'standing') {
-        smash = true;
+    });
+    return newBoard;
+  }
+
+  getStack(pos: TakPos): TakStack | null {
+    if (!isValidPos(this.size, pos)) {
+      return null;
+    }
+    const index = pos.y * this.size + pos.x;
+    return this.stacks[index];
+  }
+
+  canDoPlace(pos: TakPos): boolean {
+    if (!isValidPos(this.size, pos)) {
+      return false;
+    }
+    const index = pos.y * this.size + pos.x;
+    return this.stacks[index] === null;
+  }
+
+  doPlace(pos: TakPos, variant: TakVariant, player: TakPlayer): TakPieceId[] | null {
+    if (!this.canDoPlace(pos)) {
+      return null;
+    }
+    const index = pos.y * this.size + pos.x;
+    const pieceId = v4();
+    this.stacks[index] = {
+      variant,
+      composition: [{ player, id: pieceId }],
+    };
+    return [pieceId];
+  }
+
+  canDoMove(pos: TakPos, dir: TakDir, drops: number[]): boolean {
+    if (!isValidPos(this.size, pos)) {
+      return false;
+    }
+    const index = pos.y * this.size + pos.x;
+    const stack = this.stacks[index];
+    if (stack === null) {
+      return false;
+    }
+    const dropsSum = drops.reduce((a, b) => a + b, 0);
+    if (dropsSum <= 0 || dropsSum > this.size || dropsSum > stack.composition.length) {
+      return false;
+    }
+    const endPos = offsetPos(pos, dir, drops.length);
+    if (!isValidPos(this.size, endPos)) {
+      return false;
+    }
+    for (let i = 0; i < drops.length; i++) {
+      if (drops[i] <= 0) {
+        return false;
       }
-      stack.variant = thisVariant;
-      stack.composition.push(...piecesToAdd);
-    }
-  }
+      const curPos = offsetPos(pos, dir, i + 1);
+      const curIndex = curPos.y * this.size + curPos.x;
+      const curStack = this.stacks[curIndex];
 
-  return {
-    type: 'move',
-    from,
-    dir,
-    drops,
-    smash,
-    affectedPieces,
-  };
-}
-
-export function findRoads(board: TakBoard, player: TakPlayer): TakPos[] | null {
-  function getOffsetList(pos: TakPos, dir: TakDir, amount: number): TakPos[] {
-    const offsets: TakPos[] = [pos];
-    for (let i = 1; i < amount; i++) {
-      offsets.push(offsetCoord(pos, dir, i));
-    }
-    return offsets;
-  }
-
-  function findRoadsHelper(starts: TakPos[], ends: TakPos[]): TakPos[] | null {
-    const visited = new Set<string>();
-    const prev = new Map<string, TakPos | null>();
-    const queue: TakPos[] = [];
-    for (const start of starts) {
-      const stack = board.pieces[start.y][start.x];
+      const canSmash = stack.variant === 'capstone' && i === drops.length - 1 && drops[i] !== 1;
       if (
-        stack &&
-        stack.composition.length > 0 &&
-        stack.composition[stack.composition.length - 1].player === player &&
-        stack.variant !== 'standing'
+        curStack !== null &&
+        (curStack.variant === 'capstone' || (curStack.variant === 'standing' && !canSmash))
       ) {
-        const key = coordToString(start);
-        visited.add(key);
-        prev.set(key, null);
-        queue.push(start);
+        return false;
       }
     }
+    return true;
+  }
 
-    while (queue.length > 0) {
-      const current = queue.shift();
-      if (!current) throw new Error('Queue empty. This should never happen');
-
-      if (ends.some((e) => coordEquals(e, current))) {
-        const path: TakPos[] = [];
-        let node: TakPos | null = current;
-        while (node) {
-          path.push(node);
-          node = prev.get(coordToString(node)) ?? null;
-        }
-        path.reverse();
-        return path;
+  doMove(pos: TakPos, dir: TakDir, drops: number[]): TakPieceId[] | null {
+    if (!this.canDoMove(pos, dir, drops)) {
+      return null;
+    }
+    const index = pos.y * this.size + pos.x;
+    const stack = this.stacks[index];
+    if (!stack) {
+      return null;
+    }
+    const dropsSum = drops.reduce((a, b) => a + b, 0);
+    const movingPieces = stack.composition.splice(-dropsSum);
+    const movingPieceIds = movingPieces.map((piece) => piece.id);
+    this.stacks[index] =
+      stack.composition.length > dropsSum
+        ? { ...stack, composition: stack.composition.slice(0, -dropsSum) }
+        : null;
+    const variant = stack.variant;
+    stack.variant = 'flat';
+    if (stack.composition.length === 0) {
+      this.stacks[index] = null;
+    }
+    movingPieces.reverse();
+    for (let i = 0; i < drops.length; i++) {
+      const curPos = offsetPos(pos, dir, i + 1);
+      const curIndex = curPos.y * this.size + curPos.x;
+      let curStack = this.stacks[curIndex];
+      if (curStack === null) {
+        curStack = { variant: 'flat', composition: [] };
+        this.stacks[curIndex] = curStack;
       }
+      const toDrop = movingPieces.splice(-drops[i]);
+      toDrop.reverse();
+      curStack.composition.push(...toDrop);
+      if (i === drops.length - 1) {
+        curStack.variant = variant;
+      }
+    }
+    return movingPieceIds;
+  }
 
-      const neighbors: TakPos[] = [
-        { x: current.x + 1, y: current.y },
-        { x: current.x - 1, y: current.y },
-        { x: current.x, y: current.y + 1 },
-        { x: current.x, y: current.y - 1 },
-      ];
+  isFull(): boolean {
+    return this.stacks.every((stack) => stack !== null);
+  }
 
-      for (const neighbor of neighbors) {
-        const key = coordToString(neighbor);
-        if (isValidCoord(board.size, neighbor) && !visited.has(key)) {
-          const stack = board.pieces[neighbor.y][neighbor.x];
-          if (
-            stack &&
-            stack.composition.length > 0 &&
-            stack.composition[stack.composition.length - 1].player === player &&
-            stack.variant !== 'standing'
-          ) {
-            visited.add(key);
-            prev.set(key, current);
+  countFlats(): Record<TakPlayer, number> {
+    const counts = {
+      white: 0,
+      black: 0,
+    };
+    for (const stack of this.stacks) {
+      if (stack !== null) {
+        const topPiece = stack.composition[stack.composition.length - 1];
+        if (stack.variant === 'flat') {
+          counts[topPiece.player]++;
+        }
+      }
+    }
+    return counts;
+  }
+
+  private isRoadSquare(pos: TakPos, player: TakPlayer): boolean {
+    if (!isValidPos(this.size, pos)) {
+      return false;
+    }
+    const index = pos.y * this.size + pos.x;
+    const stack = this.stacks[index];
+    return (
+      stack !== null &&
+      stack.variant !== 'standing' &&
+      stack.composition[stack.composition.length - 1].player === player
+    );
+  }
+
+  checkForRoad(player: TakPlayer): boolean {
+    return this.findRoad(true, player) || this.findRoad(false, player);
+  }
+
+  private findRoad(horizontal: boolean, player: TakPlayer): boolean {
+    const visited = Array(this.size * this.size)
+      .fill(null)
+      .map(() => false);
+    const queue: TakPos[] = [];
+    for (let i = 0; i < this.size; i++) {
+      const pos = horizontal ? { x: 0, y: i } : { x: i, y: 0 };
+      if (this.isRoadSquare(pos, player)) {
+        queue.push(pos);
+        visited[pos.y * this.size + pos.x] = true;
+      }
+    }
+    while (queue.length > 0) {
+      const pos = queue.shift();
+      if (!pos) {
+        break;
+      }
+      const isEnd = (horizontal ? pos.x : pos.y) === this.size - 1;
+      if (isEnd) {
+        return true;
+      }
+      for (const dir of allDirections) {
+        const neighbor = offsetPos(pos, dir, 1);
+        if (this.isRoadSquare(neighbor, player)) {
+          const index = neighbor.y * this.size + neighbor.x;
+          if (!visited[index]) {
+            visited[index] = true;
             queue.push(neighbor);
           }
         }
       }
     }
-    return null;
-  }
-  const horizontalRoad = findRoadsHelper(
-    getOffsetList(newCoord(0, 0), 'up', board.size),
-    getOffsetList(newCoord(board.size - 1, 0), 'up', board.size),
-  );
-  if (horizontalRoad) return horizontalRoad;
-  return findRoadsHelper(
-    getOffsetList(newCoord(0, 0), 'right', board.size),
-    getOffsetList(newCoord(0, board.size - 1), 'right', board.size),
-  );
-}
-
-export function isFilled(board: TakBoard): boolean {
-  for (const row of board.pieces) {
-    for (const stack of row) {
-      if (!stack) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-export function getFlats(board: TakBoard, player: TakPlayer): TakPos[] {
-  const flats: TakPos[] = [];
-  for (let y = 0; y < board.size; y++) {
-    for (let x = 0; x < board.size; x++) {
-      const stack = board.pieces[y][x];
-      if (
-        stack &&
-        stack.variant === 'flat' &&
-        stack.composition[stack.composition.length - 1].player === player
-      ) {
-        flats.push({ x, y });
-      }
-    }
-  }
-  return flats;
-}
-
-export function countFlats(board: TakBoard): Record<TakPlayer, number> {
-  const counts: Record<TakPlayer, number> = { white: 0, black: 0 };
-  for (const row of board.pieces) {
-    for (const stack of row) {
-      if (stack && stack.variant === 'flat') {
-        const player = stack.composition[stack.composition.length - 1].player;
-        counts[player]++;
-      }
-    }
-  }
-  return counts;
-}
-
-export function toPositionString(board: TakBoard) {
-  function variantToString(variant: TakPieceVariant) {
-    switch (variant) {
-      case 'flat':
-        return '';
-      case 'standing':
-        return 'S';
-      case 'capstone':
-        return 'C';
-    }
+    return false;
   }
 
-  function rowToPositionString(row: (TakStack | null)[]) {
-    const result: string[] = [];
-    let emptyCount = 0;
-
-    for (const stack of row) {
-      if (stack === null) {
-        emptyCount++;
-      } else {
-        if (emptyCount > 0) {
-          result.push(`x${emptyCount === 1 ? '' : emptyCount.toString()}`);
-          emptyCount = 0;
-        }
-        result.push(
-          `${stack.composition
-            .map((piece) => (piece.player === 'white' ? '1' : '2'))
-            .join('')}${variantToString(stack.variant)}`,
-        );
-      }
-    }
-
-    if (emptyCount > 0) {
-      result.push(`x${emptyCount === 1 ? '' : emptyCount.toString()}`);
-    }
-
-    return result.join(',');
-  }
-  return board.pieces.map(rowToPositionString).reverse().join('/');
-}
-
-export function fromPositionString(position: string): { board: TakBoard; plyIndex: number } {
-  const parts = position.split(' ');
-  if (parts.length !== 3) {
-    throw new Error(`Invalid position string: ${position}`);
-  }
-  const [positionStr, turnIndicator, moveCountStr] = parts;
-  if (turnIndicator !== '1' && turnIndicator !== '2') {
-    throw new Error(`Invalid turn indicator: ${turnIndicator}`);
-  }
-  const moveCount = parseInt(moveCountStr, 10);
-  if (isNaN(moveCount) || moveCount <= 0) {
-    throw new Error(`Invalid move count: ${moveCountStr}`);
-  }
-  const plyIndex = (moveCount - 1) * 2 + (turnIndicator === '1' ? 0 : 1);
-  const rows = positionStr.split('/');
-  const size = rows.length;
-  const board = newBoard(size);
-
-  const idCounters: Record<TakPlayer, { pieces: number; capstones: number }> = {
-    white: { pieces: 0, capstones: 0 },
-    black: { pieces: 0, capstones: 0 },
-  };
-  for (let y = 0; y < size; y++) {
-    const row = rows[size - 1 - y];
-    const cells = row.split(',');
-    let x = 0;
-    for (const cell of cells) {
-      if (cell.startsWith('x')) {
-        if (cell.length > 1) {
-          const count = parseInt(cell.slice(1), 10);
-          if (isNaN(count) || count <= 0) {
-            throw new Error(`Invalid empty cell count: ${cell}`);
-          }
-          x += count;
+  computeHashString(): string {
+    return this.stacks
+      .map((stack) => {
+        if (stack !== null) {
+          const variantChar =
+            stack.variant === 'flat' ? 'F' : stack.variant === 'standing' ? 'S' : 'C';
+          const compositionStr = stack.composition
+            .map((piece) => (piece.player === 'white' ? 'W' : 'B'))
+            .join('');
+          return variantChar + compositionStr;
         } else {
-          x += 1;
+          return 'N';
         }
-        continue;
-      }
-      const match = cell.match(/^([12]+)([SC]?)$/);
-      if (!match) {
-        throw new Error(`Invalid cell string: ${cell}`);
-      }
-      const variantStr = match[2];
-      const variant = variantStr === 'C' ? 'capstone' : variantStr === 'S' ? 'standing' : 'flat';
-      const piecesStr = match[1];
-      const composition: TakTrackedPiece[] = [];
-      for (const char of piecesStr) {
-        const player = char === '1' ? 'white' : 'black';
-        composition.push({
-          player,
-          id: `${player === 'white' ? 'W' : 'B'}/${variant === 'capstone' ? 'C' : 'P'}/${(variant ===
-          'capstone'
-            ? idCounters[player].capstones
-            : idCounters[player].pieces
-          ).toString()}`,
-        });
-        if (variant === 'capstone') {
-          idCounters[player].capstones++;
-        } else {
-          idCounters[player].pieces++;
-        }
-      }
-      board.pieces[y][x] = {
-        variant,
-        composition,
-      };
-      x++;
-    }
+      })
+      .join(',');
   }
-  board._idCounter = idCounters;
-  return { board, plyIndex };
 }

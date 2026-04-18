@@ -2,9 +2,14 @@
 @let ongoingGame = game();
 @let gamePlayers = players();
 @if (curGame && ongoingGame && gamePlayers) {
-  <app-game-component [game]="ongoingGame" (action)="onLocalAction($event)" [mode]="curGame.mode">
+  <app-game-component
+    [game]="ongoingGame.base"
+    [plyIndex]="plyIndex()"
+    (action)="onLocalAction($event)"
+    [mode]="curGame.mode"
+  >
     <app-game-actions-panel
-      [game]="ongoingGame"
+      [game]="ongoingGame.base"
       [drawOffer]="myDrawOffer()"
       [undoRequest]="myUndoRequest()"
       (requestDraw)="onRequestDraw()"
@@ -17,9 +22,10 @@
     ></app-game-actions-panel>
     <app-game-info-panel
       class="grow"
-      [game]="ongoingGame"
+      [game]="ongoingGame.base"
+      [plyIndex]="plyIndex()"
+      (plyIndexChange)="onSetHistoryPlyIndex($event)"
       [requests]="requests()"
-      (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
       (requestDecision)="onRequestDecision($event)"
     ></app-game-info-panel>
     <div class="flex flex-col gap-2 p-2">

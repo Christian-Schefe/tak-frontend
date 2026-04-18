@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import z from 'zod';
 import { gameBaseSettings } from '../game-history-service/game-history-service';
-import { TakGame } from '../../../tak-core';
-import { gameToTPS } from '../../../tak-core/game';
+import { TakBaseGame } from '../../../tak-core';
+import { gameToTPS } from '../../../tak-core/ptn';
 
 const workerResponse = z.union([
   z.object({
@@ -112,7 +112,7 @@ export class EngineService {
     };
   }
 
-  async checkSettings(id: string, game: TakGame) {
+  async checkSettings(id: string, game: TakBaseGame) {
     const worker = await this.getWorker(id);
     const input: z.infer<typeof workerInput> = {
       type: 'checkSettings',
@@ -134,7 +134,7 @@ export class EngineService {
     worker.postMessage(input);
   }
 
-  async evaluatePosition(id: string, game: TakGame) {
+  async evaluatePosition(id: string, game: TakBaseGame) {
     const worker = await this.getWorker(id);
     const input: z.infer<typeof workerInput> = {
       type: 'evaluate',

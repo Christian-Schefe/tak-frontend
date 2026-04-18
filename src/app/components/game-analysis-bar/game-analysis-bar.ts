@@ -1,8 +1,8 @@
 import { Component, computed, effect, inject, input, OnInit, signal } from '@angular/core';
 import { EngineService } from '../../services/engine-service/engine-service';
-import { getShownGame, TakGameUI } from '../../../tak-core/ui';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { FormsModule } from '@angular/forms';
+import { TakBaseGame } from '../../../tak-core';
 
 export interface EvalVariation {
   evaluation: number;
@@ -20,14 +20,15 @@ export class GameAnalysisBar implements OnInit {
   private engineService = inject(EngineService);
   private hasLoaded = signal(false);
 
-  game = input.required<TakGameUI>();
+  game = input.required<TakBaseGame>();
+  plyIndex = input.required<number | null>();
 
   variations = signal<EvalVariation[]>([]);
   evaluationSupported = signal<null | boolean>(null);
   enabled = signal(false);
 
   isEvaluationSupported = computed(() => {
-    return this.evaluationSupported() === true && this.shownGame().gameState.type === 'ongoing';
+    return this.evaluationSupported() === true && this.shownGame().isOngoing();
   });
 
   showEvaluation = computed(() => {
@@ -51,7 +52,9 @@ export class GameAnalysisBar implements OnInit {
   }
 
   shownGame = computed(() => {
-    return getShownGame(this.game());
+    const game = this.game();
+    const plyIndex = this.plyIndex();
+    return plyIndex === null ? game : game.trimToPlyCount(plyIndex);
   });
 
   private _updateEffect = effect(() => {
@@ -59,7 +62,7 @@ export class GameAnalysisBar implements OnInit {
       return;
     }
     const game = this.shownGame();
-    if (game.gameState.type !== 'ongoing') {
+    if (!game.isOngoing()) {
       void this.engineService.stop(engineKey);
       console.log('Game is not ongoing, stopping engine.');
       return;

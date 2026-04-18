@@ -1,19 +1,23 @@
-<app-game-component [game]="game()" (action)="onAction($event)" [mode]="{ type: 'local' }">
+<app-game-component
+  [game]="game()"
+  [plyIndex]="plyIndex()"
+  (action)="onAction($event)"
+  [mode]="{ type: 'local' }"
+>
   <div class="flex flex-col grow basis-0">
     <app-game-actions-panel
       [game]="game()"
       [drawOffer]="null"
       [undoRequest]="null"
-      (requestDraw)="onRequestDraw()"
       (requestUndo)="onRequestUndo()"
-      (resign)="onResign()"
     ></app-game-actions-panel>
-    <app-game-analysis-bar [game]="game()"></app-game-analysis-bar>
+    <app-game-analysis-bar [game]="game()" [plyIndex]="plyIndex()"></app-game-analysis-bar>
     <app-game-info-panel
       class="grow"
       [game]="game()"
       [requests]="[]"
-      (setHistoryPlyIndex)="onSetHistoryPlyIndex($event)"
+      [plyIndex]="plyIndex()"
+      (plyIndexChange)="onSetHistoryPlyIndex($event)"
     ></app-game-info-panel>
   </div>
   <app-game-chat-panel class="grow basis-0"></app-game-chat-panel>

@@ -1,11 +1,11 @@
 import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
-import { canUndoMove, TakGameUI } from '../../../tak-core/ui';
 import { ButtonModule } from 'primeng/button';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFlag, lucideHandshake, lucideInfo, lucideUndo } from '@ng-icons/lucide';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { ConfirmationService } from 'primeng/api';
 import { DialogModule } from 'primeng/dialog';
+import { TakBaseGame } from '../../../tak-core/base';
 
 @Component({
   selector: 'app-game-actions-panel',
@@ -22,9 +22,9 @@ export class GameActionsPanel {
   rematchRequestAction = input<'request' | 'accept' | 'retract'>();
   requestRematch = output();
   retractRematchRequest = output();
-  game = input.required<TakGameUI>();
+  game = input.required<TakBaseGame>();
   resign = output();
-  gameState = computed(() => this.game().actualGame.gameState);
+  gameState = computed(() => this.game().gameState());
   private confirmationService = inject(ConfirmationService);
 
   drawOffer = input.required<number | null>();
@@ -32,7 +32,7 @@ export class GameActionsPanel {
 
   canUndo = computed(() => {
     const game = this.game();
-    return canUndoMove(game);
+    return game.canUndoAction();
   });
   hasUndoRequest = computed(() => {
     return this.undoRequest() !== null;
