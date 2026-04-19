@@ -6,7 +6,6 @@ import {
   TakBaseGameSettings,
   TakGameResult,
   TakGameState,
-  TakPieceId,
   TakPlayer,
   TakReserve,
 } from '.';
@@ -79,12 +78,12 @@ export class TakBaseGame {
     }
   }
 
-  doAction(action: TakAction): TakActionRecord | null {
+  doAction(action: TakAction): boolean {
     if (!this.canDoAction(action)) {
-      return null;
+      return false;
     }
     const movedPlayer = this.currentPlayer;
-    let pieceIds: TakPieceId[] | null = null;
+    let actionRecord: TakActionRecord;
     switch (action.type) {
       case 'place': {
         const placingPlayer =
@@ -95,24 +94,38 @@ export class TakBaseGame {
         } else {
           reserve.pieces -= 1;
         }
-        pieceIds = this.board.doPlace(action.pos, action.variant, placingPlayer);
+        const result = this.board.doPlace(action.pos, action.variant, placingPlayer);
+        if (!result) {
+          return false;
+        }
+        actionRecord = { type: 'place', action, pieceIds: [result.pieceId] };
         break;
       }
       case 'move': {
-        pieceIds = this.board.doMove(action.pos, action.dir, action.drops);
+        const result = this.board.doMove(action.pos, action.dir, action.drops);
+        if (!result) {
+          return false;
+        }
+        actionRecord = {
+          type: 'move',
+          action,
+          pieceIds: result.pieceIds,
+          wasSmash: result.wasSmash,
+        };
         break;
       }
     }
-    const actionRecord = { action, pieceIds: pieceIds ?? [] };
     this.actionHistory.push(actionRecord);
     this.currentPlayer = playerOpponent(this.currentPlayer);
+
     const boardHash = this.board.computeHashString();
     this.boardHashHistory[boardHash] = (this.boardHashHistory[boardHash] ?? 0) + 1;
+
     const gameResult = this.checkGameOver(boardHash, movedPlayer);
     if (gameResult) {
       this.gameResult = gameResult;
     }
-    return actionRecord;
+    return true;
   }
 
   canUndoAction(): boolean {
@@ -122,16 +135,34 @@ export class TakBaseGame {
     return this.actionHistory.length > 0;
   }
 
-  undoAction(): TakBaseGame | null {
-    const lastAction = this.actionHistory.pop();
-    if (!lastAction) {
-      return null;
+  undoAction(): boolean {
+    if (!this.canUndoAction()) {
+      return false;
     }
-    const gameClone = new TakBaseGame(this.settings);
-    for (const record of this.actionHistory) {
-      gameClone.doAction(record.action);
+    const lastActionRecord = this.actionHistory.pop();
+    if (!lastActionRecord) {
+      return false;
     }
-    return gameClone;
+    const boardHash = this.board.computeHashString();
+    this.boardHashHistory[boardHash] = (this.boardHashHistory[boardHash] ?? 1) - 1;
+    this.currentPlayer = playerOpponent(this.currentPlayer);
+
+    switch (lastActionRecord.type) {
+      case 'place': {
+        this.board.undoPlace(lastActionRecord.action.pos);
+        break;
+      }
+      case 'move': {
+        this.board.undoMove(
+          lastActionRecord.action.pos,
+          lastActionRecord.action.dir,
+          lastActionRecord.action.drops,
+          lastActionRecord.wasSmash,
+        );
+        break;
+      }
+    }
+    return true;
   }
 
   private checkGameOver(boardHash: string, movedPlayer: TakPlayer): TakGameResult | null {
@@ -166,12 +197,10 @@ export class TakBaseGame {
     return null;
   }
 
-  trimToPlyCount(plyCount: number) {
-    const resultGame = new TakBaseGame(this.settings);
-    const history = this.actionHistory.slice(0, plyCount);
-    for (const record of history) {
-      resultGame.doAction(record.action);
+  trimToPlyIndex(plyIndex: number) {
+    const undoCount = this.actionHistory.length - plyIndex;
+    for (let i = 0; i < undoCount; i++) {
+      this.undoAction();
     }
-    return resultGame;
   }
 }

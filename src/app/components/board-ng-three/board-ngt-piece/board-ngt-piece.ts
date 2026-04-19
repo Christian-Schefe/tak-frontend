@@ -7,8 +7,13 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { TakGameUI, TakUIPiece } from '../../../../tak-core/ui';
-import { playerOpponent, TakBaseGameSettings, TakPieceId, TakVariant } from '../../../../tak-core';
+import {
+  playerOpponent,
+  TakBaseGameSettings,
+  TakPlayer,
+  TakPos,
+  TakVariant,
+} from '../../../../tak-core';
 import { beforeRender, NgtArgs, NgtThreeEvent } from 'angular-three';
 import { GameMode } from '../../game-component/game-component';
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three';
@@ -16,6 +21,17 @@ import { gltfResource } from 'angular-three-soba/loaders';
 import { Board3dPresetService } from '../../../services/board-3d-preset-service/board-3d-preset-service';
 import { SettingsService } from '../../../services/settings-service/settings-service';
 import { SkeletonUtils } from 'three-stdlib';
+import { TakGame3DUI, TakUI3DPiece } from '../../../../tak-core/ui3d';
+
+interface LayoutData {
+  pos: TakPos;
+  player: TakPlayer;
+  variant: TakVariant;
+  height: number;
+  isFloating: boolean;
+  inReserve: boolean;
+  effectivePlayer: TakPlayer;
+}
 
 @Component({
   selector: 'app-board-ngt-piece',
@@ -25,10 +41,9 @@ import { SkeletonUtils } from 'three-stdlib';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class BoardNgtPiece {
-  id = input.required<TakPieceId>();
-  data = input.required<TakUIPiece | undefined>();
+  data = input.required<TakUI3DPiece>();
   settings = input.required<TakBaseGameSettings>();
-  game = input.required<TakGameUI>();
+  game = input.required<TakGame3DUI>();
   mode = input.required<GameMode>();
   currentVariant = input.required<TakVariant | null>();
   clickPiece = output<boolean>();
@@ -97,30 +112,33 @@ export class BoardNgtPiece {
     return clonedScene;
   });
 
-  layoutData = computed(() => {
+  layoutData = computed<LayoutData>(() => {
     const pieceData = this.data();
-    const id = this.id();
     const game = this.game();
     const mode = this.mode();
     const currentVariant = this.currentVariant();
-    if (pieceData && !pieceData.deleted) return pieceData;
-    const [idPlayer, idVariant, idNum] = id.split('/');
-    const player = idPlayer === 'W' ? 'white' : 'black';
-    const variant = idVariant === 'C' ? 'capstone' : 'flat';
-    const num = parseInt(idNum);
-    const prevPieceId: TakPieceId | null =
-      num >= 1
-        ? `${idPlayer as 'W' | 'B'}/${idVariant as 'P' | 'C'}/${(num - 1).toString()}`
-        : null;
-    const prevPiece = prevPieceId !== null ? game.pieces[prevPieceId] : null;
-    const isFirstPieceInReserve = num === 0 || prevPiece?.deleted === false;
+    if (pieceData.type === 'board') {
+      const data: LayoutData = {
+        pos: pieceData.pos,
+        player: pieceData.player,
+        variant: pieceData.variant,
+        height: pieceData.height,
+        isFloating: pieceData.isFloating,
+        inReserve: false,
+        effectivePlayer: pieceData.player,
+      };
+      return data;
+    }
+    const player = pieceData.player;
+    const variant = pieceData.isCapstone ? 'capstone' : 'flat';
 
-    const isFirstFlat = variant === 'flat' && num === 0;
+    const isFirstFlat =
+      variant === 'flat' && pieceData.kindIndex === game.actualGame.settings.reserve.pieces - 1;
 
     const effectivePlayer =
       game.actualGame.actionHistory.length < 2 ? playerOpponent(player) : player;
     const isFloating =
-      isFirstPieceInReserve &&
+      pieceData.isTopOfKind &&
       ((variant === 'capstone' && currentVariant === 'capstone') ||
         (variant === 'flat' && (currentVariant === 'flat' || currentVariant === 'standing'))) &&
       game.actualGame.isOngoing() &&
@@ -130,18 +148,15 @@ export class BoardNgtPiece {
 
     const boardSize = game.actualGame.settings.boardSize;
     const reserve = game.actualGame.settings.reserve;
-    const revNum = (variant === 'capstone' ? reserve.capstones - num : reserve.pieces - num) - 1;
+
     const pieceStackSlots =
       variant === 'capstone' ? reserve.capstones : Math.max(2, boardSize - reserve.capstones);
     const piecesPerStack = Math.ceil(
       (variant === 'capstone' ? reserve.capstones : reserve.pieces) / pieceStackSlots,
     );
-    const stack = pieceStackSlots - 1 - Math.floor(revNum / piecesPerStack);
-    const height = revNum % piecesPerStack;
-    const defaultPiece: TakUIPiece = {
-      buriedPieceCount: 0,
-      canBePicked: false,
-      deleted: true,
+    const stack = pieceStackSlots - 1 - Math.floor(pieceData.kindIndex / piecesPerStack);
+    const height = pieceData.kindIndex % piecesPerStack;
+    const layoutData: LayoutData = {
       height,
       isFloating,
       player,
@@ -150,9 +165,10 @@ export class BoardNgtPiece {
         y: stack + (variant === 'capstone' ? Math.max(boardSize - reserve.capstones, 2) : 0),
       },
       variant: actualVariant,
-      zPriority: null,
+      inReserve: true,
+      effectivePlayer: isFirstFlat ? playerOpponent(player) : player,
     };
-    return defaultPiece;
+    return layoutData;
   });
 
   presetModel = computed(() => {
@@ -244,7 +260,7 @@ export class BoardNgtPiece {
     const pieceHeight = this.pieceHeight();
     const offset = this.positionOffset();
     let height = (data.height + (data.isFloating ? 2 : 0)) * pieceHeight;
-    if (data.deleted) height -= 0.1;
+    if (data.inReserve) height -= 0.1;
     return new Vector3(
       data.pos.x + 0.5 - settings.boardSize / 2,
       height,
@@ -272,9 +288,8 @@ export class BoardNgtPiece {
     const game = this.game();
     const mode = this.mode();
     const data = this.layoutData();
-    const isFirstFlat = data.variant === 'flat' && this.id().endsWith('/0');
-    const effectivePlayer = isFirstFlat ? playerOpponent(data.player) : data.player;
-    if (!data.deleted) return;
+    const effectivePlayer = data.effectivePlayer;
+    if (!data.inReserve) return;
     if (mode.type === 'spectator') return;
     if (mode.type === 'online' && effectivePlayer !== mode.localPlayer) return;
     if (mode.type === 'local' && game.actualGame.currentPlayer !== effectivePlayer) return;

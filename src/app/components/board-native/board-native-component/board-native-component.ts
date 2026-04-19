@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, linkedSignal, output } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 import { TakAction, TakBaseGame, TakPlayer, TakPos, TakVariant } from '../../../../tak-core';
 import { GameMode } from '../../game-component/game-component';
 import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
@@ -30,36 +30,22 @@ export class BoardNativeComponent {
   mode = input.required<GameMode>();
   private settingsService = inject(SettingsService);
 
-  gameUi = linkedSignal<TakBaseGame, TakGameUI>({
-    source: () => this.game(),
+  gameUi = linkedSignal<{ game: TakBaseGame; plyIndex: number | null }, TakGameUI>({
+    source: () => ({ game: this.game(), plyIndex: this.plyIndex() }),
     computation: (source, prev) => {
       if (prev?.value) {
+        let shownGame = source.game;
+        if (source.plyIndex !== null) {
+          shownGame = shownGame.clone();
+          shownGame.trimToPlyIndex(source.plyIndex);
+        }
         return produce(prev.value, (gameUi) => {
-          gameUi.updateGame(source);
+          gameUi.updateGame(shownGame);
           return gameUi;
         });
       }
-      return new TakGameUI(source);
+      return new TakGameUI(source.game);
     },
-  });
-
-  private _updateGameUiEffect = effect(() => {
-    const game = this.game();
-    this.gameUi.update((prev) => {
-      return produce(prev, (gameUi) => {
-        gameUi.updateGame(game);
-        return gameUi;
-      });
-    });
-  });
-  private _updatePlyIndexGameUiEffect = effect(() => {
-    const plyIndex = this.plyIndex();
-    this.gameUi.update((prev) => {
-      return produce(prev, (gameUi) => {
-        gameUi.setPlyIndex(plyIndex);
-        return gameUi;
-      });
-    });
   });
 
   boardSettings = computed<BoardSettings>(() => {
@@ -135,11 +121,14 @@ export class BoardNativeComponent {
   areTilesInteractive = computed(() => {
     const mode = this.mode();
     const game = this.game();
-    return (
+    const plyIndex = this.plyIndex();
+    const isInteractive =
       ((mode.type === 'online' && game.currentPlayer === mode.localPlayer) ||
         mode.type === 'local') &&
-      game.isOngoing()
-    );
+      game.isOngoing() &&
+      plyIndex === null;
+
+    return isInteractive;
   });
 
   onClickTile(pos: TakPos) {

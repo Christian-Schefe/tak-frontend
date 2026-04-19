@@ -473,8 +473,12 @@ export class OnlinePlayRoute implements OnDestroy {
     if (!game) {
       return;
     }
-    const currentPlyIndex = game.base.actionHistory.length;
-    const newPlyIndex = plyIndex !== null && plyIndex >= currentPlyIndex ? null : plyIndex;
+    const maxPlyIndex = game.base.actionHistory.length;
+    const newPlyIndex = plyIndex !== null && plyIndex >= maxPlyIndex ? null : plyIndex;
+    const currentPlyIndex = this.plyIndex();
+    if (currentPlyIndex === newPlyIndex) {
+      return;
+    }
     this.plyIndex.set(newPlyIndex);
   }
 

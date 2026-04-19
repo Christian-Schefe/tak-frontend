@@ -54,7 +54,12 @@ export class GameAnalysisBar implements OnInit {
   shownGame = computed(() => {
     const game = this.game();
     const plyIndex = this.plyIndex();
-    return plyIndex === null ? game : game.trimToPlyCount(plyIndex);
+    if (plyIndex === null) {
+      return game;
+    }
+    const gameClone = game.clone();
+    gameClone.trimToPlyIndex(plyIndex);
+    return gameClone;
   });
 
   private _updateEffect = effect(() => {

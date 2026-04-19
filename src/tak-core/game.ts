@@ -122,7 +122,7 @@ export class TakGame {
     this.clock.lastUpdateTimestamp = now;
   }
 
-  checkTimeout(now: number): boolean {
+  private checkTimeout(now: number): boolean {
     const player = this.base.currentPlayer;
     const timeRemaining = this.getTimeRemaining(player, now);
     if (timeRemaining <= 0) {
@@ -158,15 +158,17 @@ export class TakGame {
   }
 
   undoAction(now: number): boolean {
+    if (this.base.gameResult !== null) {
+      return false;
+    }
     if (this.checkTimeout(now)) {
       return false;
     }
     const player = this.base.currentPlayer;
-    const newBase = this.base.undoAction();
-    if (!newBase) {
+    const result = this.base.undoAction();
+    if (!result) {
       return false;
     }
-    this.base = newBase;
     this.startOrUpdateClock(player, now);
     return true;
   }

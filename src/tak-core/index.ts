@@ -44,14 +44,32 @@ export type TakTimeControl = TakAsyncTimeControl | TakRealtimeTimeControl;
 
 export type TakPieceId = string;
 
-export interface TakActionRecord {
-  action: TakAction;
-  pieceIds: TakPieceId[];
+export type TakActionRecord =
+  | {
+      type: 'place';
+      action: TakPlaceAction;
+      pieceIds: TakPieceId[];
+    }
+  | {
+      type: 'move';
+      action: TakMoveAction;
+      pieceIds: TakPieceId[];
+      wasSmash: boolean;
+    };
+
+interface TakPlaceAction {
+  type: 'place';
+  pos: TakPos;
+  variant: TakVariant;
+}
+interface TakMoveAction {
+  type: 'move';
+  pos: TakPos;
+  dir: TakDir;
+  drops: number[];
 }
 
-export type TakAction =
-  | { type: 'place'; pos: TakPos; variant: TakVariant }
-  | { type: 'move'; pos: TakPos; dir: TakDir; drops: number[] };
+export type TakAction = TakPlaceAction | TakMoveAction;
 
 export const allDirections = ['up', 'down', 'left', 'right'] as const;
 export type TakDir = (typeof allDirections)[number];

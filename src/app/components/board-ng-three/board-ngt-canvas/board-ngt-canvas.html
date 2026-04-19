@@ -103,10 +103,9 @@
     <ngt-plane-geometry *args="[1, 1]" />
     <ngt-mesh-standard-material [map]="boardTexture()" />
   </ngt-mesh>
-  @for (piece of pieceData(); track $index) {
+  @for (piece of pieceData(); track piece.index) {
     <app-board-ngt-piece
-      [id]="piece.id"
-      [data]="piece.data"
+      [data]="piece"
       [settings]="gameSettings()"
       [game]="gameUi()"
       [mode]="mode()"

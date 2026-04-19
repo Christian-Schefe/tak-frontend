@@ -12,19 +12,28 @@ import {
 } from '.';
 import { TakBaseGame } from './base';
 
-export interface TakUIPiece {
+export interface TakUI3DBoardPiece {
+  type: 'board';
+  index: number;
+  kindIndex: number;
   player: TakPlayer;
   variant: TakVariant;
   pos: TakPos;
   height: number;
   isFloating: boolean;
-  zPriority: number | null;
-  deleted: boolean;
-  buriedPieceCount: number;
-  canBePicked: boolean;
+}
+export interface TakUI3DReservePiece {
+  type: 'reserve';
+  index: number;
+  kindIndex: number;
+  player: TakPlayer;
+  isCapstone: boolean;
+  isTopOfKind: boolean;
 }
 
-export interface TakUITile {
+export type TakUI3DPiece = TakUI3DBoardPiece | TakUI3DReservePiece;
+
+export interface TakUI3DTile {
   owner: TakPlayer | null;
   highlighted: boolean;
   selectable: boolean;
@@ -32,24 +41,32 @@ export interface TakUITile {
   lastAction: boolean;
 }
 
-export class TakGameUI {
+export class TakGame3DUI {
   [immerable] = true;
 
   actualGame: TakBaseGame;
-  pieces: Record<TakPieceId, TakUIPiece | undefined>;
-  priorityPieces: TakPieceId[];
-  tiles: TakUITile[][];
+  pieces: TakUI3DPiece[];
+  reservePieces: Record<
+    TakPlayer,
+    Record<'capstone' | 'flat', (TakUI3DReservePiece | undefined)[]>
+  >;
+  private pieceMap: Record<
+    TakPieceId,
+    { type: 'active'; piece: TakUI3DBoardPiece } | { type: 'removed'; index: number } | undefined
+  >;
+  tiles: TakUI3DTile[][];
   partialAction: PartialAction | null;
 
   constructor(game: TakBaseGame) {
     this.actualGame = game;
-    this.pieces = {};
-    this.priorityPieces = [];
+    this.pieceMap = {};
+    this.reservePieces = { black: { capstone: [], flat: [] }, white: { capstone: [], flat: [] } };
     this.partialAction = null;
+    this.pieces = [];
     this.tiles = [];
     const size = game.board.size;
     for (let y = 0; y < size; y++) {
-      const row: TakUITile[] = [];
+      const row: TakUI3DTile[] = [];
       for (let x = 0; x < size; x++) {
         row.push({
           owner: null,
@@ -61,6 +78,51 @@ export class TakGameUI {
       }
       this.tiles.push(row);
     }
+    let indexCounter = 0;
+    for (let p = 0; p < game.settings.reserve.pieces; p++) {
+      const whiteFlat: TakUI3DReservePiece = {
+        type: 'reserve',
+        kindIndex: p,
+        index: indexCounter++,
+        player: 'white',
+        isCapstone: false,
+        isTopOfKind: p === game.settings.reserve.pieces - 1,
+      };
+      this.reservePieces.white.flat.push(whiteFlat);
+      this.pieces.push(whiteFlat);
+      const blackFlat: TakUI3DReservePiece = {
+        type: 'reserve',
+        kindIndex: p,
+        index: indexCounter++,
+        player: 'black',
+        isCapstone: false,
+        isTopOfKind: p === game.settings.reserve.pieces - 1,
+      };
+      this.reservePieces.black.flat.push(blackFlat);
+      this.pieces.push(blackFlat);
+    }
+    for (let c = 0; c < game.settings.reserve.capstones; c++) {
+      const whiteCapstone: TakUI3DReservePiece = {
+        type: 'reserve',
+        kindIndex: c,
+        index: indexCounter++,
+        player: 'white',
+        isCapstone: true,
+        isTopOfKind: c === game.settings.reserve.capstones - 1,
+      };
+      this.reservePieces.white.capstone.push(whiteCapstone);
+      this.pieces.push(whiteCapstone);
+      const blackCapstone: TakUI3DReservePiece = {
+        type: 'reserve',
+        kindIndex: c,
+        index: indexCounter++,
+        player: 'black',
+        isCapstone: true,
+        isTopOfKind: c === game.settings.reserve.capstones - 1,
+      };
+      this.reservePieces.black.capstone.push(blackCapstone);
+      this.pieces.push(blackCapstone);
+    }
     this.onGameUpdate();
   }
 
@@ -68,23 +130,6 @@ export class TakGameUI {
     if (this.actualGame === game) {
       return;
     }
-    const isSteppingForwardOne =
-      game.actionHistory.length === this.actualGame.actionHistory.length + 1;
-    const isSteppingBackOne =
-      game.actionHistory.length === this.actualGame.actionHistory.length - 1;
-
-    console.log(
-      'Updating game. Stepping forward one:',
-      isSteppingForwardOne,
-      'Stepping back one:',
-      isSteppingBackOne,
-    );
-
-    this.priorityPieces = isSteppingForwardOne
-      ? game.actionHistory[game.actionHistory.length - 1].pieceIds
-      : isSteppingBackOne
-        ? this.actualGame.actionHistory[this.actualGame.actionHistory.length - 1].pieceIds
-        : [];
 
     this.actualGame = game;
     this.partialAction = null;
@@ -99,7 +144,6 @@ export class TakGameUI {
     const partialAction = partialActionToAction(this.partialAction);
     if (partialAction) {
       shownGame.doAction(partialAction.action);
-      this.priorityPieces = getLastActionPiecesInOrder(shownGame);
     }
 
     const floatingData = this.partialAction && {
@@ -151,28 +195,53 @@ export class TakGameUI {
             floatingData && pos.x === floatingData.pos.x && pos.y === floatingData.pos.y
               ? stack.composition.length - floatingData.floatingCount
               : null;
-          const buriedPieceCount = Math.max(0, stack.composition.length - size);
 
           for (let height = 0; height < stack.composition.length; height++) {
-            const priorityIndex = this.priorityPieces.findIndex(
-              (id) => id === stack.composition[height].id,
-            );
-            const canBePicked = stack.composition.length - height <= size;
             const id = stack.composition[height].id;
-            const newPiece: TakUIPiece = {
-              buriedPieceCount,
-              canBePicked,
-              zPriority: priorityIndex >= 0 ? priorityIndex : null,
-              player: stack.composition[height].player,
-              variant: height === stack.composition.length - 1 ? stack.variant : 'flat',
+            const presentPiece = this.pieceMap[id];
+            const player = stack.composition[height].player;
+            const variant = height === stack.composition.length - 1 ? stack.variant : 'flat';
+            let pieceData: TakUI3DPiece;
+            if (presentPiece) {
+              if (presentPiece.type === 'active') {
+                pieceData = presentPiece.piece;
+              } else {
+                const reservePiece = this.pieces[presentPiece.index];
+                if (reservePiece.type !== 'reserve') {
+                  console.error('Expected reserve piece for id', id, 'but found', reservePiece);
+                  continue;
+                }
+                this.reservePieces[reservePiece.player][
+                  reservePiece.isCapstone ? 'capstone' : 'flat'
+                ][reservePiece.kindIndex] = undefined;
+                pieceData = reservePiece;
+              }
+            } else {
+              const reservePieceArray =
+                this.reservePieces[player][variant === 'capstone' ? 'capstone' : 'flat'];
+              const topOfKindIndex = reservePieceArray.findIndex(
+                (p) => p !== undefined && p.isTopOfKind,
+              );
+              const reservePiece = reservePieceArray[topOfKindIndex];
+              if (!reservePiece) {
+                console.error('No reserve piece available for', player, variant);
+                continue;
+              }
+              reservePieceArray[topOfKindIndex] = undefined;
+              pieceData = reservePiece;
+            }
+            const newPiece: TakUI3DBoardPiece = {
+              type: 'board',
+              kindIndex: pieceData.kindIndex,
+              index: pieceData.index,
+              player: pieceData.player,
+              variant,
               pos,
               height,
               isFloating: floatingHeightThreshold !== null && height >= floatingHeightThreshold,
-              deleted: false,
             };
-            if (arePiecesDifferent(this.pieces[id], newPiece)) {
-              this.pieces[id] = newPiece;
-            }
+            this.pieceMap[id] = { type: 'active', piece: newPiece };
+            this.pieces[newPiece.index] = newPiece;
             presentIds.add(id);
           }
           hoverable &&=
@@ -181,7 +250,7 @@ export class TakGameUI {
               this.actualGame.currentPlayer;
         }
 
-        const newTile: TakUITile = {
+        const newTile: TakUI3DTile = {
           owner: stack?.composition[0].player ?? null,
           highlighted: false,
           selectable: isOngoing && selectable,
@@ -194,13 +263,47 @@ export class TakGameUI {
       }
     }
 
-    for (const id of Object.keys(this.pieces)) {
-      if (this.pieces[id] !== undefined && !presentIds.has(id)) {
-        if (this.pieces[id].deleted) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete this.pieces[id];
-        } else {
-          this.pieces[id].deleted = true;
+    for (const id of Object.keys(this.pieceMap)) {
+      const pieceEntry = this.pieceMap[id];
+      if (pieceEntry !== undefined && !presentIds.has(id) && pieceEntry.type === 'active') {
+        const piece = pieceEntry.piece;
+        const newPiece: TakUI3DReservePiece = {
+          type: 'reserve',
+          kindIndex: piece.kindIndex,
+          index: piece.index,
+          player: piece.player,
+          isCapstone: piece.variant === 'capstone',
+          isTopOfKind: false,
+        };
+        this.reservePieces[newPiece.player][newPiece.isCapstone ? 'capstone' : 'flat'][
+          newPiece.kindIndex
+        ] = newPiece;
+        this.pieceMap[id] = { type: 'removed', index: newPiece.index };
+        this.pieces[newPiece.index] = newPiece;
+      }
+    }
+
+    //recompute top of kind for reserves
+    for (const player of ['white', 'black'] as TakPlayer[]) {
+      for (const variant of ['flat', 'capstone'] as ('flat' | 'capstone')[]) {
+        const reservePieceArray = this.reservePieces[player][variant];
+        let topOfKindIndex = -1;
+        for (let i = reservePieceArray.length - 1; i >= 0; i--) {
+          if (reservePieceArray[i]) {
+            topOfKindIndex = i;
+            break;
+          }
+        }
+        for (let i = 0; i < reservePieceArray.length; i++) {
+          const piece = reservePieceArray[i];
+          if (piece) {
+            const isTopOfKind = i === topOfKindIndex;
+            if (piece.isTopOfKind !== isTopOfKind) {
+              const newPiece = { ...piece, isTopOfKind };
+              reservePieceArray[i] = newPiece;
+              this.pieces[newPiece.index] = newPiece;
+            }
+          }
         }
       }
     }
@@ -341,12 +444,6 @@ function partialActionToAction(
   return null;
 }
 
-function getLastActionPiecesInOrder(game: TakBaseGame): TakPieceId[] {
-  if (game.actionHistory.length === 0) return [];
-  const lastAction = game.actionHistory[game.actionHistory.length - 1];
-  return lastAction.pieceIds;
-}
-
 interface PartialAction {
   take: number;
   drops: number[];
@@ -354,23 +451,7 @@ interface PartialAction {
   dir: TakDir | null;
 }
 
-function arePiecesDifferent(piece: TakUIPiece | undefined, newData: TakUIPiece): boolean {
-  return (
-    !piece ||
-    piece.player !== newData.player ||
-    piece.variant !== newData.variant ||
-    piece.pos.x !== newData.pos.x ||
-    piece.pos.y !== newData.pos.y ||
-    piece.height !== newData.height ||
-    piece.isFloating !== newData.isFloating ||
-    piece.zPriority !== newData.zPriority ||
-    piece.deleted !== newData.deleted ||
-    piece.buriedPieceCount !== newData.buriedPieceCount ||
-    piece.canBePicked !== newData.canBePicked
-  );
-}
-
-function areTilesDifferent(tile: TakUITile, newTile: TakUITile): boolean {
+function areTilesDifferent(tile: TakUI3DTile, newTile: TakUI3DTile): boolean {
   return (
     tile.owner !== newTile.owner ||
     tile.highlighted !== newTile.highlighted ||

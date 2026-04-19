@@ -43,8 +43,12 @@ export class LocalPlayRoute {
 
   onSetHistoryPlyIndex(plyIndex: number | null) {
     const game = this.game();
-    const currentPlyIndex = game.actionHistory.length;
-    const newPlyIndex = plyIndex !== null && plyIndex >= currentPlyIndex ? null : plyIndex;
+    const maxPlyIndex = game.actionHistory.length;
+    const newPlyIndex = plyIndex !== null && plyIndex >= maxPlyIndex ? null : plyIndex;
+    const currentPlyIndex = this.plyIndex();
+    if (currentPlyIndex === newPlyIndex) {
+      return;
+    }
     this.plyIndex.set(newPlyIndex);
   }
 

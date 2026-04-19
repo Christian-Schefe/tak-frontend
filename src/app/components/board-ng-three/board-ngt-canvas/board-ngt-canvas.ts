@@ -2,7 +2,6 @@ import {
   Component,
   computed,
   CUSTOM_ELEMENTS_SCHEMA,
-  effect,
   inject,
   input,
   linkedSignal,
@@ -30,20 +29,14 @@ import {
   RingGeometry,
 } from 'three';
 import { GameMode } from '../../game-component/game-component';
-import { TakGameUI, TakUITile } from '../../../../tak-core/ui';
-import {
-  TakAction,
-  TakBaseGame,
-  TakPieceId,
-  TakPlayer,
-  TakPos,
-  TakVariant,
-} from '../../../../tak-core';
+import { TakUITile } from '../../../../tak-core/ui';
+import { TakAction, TakBaseGame, TakPlayer, TakPos, TakVariant } from '../../../../tak-core';
 import { BoardNgtPiece } from '../board-ngt-piece/board-ngt-piece';
 import { fontResource, gltfResource, textureResource } from 'angular-three-soba/loaders';
 import { Board3dPresetService } from '../../../services/board-3d-preset-service/board-3d-preset-service';
 import { TextGeometry } from 'three-stdlib';
 import { produce } from 'immer';
+import { TakGame3DUI, TakUI3DPiece } from '../../../../tak-core/ui3d';
 
 @Component({
   selector: 'app-board-ngt-canvas',
@@ -93,36 +86,22 @@ export class BoardNgtCanvas {
     });
   }
 
-  gameUi = linkedSignal<TakBaseGame, TakGameUI>({
-    source: () => this.game(),
+  gameUi = linkedSignal<{ game: TakBaseGame; plyIndex: number | null }, TakGame3DUI>({
+    source: () => ({ game: this.game(), plyIndex: this.plyIndex() }),
     computation: (source, prev) => {
       if (prev?.value) {
+        let shownGame = source.game;
+        if (source.plyIndex !== null) {
+          shownGame = shownGame.clone();
+          shownGame.trimToPlyIndex(source.plyIndex);
+        }
         return produce(prev.value, (gameUi) => {
-          gameUi.updateGame(source);
+          gameUi.updateGame(shownGame);
           return gameUi;
         });
       }
-      return new TakGameUI(source);
+      return new TakGame3DUI(source.game);
     },
-  });
-
-  private _updateGameUiEffect = effect(() => {
-    const game = this.game();
-    this.gameUi.update((prev) => {
-      return produce(prev, (gameUi) => {
-        gameUi.updateGame(game);
-        return gameUi;
-      });
-    });
-  });
-  private _updatePlyIndexGameUiEffect = effect(() => {
-    const plyIndex = this.plyIndex();
-    this.gameUi.update((prev) => {
-      return produce(prev, (gameUi) => {
-        gameUi.setPlyIndex(plyIndex);
-        return gameUi;
-      });
-    });
   });
 
   boardPresetName = signal<string>('basic');
@@ -245,42 +224,21 @@ export class BoardNgtCanvas {
     return tileData;
   });
 
+  pieceData = computed<TakUI3DPiece[]>(() => {
+    const game = this.gameUi();
+    return game.pieces;
+  });
+
   areTilesInteractive = computed(() => {
     const mode = this.mode();
     const game = this.game();
+    const plyIndex = this.plyIndex();
     return (
       ((mode.type === 'online' && game.currentPlayer === mode.localPlayer) ||
         mode.type === 'local') &&
-      game.isOngoing()
+      game.isOngoing() &&
+      plyIndex === null
     );
-  });
-
-  pieces = computed(() => this.gameUi().pieces);
-
-  piecesWithReserve = computed(() => {
-    const settings = this.gameSettings();
-    const pieceIds: TakPieceId[] = [];
-    for (let i = 0; i < settings.reserve.pieces; i++) {
-      pieceIds.push(`W/P/${i.toString()}`);
-      pieceIds.push(`B/P/${i.toString()}`);
-    }
-    for (let i = 0; i < settings.reserve.capstones; i++) {
-      pieceIds.push(`W/C/${i.toString()}`);
-      pieceIds.push(`B/C/${i.toString()}`);
-    }
-
-    pieceIds.sort((a, b) => a.localeCompare(b));
-    return pieceIds;
-  });
-
-  pieceData = computed(() => {
-    const pieces = this.pieces();
-    const pieceIds = this.piecesWithReserve().map((id) => ({
-      id,
-      data: pieces[id],
-    }));
-    pieceIds.sort((a, b) => a.id.localeCompare(b.id));
-    return pieceIds;
   });
 
   onTileClick(pos: TakPos) {
@@ -341,11 +299,15 @@ export class BoardNgtCanvas {
 
   setCurrentVariant(isCapstone: boolean) {
     if (!this.areTilesInteractive()) return;
-    console.log('Setting current variant, isCapstone:', isCapstone);
     const canPlace = this.canPlace();
-    if (!canPlace) return;
+    console.log('Setting current variant, isCapstone:', isCapstone, canPlace);
+    if (!canPlace) {
+      this.currentVariant.set(null);
+      return;
+    }
 
     this.currentVariant.update((variant) => {
+      console.log('Current variant before update:', variant);
       if (isCapstone && canPlace.capstone && variant !== 'capstone') {
         return 'capstone';
       } else if (isCapstone) {
@@ -377,6 +339,7 @@ export class BoardNgtCanvas {
     computation: (source, prev) => {
       if (!source.interactive) return null;
       const canPlace = source.canPlace;
+
       if (canPlace && prev) {
         if (prev.value === 'flat' && !canPlace.flat) {
           if (canPlace.standing) return 'standing';
@@ -406,12 +369,11 @@ export class BoardNgtCanvas {
     } else {
       return null;
     }
-    const isOngoing = game.isOngoing();
     const reserves = game.reserves[player];
     return {
-      flat: isOngoing && reserves.pieces > 0,
-      standing: isOngoing && reserves.pieces > 0 && game.actionHistory.length >= 2,
-      capstone: isOngoing && reserves.capstones > 0 && game.actionHistory.length >= 2,
+      flat: reserves.pieces > 0,
+      standing: reserves.pieces > 0 && game.actionHistory.length >= 2,
+      capstone: reserves.capstones > 0 && game.actionHistory.length >= 2,
     };
   });
 }

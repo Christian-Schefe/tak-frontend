@@ -1,5 +1,4 @@
 @let takGame = game();
-@let ui = gameUi();
 @let settings = gameSettings();
 @let pBoardSettings = boardSettings();
 <div
@@ -22,7 +21,7 @@
             [y]="item.pos.y"
             [settings]="settings"
             [gameState]="takGame.gameState()"
-            [plyIndex]="ui.plyIndex"
+            [plyIndex]="plyIndex()"
             (tileClick)="onClickTile(item.pos)"
             [data]="item.data"
             [boardSettings]="pBoardSettings"

@@ -62,7 +62,7 @@ export class TakBoard {
     return this.stacks[index] === null;
   }
 
-  doPlace(pos: TakPos, variant: TakVariant, player: TakPlayer): TakPieceId[] | null {
+  doPlace(pos: TakPos, variant: TakVariant, player: TakPlayer): { pieceId: TakPieceId } | null {
     if (!this.canDoPlace(pos)) {
       return null;
     }
@@ -72,7 +72,15 @@ export class TakBoard {
       variant,
       composition: [{ player, id: pieceId }],
     };
-    return [pieceId];
+    return { pieceId };
+  }
+
+  undoPlace(pos: TakPos) {
+    if (!isValidPos(this.size, pos)) {
+      return;
+    }
+    const index = pos.y * this.size + pos.x;
+    this.stacks[index] = null;
   }
 
   canDoMove(pos: TakPos, dir: TakDir, drops: number[]): boolean {
@@ -100,7 +108,7 @@ export class TakBoard {
       const curIndex = curPos.y * this.size + curPos.x;
       const curStack = this.stacks[curIndex];
 
-      const canSmash = stack.variant === 'capstone' && i === drops.length - 1 && drops[i] !== 1;
+      const canSmash = stack.variant === 'capstone' && i === drops.length - 1 && drops[i] === 1;
       if (
         curStack !== null &&
         (curStack.variant === 'capstone' || (curStack.variant === 'standing' && !canSmash))
@@ -111,7 +119,11 @@ export class TakBoard {
     return true;
   }
 
-  doMove(pos: TakPos, dir: TakDir, drops: number[]): TakPieceId[] | null {
+  doMove(
+    pos: TakPos,
+    dir: TakDir,
+    drops: number[],
+  ): { pieceIds: TakPieceId[]; wasSmash: boolean } | null {
     if (!this.canDoMove(pos, dir, drops)) {
       return null;
     }
@@ -123,16 +135,15 @@ export class TakBoard {
     const dropsSum = drops.reduce((a, b) => a + b, 0);
     const movingPieces = stack.composition.splice(-dropsSum);
     const movingPieceIds = movingPieces.map((piece) => piece.id);
-    this.stacks[index] =
-      stack.composition.length > dropsSum
-        ? { ...stack, composition: stack.composition.slice(0, -dropsSum) }
-        : null;
+
     const variant = stack.variant;
     stack.variant = 'flat';
     if (stack.composition.length === 0) {
       this.stacks[index] = null;
     }
     movingPieces.reverse();
+    let wasSmash = false;
+
     for (let i = 0; i < drops.length; i++) {
       const curPos = offsetPos(pos, dir, i + 1);
       const curIndex = curPos.y * this.size + curPos.x;
@@ -145,10 +156,50 @@ export class TakBoard {
       toDrop.reverse();
       curStack.composition.push(...toDrop);
       if (i === drops.length - 1) {
+        if (curStack.variant === 'standing') {
+          wasSmash = true;
+        }
         curStack.variant = variant;
       }
     }
-    return movingPieceIds;
+    return { pieceIds: movingPieceIds, wasSmash };
+  }
+
+  undoMove(pos: TakPos, dir: TakDir, drops: number[], wasSmash: boolean): void {
+    const index = pos.y * this.size + pos.x;
+
+    const recoveredPieces: TakPiece[] = [];
+    let variantToRestore: TakVariant = 'flat';
+
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const curPos = offsetPos(pos, dir, i + 1);
+      const curIndex = curPos.y * this.size + curPos.x;
+      const curStack = this.stacks[curIndex];
+
+      if (!curStack) continue;
+
+      const taken = curStack.composition.splice(-drops[i]);
+      taken.reverse();
+      recoveredPieces.push(...taken);
+      if (i === drops.length - 1) {
+        variantToRestore = curStack.variant;
+        curStack.variant = wasSmash ? 'standing' : 'flat';
+      }
+      if (curStack.composition.length === 0) {
+        this.stacks[curIndex] = null;
+      }
+    }
+
+    recoveredPieces.reverse();
+
+    let stack = this.stacks[index];
+    if (!stack) {
+      stack = { variant: 'flat', composition: [] };
+      this.stacks[index] = stack;
+    }
+
+    stack.variant = variantToRestore;
+    stack.composition.push(...recoveredPieces);
   }
 
   isFull(): boolean {
