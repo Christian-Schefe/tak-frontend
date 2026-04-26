@@ -120,20 +120,25 @@ export class BoardNgtPiece {
     if (pieceData.type === 'board') {
       const data: LayoutData = {
         pos: pieceData.pos,
-        player: pieceData.player,
+        player: pieceData.id.player,
         variant: pieceData.variant,
         height: pieceData.height,
         isFloating: pieceData.isFloating,
         inReserve: false,
-        effectivePlayer: pieceData.player,
+        effectivePlayer: pieceData.id.player,
       };
       return data;
     }
-    const player = pieceData.player;
-    const variant = pieceData.isCapstone ? 'capstone' : 'flat';
+    const player = pieceData.id.player;
+    const variant = pieceData.id.type;
+
+    const reversedKindIndex =
+      game.actualGame.settings.reserve[variant === 'capstone' ? 'capstones' : 'pieces'] -
+      1 -
+      pieceData.id.kindIndex;
 
     const isFirstFlat =
-      variant === 'flat' && pieceData.kindIndex === game.actualGame.settings.reserve.pieces - 1;
+      variant === 'flat' && reversedKindIndex === game.actualGame.settings.reserve.pieces - 1;
 
     const effectivePlayer =
       game.actualGame.actionHistory.length < 2 ? playerOpponent(player) : player;
@@ -154,8 +159,8 @@ export class BoardNgtPiece {
     const piecesPerStack = Math.ceil(
       (variant === 'capstone' ? reserve.capstones : reserve.pieces) / pieceStackSlots,
     );
-    const stack = pieceStackSlots - 1 - Math.floor(pieceData.kindIndex / piecesPerStack);
-    const height = pieceData.kindIndex % piecesPerStack;
+    const stack = pieceStackSlots - 1 - Math.floor(reversedKindIndex / piecesPerStack);
+    const height = reversedKindIndex % piecesPerStack;
     const layoutData: LayoutData = {
       height,
       isFloating,

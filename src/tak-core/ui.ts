@@ -5,7 +5,6 @@ import {
   offsetPos,
   TakAction,
   TakDir,
-  TakPieceId,
   TakPlayer,
   TakPos,
   TakVariant,
@@ -36,8 +35,8 @@ export class TakGameUI {
   [immerable] = true;
 
   actualGame: TakBaseGame;
-  pieces: Record<TakPieceId, TakUIPiece | undefined>;
-  priorityPieces: TakPieceId[];
+  pieces: Record<string, TakUIPiece | undefined>;
+  priorityPieces: string[];
   tiles: TakUITile[][];
   partialAction: PartialAction | null;
 
@@ -73,18 +72,13 @@ export class TakGameUI {
     const isSteppingBackOne =
       game.actionHistory.length === this.actualGame.actionHistory.length - 1;
 
-    console.log(
-      'Updating game. Stepping forward one:',
-      isSteppingForwardOne,
-      'Stepping back one:',
-      isSteppingBackOne,
-    );
-
-    this.priorityPieces = isSteppingForwardOne
-      ? game.actionHistory[game.actionHistory.length - 1].pieceIds
-      : isSteppingBackOne
-        ? this.actualGame.actionHistory[this.actualGame.actionHistory.length - 1].pieceIds
-        : [];
+    this.priorityPieces = (
+      isSteppingForwardOne
+        ? game.actionHistory[game.actionHistory.length - 1].pieceIds
+        : isSteppingBackOne
+          ? this.actualGame.actionHistory[this.actualGame.actionHistory.length - 1].pieceIds
+          : []
+    ).map((id) => id.uuid);
 
     this.actualGame = game;
     this.partialAction = null;
@@ -138,7 +132,7 @@ export class TakGameUI {
 
     const isOngoing = !this.actualGame.gameResult;
 
-    const presentIds = new Set<TakPieceId>();
+    const presentIds = new Set<string>();
 
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -155,10 +149,10 @@ export class TakGameUI {
 
           for (let height = 0; height < stack.composition.length; height++) {
             const priorityIndex = this.priorityPieces.findIndex(
-              (id) => id === stack.composition[height].id,
+              (id) => id === stack.composition[height].id.uuid,
             );
             const canBePicked = stack.composition.length - height <= size;
-            const id = stack.composition[height].id;
+            const id = stack.composition[height].id.uuid;
             const newPiece: TakUIPiece = {
               buriedPieceCount,
               canBePicked,
@@ -341,10 +335,10 @@ function partialActionToAction(
   return null;
 }
 
-function getLastActionPiecesInOrder(game: TakBaseGame): TakPieceId[] {
+function getLastActionPiecesInOrder(game: TakBaseGame): string[] {
   if (game.actionHistory.length === 0) return [];
   const lastAction = game.actionHistory[game.actionHistory.length - 1];
-  return lastAction.pieceIds;
+  return lastAction.pieceIds.map((id) => id.uuid);
 }
 
 interface PartialAction {

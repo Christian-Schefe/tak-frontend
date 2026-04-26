@@ -171,15 +171,22 @@ export class TakBaseGame {
     const blackReserveEmpty =
       this.reserves.black.pieces === 0 && this.reserves.black.capstones === 0;
     const repeatCount = this.boardHashHistory[boardHash] ?? 0;
-
-    if (this.board.checkForRoad(movedPlayer)) {
+    const maybeRoad = this.board.checkForRoad(movedPlayer);
+    const maybeOpponentRoad = this.board.checkForRoad(playerOpponent(movedPlayer));
+    if (maybeRoad) {
       return {
         type: 'win',
         winner: movedPlayer,
         reason: 'road',
+        road: maybeRoad,
       };
-    } else if (this.board.checkForRoad(playerOpponent(movedPlayer))) {
-      return { type: 'win', winner: playerOpponent(movedPlayer), reason: 'road' };
+    } else if (maybeOpponentRoad) {
+      return {
+        type: 'win',
+        winner: playerOpponent(movedPlayer),
+        reason: 'road',
+        road: maybeOpponentRoad,
+      };
     } else if (this.board.isFull() || whiteReserveEmpty || blackReserveEmpty) {
       const flatCounts = this.board.countFlats();
       const whiteScore = flatCounts.white * 2;

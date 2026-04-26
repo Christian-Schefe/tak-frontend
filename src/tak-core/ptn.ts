@@ -9,8 +9,7 @@ import {
   TakVariant,
 } from '.';
 import { TakBaseGame } from './base';
-import { TakBoard, TakPiece, TakStack } from './board';
-import { v4 } from 'uuid';
+import { TakBoard, TakStack } from './board';
 
 export function actionFromString(str: string): TakAction | null {
   function stringToVariant(variant: string): TakVariant | null {
@@ -118,7 +117,9 @@ export function gameToPTN(
 
   const movePairs = [];
   for (let i = 0; i < moves.length; i += 2) {
-    movePairs.push(moves[i] + (moves[i + 1] ? ` ${moves[i + 1]}` : ''));
+    const firstMove = moves[i];
+    const secondMove = moves[i + 1];
+    movePairs.push(firstMove + (secondMove ? ` ${secondMove}` : ''));
   }
   const moveStr = movePairs.map((pair, index) => `${(index + 1).toString()}. ${pair}`).join('\n');
 
@@ -135,21 +136,21 @@ export function PTNToGame(ptn: string): {
   game: TakBaseGame;
   playerInfo: Record<TakPlayer, { username: string; rating?: number }>;
 } | null {
-  const attributeMatches = Array.from(ptn.matchAll(PTN_ATTRIBUTES_REGEX));
-  const attributes: Record<string, string | undefined> = Object.fromEntries(
-    attributeMatches.map((match) => {
-      const [, name, value] = match;
-      return [name, value];
-    }),
-  );
-  const size = attributes['Size'];
-  const flats = attributes['Flats'];
-  const caps = attributes['Caps'];
-  const komi = attributes['Komi'];
-  const player1 = attributes['Player1'] ?? 'Player 1';
-  const player2 = attributes['Player2'] ?? 'Player 2';
-  const rating1 = attributes['Rating1'] !== undefined ? parseInt(attributes['Rating1']) : undefined;
-  const rating2 = attributes['Rating2'] !== undefined ? parseInt(attributes['Rating2']) : undefined;
+  const attributeMatches = Array.from(ptn.matchAll(PTN_ATTRIBUTES_REGEX)).map((match) => {
+    const [, name, value] = match;
+    return [name, value] as const;
+  });
+  const attributes: Map<string, string> = new Map<string, string>(attributeMatches);
+  const size = attributes.get('Size');
+  const flats = attributes.get('Flats');
+  const caps = attributes.get('Caps');
+  const komi = attributes.get('Komi');
+  const player1 = attributes.get('Player1') ?? 'Player 1';
+  const player2 = attributes.get('Player2') ?? 'Player 2';
+  const rating1Str = attributes.get('Rating1');
+  const rating2Str = attributes.get('Rating2');
+  const rating1 = rating1Str !== undefined ? parseInt(rating1Str) : undefined;
+  const rating2 = rating2Str !== undefined ? parseInt(rating2Str) : undefined;
   const playerInfo = {
     white: {
       username: player1,
@@ -257,12 +258,12 @@ export function boardToPositionString(board: TakBoard): string {
     }
   }
 
-  function rowToPositionString(row: (TakStack | null)[]) {
+  function rowToPositionString(row: (TakStack | undefined)[]) {
     const result: string[] = [];
     let emptyCount = 0;
 
     for (const stack of row) {
-      if (stack === null) {
+      if (stack === undefined) {
         emptyCount++;
       } else {
         if (emptyCount > 0) {
@@ -289,65 +290,4 @@ export function boardToPositionString(board: TakBoard): string {
     rows.push(rowToPositionString(row));
   }
   return rows.join('/');
-}
-
-export function fromPositionString(position: string): { board: TakBoard; plyIndex: number } {
-  const parts = position.split(' ');
-  if (parts.length !== 3) {
-    throw new Error(`Invalid position string: ${position}`);
-  }
-  const [positionStr, turnIndicator, moveCountStr] = parts;
-  if (turnIndicator !== '1' && turnIndicator !== '2') {
-    throw new Error(`Invalid turn indicator: ${turnIndicator}`);
-  }
-  const moveCount = parseInt(moveCountStr, 10);
-  if (isNaN(moveCount) || moveCount <= 0) {
-    throw new Error(`Invalid move count: ${moveCountStr}`);
-  }
-  const plyIndex = (moveCount - 1) * 2 + (turnIndicator === '1' ? 0 : 1);
-  const rows = positionStr.split('/');
-  const size = rows.length;
-  const board = new TakBoard(size);
-
-  for (let y = 0; y < size; y++) {
-    const row = rows[size - 1 - y];
-    const cells = row.split(',');
-    let x = 0;
-    for (const cell of cells) {
-      if (cell.startsWith('x')) {
-        if (cell.length > 1) {
-          const count = parseInt(cell.slice(1), 10);
-          if (isNaN(count) || count <= 0) {
-            throw new Error(`Invalid empty cell count: ${cell}`);
-          }
-          x += count;
-        } else {
-          x += 1;
-        }
-        continue;
-      }
-      const match = cell.match(/^([12]+)([SC]?)$/);
-      if (!match) {
-        throw new Error(`Invalid cell string: ${cell}`);
-      }
-      const variantStr = match[2];
-      const variant = variantStr === 'C' ? 'capstone' : variantStr === 'S' ? 'standing' : 'flat';
-      const piecesStr = match[1];
-      const composition: TakPiece[] = [];
-      for (const char of piecesStr) {
-        const player = char === '1' ? 'white' : 'black';
-        composition.push({
-          player,
-          id: v4(),
-        });
-      }
-      const index = y * size + x;
-      board.stacks[index] = {
-        variant,
-        composition,
-      };
-      x++;
-    }
-  }
-  return { board, plyIndex };
 }

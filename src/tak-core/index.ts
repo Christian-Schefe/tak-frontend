@@ -42,7 +42,12 @@ export interface TakRealtimeTimeControl {
 
 export type TakTimeControl = TakAsyncTimeControl | TakRealtimeTimeControl;
 
-export type TakPieceId = string;
+export interface TakPieceId {
+  type: 'flat' | 'capstone';
+  player: TakPlayer;
+  kindIndex: number;
+  uuid: string;
+}
 
 export type TakActionRecord =
   | {

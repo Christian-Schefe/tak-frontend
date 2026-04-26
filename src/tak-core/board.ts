@@ -25,18 +25,22 @@ export class TakBoard {
   [immerable] = true;
 
   size: number;
-  stacks: (TakStack | null)[];
+  stacks: (TakStack | undefined)[];
+  private kindIndices: Record<TakPlayer, Record<'flat' | 'capstone', number>> = {
+    white: { flat: 0, capstone: 0 },
+    black: { flat: 0, capstone: 0 },
+  };
 
   constructor(size: number) {
     this.size = size;
-    this.stacks = new Array(size * size).fill(null).map(() => null);
+    this.stacks = new Array(size * size).fill(undefined).map(() => undefined);
   }
 
   clone(): TakBoard {
     const newBoard = new TakBoard(this.size);
     newBoard.stacks = this.stacks.map((stack) => {
-      if (stack === null) {
-        return null;
+      if (stack === undefined) {
+        return undefined;
       }
       return {
         variant: stack.variant,
@@ -46,9 +50,9 @@ export class TakBoard {
     return newBoard;
   }
 
-  getStack(pos: TakPos): TakStack | null {
+  getStack(pos: TakPos): TakStack | undefined {
     if (!isValidPos(this.size, pos)) {
-      return null;
+      return undefined;
     }
     const index = pos.y * this.size + pos.x;
     return this.stacks[index];
@@ -59,7 +63,7 @@ export class TakBoard {
       return false;
     }
     const index = pos.y * this.size + pos.x;
-    return this.stacks[index] === null;
+    return this.stacks[index] === undefined;
   }
 
   doPlace(pos: TakPos, variant: TakVariant, player: TakPlayer): { pieceId: TakPieceId } | null {
@@ -67,7 +71,13 @@ export class TakBoard {
       return null;
     }
     const index = pos.y * this.size + pos.x;
-    const pieceId = v4();
+    const pieceType = variant === 'capstone' ? 'capstone' : 'flat';
+    const pieceId: TakPieceId = {
+      uuid: v4(),
+      type: pieceType,
+      player,
+      kindIndex: this.kindIndices[player][pieceType]++,
+    };
     this.stacks[index] = {
       variant,
       composition: [{ player, id: pieceId }],
@@ -75,12 +85,26 @@ export class TakBoard {
     return { pieceId };
   }
 
-  undoPlace(pos: TakPos) {
+  canUndoPlace(pos: TakPos): boolean {
     if (!isValidPos(this.size, pos)) {
+      return false;
+    }
+    const index = pos.y * this.size + pos.x;
+    return this.stacks[index] !== undefined && this.stacks[index].composition.length === 1;
+  }
+
+  undoPlace(pos: TakPos) {
+    if (!this.canUndoPlace(pos)) {
       return;
     }
     const index = pos.y * this.size + pos.x;
-    this.stacks[index] = null;
+    const stack = this.stacks[index];
+    const piece = stack?.composition[0];
+    if (!piece) {
+      return;
+    }
+    this.stacks[index] = undefined;
+    this.kindIndices[piece.id.player][piece.id.type]--;
   }
 
   canDoMove(pos: TakPos, dir: TakDir, drops: number[]): boolean {
@@ -89,7 +113,7 @@ export class TakBoard {
     }
     const index = pos.y * this.size + pos.x;
     const stack = this.stacks[index];
-    if (stack === null) {
+    if (stack === undefined) {
       return false;
     }
     const dropsSum = drops.reduce((a, b) => a + b, 0);
@@ -101,16 +125,17 @@ export class TakBoard {
       return false;
     }
     for (let i = 0; i < drops.length; i++) {
-      if (drops[i] <= 0) {
+      const dropAmount = drops[i];
+      if (dropAmount <= 0) {
         return false;
       }
       const curPos = offsetPos(pos, dir, i + 1);
       const curIndex = curPos.y * this.size + curPos.x;
       const curStack = this.stacks[curIndex];
 
-      const canSmash = stack.variant === 'capstone' && i === drops.length - 1 && drops[i] === 1;
+      const canSmash = stack.variant === 'capstone' && i === drops.length - 1 && dropAmount === 1;
       if (
-        curStack !== null &&
+        curStack !== undefined &&
         (curStack.variant === 'capstone' || (curStack.variant === 'standing' && !canSmash))
       ) {
         return false;
@@ -139,7 +164,7 @@ export class TakBoard {
     const variant = stack.variant;
     stack.variant = 'flat';
     if (stack.composition.length === 0) {
-      this.stacks[index] = null;
+      this.stacks[index] = undefined;
     }
     movingPieces.reverse();
     let wasSmash = false;
@@ -148,7 +173,7 @@ export class TakBoard {
       const curPos = offsetPos(pos, dir, i + 1);
       const curIndex = curPos.y * this.size + curPos.x;
       let curStack = this.stacks[curIndex];
-      if (curStack === null) {
+      if (curStack === undefined) {
         curStack = { variant: 'flat', composition: [] };
         this.stacks[curIndex] = curStack;
       }
@@ -186,7 +211,7 @@ export class TakBoard {
         curStack.variant = wasSmash ? 'standing' : 'flat';
       }
       if (curStack.composition.length === 0) {
-        this.stacks[curIndex] = null;
+        this.stacks[curIndex] = undefined;
       }
     }
 
@@ -203,7 +228,7 @@ export class TakBoard {
   }
 
   isFull(): boolean {
-    return this.stacks.every((stack) => stack !== null);
+    return this.stacks.every((stack) => stack !== undefined);
   }
 
   countFlats(): Record<TakPlayer, number> {
@@ -212,7 +237,7 @@ export class TakBoard {
       black: 0,
     };
     for (const stack of this.stacks) {
-      if (stack !== null) {
+      if (stack !== undefined) {
         const topPiece = stack.composition[stack.composition.length - 1];
         if (stack.variant === 'flat') {
           counts[topPiece.player]++;
@@ -228,56 +253,74 @@ export class TakBoard {
     }
     const index = pos.y * this.size + pos.x;
     const stack = this.stacks[index];
-    return (
-      stack !== null &&
-      stack.variant !== 'standing' &&
-      stack.composition[stack.composition.length - 1].player === player
-    );
+    if (stack === undefined || stack.variant === 'standing') {
+      return false;
+    }
+    const topPiece = stack.composition[stack.composition.length - 1];
+    return topPiece.player === player;
   }
 
-  checkForRoad(player: TakPlayer): boolean {
-    return this.findRoad(true, player) || this.findRoad(false, player);
+  checkForRoad(player: TakPlayer): TakPos[] | null {
+    return this.findRoad(true, player) ?? this.findRoad(false, player);
   }
 
-  private findRoad(horizontal: boolean, player: TakPlayer): boolean {
-    const visited = Array(this.size * this.size)
-      .fill(null)
-      .map(() => false);
+  private findRoad(horizontal: boolean, player: TakPlayer): TakPos[] | null {
+    const visited = new Array(this.size * this.size).fill(false).map(() => false);
+    const prev: (TakPos | null)[] = new Array(this.size * this.size).fill(null).map(() => null);
     const queue: TakPos[] = [];
+
+    const toIndex = (p: TakPos) => p.y * this.size + p.x;
+
     for (let i = 0; i < this.size; i++) {
       const pos = horizontal ? { x: 0, y: i } : { x: i, y: 0 };
       if (this.isRoadSquare(pos, player)) {
+        const idx = toIndex(pos);
         queue.push(pos);
-        visited[pos.y * this.size + pos.x] = true;
+        visited[idx] = true;
       }
     }
+
     while (queue.length > 0) {
       const pos = queue.shift();
       if (!pos) {
         break;
       }
+
       const isEnd = (horizontal ? pos.x : pos.y) === this.size - 1;
       if (isEnd) {
-        return true;
+        const path: TakPos[] = [];
+        let cur: TakPos | null = pos;
+
+        while (cur) {
+          path.push(cur);
+          cur = prev[toIndex(cur)];
+        }
+
+        path.reverse();
+        return path;
       }
+
       for (const dir of allDirections) {
         const neighbor = offsetPos(pos, dir, 1);
-        if (this.isRoadSquare(neighbor, player)) {
-          const index = neighbor.y * this.size + neighbor.x;
-          if (!visited[index]) {
-            visited[index] = true;
-            queue.push(neighbor);
-          }
-        }
+
+        if (!this.isRoadSquare(neighbor, player)) continue;
+
+        const nIdx = toIndex(neighbor);
+        if (visited[nIdx]) continue;
+
+        visited[nIdx] = true;
+        prev[nIdx] = pos;
+        queue.push(neighbor);
       }
     }
-    return false;
+
+    return null;
   }
 
   computeHashString(): string {
     return this.stacks
       .map((stack) => {
-        if (stack !== null) {
+        if (stack !== undefined) {
           const variantChar =
             stack.variant === 'flat' ? 'F' : stack.variant === 'standing' ? 'S' : 'C';
           const compositionStr = stack.composition
